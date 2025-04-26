@@ -498,17 +498,17 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen flex bg-gray-50">
       <main className="flex-1 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow p-8 max-w-2xl w-full">
+        <div className="bg-white rounded-xl shadow p-4 sm:p-8 max-w-2xl w-full">
           <h1 className="text-2xl font-bold mb-6 text-rose-600 flex items-center gap-2"><span>👤</span> Profile</h1>
           <form className="space-y-8" onSubmit={handleSubmit}>
             {/* Logo upload section */}
             <div>
-              <h2 className="text-lg font-semibold mb-3 text-gray-700">Logo</h2>
+              <h2 className="text-lg font-semibold mb-3 text-gray-800">Logo</h2>
               <div
                 ref={dropRef}
                 onDrop={handleLogoDrop}
                 onDragOver={handleLogoDragOver}
-                className="flex gap-3 mt-2 flex-wrap min-h-[104px] p-2 rounded-lg border-2 border-dashed border-blue-200 bg-blue-50 hover:bg-blue-100 transition-all cursor-pointer"
+                className="flex gap-3 mt-2 flex-wrap min-h-[104px] p-2 rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 transition-all cursor-pointer"
               >
                 {!logoPreview && (
                   <label className="w-24 h-24 flex items-center justify-center border-2 border-dashed border-gray-300 rounded cursor-pointer bg-white hover:bg-gray-100 transition relative group">
@@ -528,7 +528,7 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
-              <div className="text-xs text-gray-400 mt-1">JPG, PNG, WEBP. Max 5MB.</div>
+              <div className="text-xs text-gray-600 mt-1 font-medium">JPG, PNG, WEBP. Max 5MB.</div>
               {showCrop && (
                 <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
                   <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center relative w-[350px]">
@@ -567,15 +567,24 @@ export default function ProfilePage() {
               )}
             </div>
             <div>
-              <h2 className="text-lg font-semibold mb-3 text-gray-700">Business Info</h2>
+              <h2 className="text-lg font-semibold mb-3 text-gray-800">Business Info</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Business Name</label>
-                  <input type="text" className="w-full p-2 border rounded" value={businessName} onChange={e => setBusinessName(e.target.value)} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
+                    value={businessName} 
+                    onChange={e => setBusinessName(e.target.value)} 
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Business Type</label>
-                  <select className="w-full p-2 border rounded" value={businessType} onChange={e => setBusinessType(e.target.value)}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Type</label>
+                  <select 
+                    className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
+                    value={businessType} 
+                    onChange={e => setBusinessType(e.target.value)}
+                  >
                     <option value="">Select business type</option>
                     {BUSINESS_TYPES.map(type => (
                       <option key={type} value={type}>{type}</option>
@@ -584,10 +593,10 @@ export default function ProfilePage() {
                 </div>
               </div>
               {businessType === "Market" && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">Market Location</label>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Market Location</label>
                   <select 
-                    className="w-full p-2 border rounded"
+                    className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
                     value={market}
                     onChange={(e) => setMarket(e.target.value)}
                   >
@@ -598,10 +607,10 @@ export default function ProfilePage() {
                   </select>
                 </div>
               )}
-              <div className="md:col-span-2 mb-6">
+              <div className="md:col-span-2 my-6">
                 <div className="mb-2">
-                  <h3 className="text-sm font-medium">Services Offered</h3>
-                  <p className="text-sm text-gray-600">
+                  <h3 className="text-sm font-medium text-gray-800">Services Offered</h3>
+                  <p className="text-sm text-gray-700">
                     {businessType ? `Select the services you provide as a ${businessType.toLowerCase()}` : 'Select your business type to see relevant services'}
                   </p>
                 </div>
@@ -614,8 +623,8 @@ export default function ProfilePage() {
                         onClick={() => handleServiceChange(service)}
                         className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                           selectedServices.includes(service)
-                            ? 'bg-rose-100 text-rose-700'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200'
                         }`}
                       >
                         {service}
@@ -629,13 +638,13 @@ export default function ProfilePage() {
                       value={customService}
                       onChange={(e) => setCustomService(e.target.value)}
                       placeholder="Add a custom service..."
-                      className="flex-1 p-2 border rounded-lg"
+                      className="flex-1 p-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900"
                       onKeyPress={(e) => e.key === 'Enter' && handleAddCustomService()}
                     />
                     <button
                       type="button"
                       onClick={handleAddCustomService}
-                      className="px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
+                      className="px-4 py-2.5 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors font-medium"
                     >
                       Add
                     </button>
@@ -643,18 +652,18 @@ export default function ProfilePage() {
 
                   {selectedServices.length > 0 && (
                     <div className="mt-3">
-                      <p className="text-sm font-medium mb-2">Selected Services:</p>
+                      <p className="text-sm font-medium mb-2 text-gray-800">Selected Services:</p>
                       <div className="flex flex-wrap gap-2">
                         {selectedServices.map((service) => (
                           <span
                             key={service}
-                            className="inline-flex items-center gap-1 px-3 py-1 bg-rose-50 text-rose-700 rounded-full text-sm"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-50 text-rose-800 rounded-full text-sm font-medium border border-rose-200"
                           >
                             {service}
                             <button
                               type="button"
                               onClick={() => handleRemoveService(service)}
-                              className="text-rose-500 hover:text-rose-700"
+                              className="text-rose-600 hover:text-rose-800"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -670,25 +679,25 @@ export default function ProfilePage() {
 
               <div className="md:col-span-2">
                 <div className="mb-3">
-                  <label className="block text-sm font-medium mb-1">Business Description</label>
-                  <p className="text-sm text-gray-600 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Description</label>
+                  <p className="text-sm text-gray-700 mb-2">
                     Describe your business, what makes it unique, and what customers can expect. 
                     You can use our AI to help generate a description or auto-fill based on your information.
                   </p>
                 </div>
                 <div className="space-y-3">
                   <textarea
-                    className="w-full p-3 border rounded-lg resize-none"
+                    className="w-full p-3 border border-gray-300 rounded-lg shadow-sm resize-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900"
                     rows={4}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Tell customers about your business..."
                   />
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <button
                       type="button"
                       onClick={handleAutoFillDescription}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2 font-medium"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -699,7 +708,7 @@ export default function ProfilePage() {
                       type="button"
                       onClick={handleGenerateDescription}
                       disabled={generating}
-                      className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-2 disabled:opacity-50"
+                      className="px-4 py-2 bg-blue-200 text-blue-800 rounded-lg hover:bg-blue-300 transition-colors flex items-center gap-2 disabled:opacity-50 font-medium"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -711,57 +720,109 @@ export default function ProfilePage() {
               </div>
             </div>
             <div>
-              <h2 className="text-lg font-semibold mb-3 text-gray-700">Contact Info</h2>
+              <h2 className="text-lg font-semibold mb-3 text-gray-800">Contact Info</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Phone</label>
-                  <input type="text" className="w-full p-2 border rounded" value={phone} onChange={e => setPhone(e.target.value)} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
+                    value={phone} 
+                    onChange={e => setPhone(e.target.value)} 
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Email</label>
-                  <input type="email" className="w-full p-2 border rounded" value={email} onChange={e => setEmail(e.target.value)} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input 
+                    type="email" 
+                    className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
+                    value={email} 
+                    onChange={e => setEmail(e.target.value)} 
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Website</label>
-                  <input type="text" className="w-full p-2 border rounded" value={website} onChange={e => setWebsite(e.target.value)} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
+                    value={website} 
+                    onChange={e => setWebsite(e.target.value)} 
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Location</label>
-                  <input type="text" className="w-full p-2 border rounded" value={location} onChange={e => setLocation(e.target.value)} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
+                    value={location} 
+                    onChange={e => setLocation(e.target.value)} 
+                  />
                 </div>
               </div>
             </div>
         
             <div>
-              <h2 className="text-lg font-semibold mb-3 text-gray-700">Social Connects</h2>
+              <h2 className="text-lg font-semibold mb-3 text-gray-800">Social Connects</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Facebook</label>
-                  <input type="text" className="w-full p-2 border rounded" value={facebook} onChange={e => setFacebook(e.target.value)} placeholder="Facebook URL or username" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Facebook</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
+                    value={facebook} 
+                    onChange={e => setFacebook(e.target.value)} 
+                    placeholder="Facebook URL or username" 
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Instagram</label>
-                  <input type="text" className="w-full p-2 border rounded" value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="Instagram URL or username" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
+                    value={instagram} 
+                    onChange={e => setInstagram(e.target.value)} 
+                    placeholder="Instagram URL or username" 
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">WhatsApp</label>
-                  <input type="text" className="w-full p-2 border rounded" value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="WhatsApp number or link" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
+                    value={whatsapp} 
+                    onChange={e => setWhatsapp(e.target.value)} 
+                    placeholder="WhatsApp number or link" 
+                  />
                 </div>
               </div>
             </div>
            
             {success && (
-  <div className="mb-4">
-    <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative flex items-center gap-2" role="alert">
-      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
-      <span className="block">{success}</span>
-    </div>
-  </div>
-)}
-{error && <p className="text-red-600 mb-4">{error}</p>}
-            <button type="submit" className="bg-rose-500 hover:bg-rose-600 text-white px-6 py-2 rounded shadow transition-colors">Save</button>
+              <div className="mb-4">
+                <div className="bg-green-100 border border-green-500 text-green-800 px-4 py-3 rounded relative flex items-center gap-2" role="alert">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="block font-medium">{success}</span>
+                </div>
+              </div>
+            )}
+            {error && (
+              <div className="mb-4">
+                <div className="bg-red-100 border border-red-500 text-red-800 px-4 py-3 rounded relative flex items-center gap-2" role="alert">
+                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span className="block font-medium">{error}</span>
+                </div>
+              </div>
+            )}
+            <button 
+              type="submit" 
+              className="bg-rose-600 hover:bg-rose-700 text-white px-6 py-3 rounded-md shadow transition-colors font-medium text-base focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500"
+            >
+              Save Profile
+            </button>
           </form>
         </div>
       </main>
