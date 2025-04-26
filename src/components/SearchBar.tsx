@@ -29,6 +29,7 @@ const categories = [
 
 export function SearchBar() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
   const router = useRouter();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -39,47 +40,38 @@ export function SearchBar() {
   };
 
   return (
-    <form onSubmit={handleSearch} className="w-full">
+    <form onSubmit={handleSearch} className="w-full max-w-4xl mx-auto">
       <div className="relative">
+        <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search for businesses"
-          className="w-full px-3 py-2 sm:py-5 sm:px-4 pl-10 pr-4 text-gray-900 bg-white/95 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-rose-500 text-base sm:text-lg border border-rose-200 focus:border-rose-400 transition-all"
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          placeholder="Search for businesses, markets, restaurants..."
+          className={`w-full px-3 py-3 sm:py-4 sm:px-5 pl-12 pr-24 text-gray-900 bg-white rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-rose-500 text-base sm:text-lg border ${isFocused ? 'border-rose-400' : 'border-gray-200'} transition-all duration-300`}
         />
-        <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-          <svg
-            className="w-5 h-5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-        </div>
         <button
           type="submit"
-          className="absolute inset-y-0 right-0 px-5 sm:px-8 text-rose-500 bg-transparent rounded-full focus:outline-none focus:ring-2 focus:ring-rose-500 text-base sm:text-lg font-medium flex items-center gap-2 shadow-none hover:bg-transparent hover:shadow-none"
+          className="absolute inset-y-0 right-0 px-5 sm:px-6 text-white bg-rose-500 rounded-r-full hover:bg-rose-600 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-rose-700 focus:ring-offset-2 text-base sm:text-lg font-medium flex items-center gap-2"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+          Search
         </button>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2 justify-center">
+      
+      <div className="mt-6 flex flex-wrap gap-2 sm:gap-3 justify-center">
         {categories.map((category) => (
           <Link
             key={category.name}
             href={category.link}
-            className="px-6 py-2 bg-white/10 hover:bg-rose-500/20 text-white rounded-full transition-colors duration-200 text-lg border border-rose-500/20 hover:border-rose-500/40 flex items-center gap-2"
+            className="px-4 py-2 bg-white/20 hover:bg-rose-500/30 text-white rounded-full transition-all duration-200 text-sm sm:text-base border border-white/30 hover:border-rose-300 flex items-center gap-2 backdrop-blur-sm hover:shadow-lg transform hover:-translate-y-0.5"
           >
-            {category.icon}
+            <span className="bg-white/20 p-1.5 rounded-full">{category.icon}</span>
             {category.name}
           </Link>
         ))}

@@ -3,7 +3,7 @@ import { FiSearch, FiLogIn, FiUserPlus } from 'react-icons/fi';
 
 export function TopNavbar() {
   return (
-    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full z-50 pt-4 max-w-7xl px-4 mb-8">
+    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full z-50 pt-4 max-w-7xl px-4 mb-48">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
         {/* Logo and Auth links row */}
         <div className="flex items-center justify-between w-full md:w-auto">

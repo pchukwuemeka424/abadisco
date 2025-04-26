@@ -2,72 +2,84 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { FaSignInAlt, FaUserPlus } from 'react-icons/fa';
 
 export function Navbar() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  
+  // Handle scroll effect for navbar transparency
+  useEffect(() => {
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 20;
+      if (isScrolled !== scrolled) {
+        setScrolled(isScrolled);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [scrolled]);
 
   return (
-    <nav className="absolute top-0 left-0 w-full z-50 bg-white/10 backdrop-blur-md">
+    <nav className={`fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300 ${
+      scrolled ? 'bg-black/80 backdrop-blur-md shadow-lg' : 'bg-transparent'
+    }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
-              <div className="relative w-24 h-24 md:w-32 md:h-32">{/* Further increased logo size for both sm and md */}
-                <Image src="/images/logo.png" alt="Logo" width={320} height={160} className="w-full h-full object-contain rounded" />
+              <div className="relative w-16 h-16 md:w-20 md:h-20">
+                <Image 
+                  src="/images/logo.png" 
+                  alt="Aba Directory Logo" 
+                  fill 
+                  className="object-contain"
+                  priority
+                />
               </div>
-              <span className="ml-3 text-xl font-bold text-white hidden sm:inline">
+              <span className="ml-2 text-xl font-bold text-white hidden sm:inline tracking-wide">
                 Aba Directory
               </span>
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex md:items-center md:space-x-4">
+          {/* Desktop Login/Signup */}
+          <div className="hidden md:flex md:items-center space-x-3">
             <Link
               href="/auth/login"
-              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white px-4 py-2 text-sm font-medium rounded-lg transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Login
+              <FaSignInAlt className="h-4 w-4" />
+              <span>Login</span>
             </Link>
             <Link
               href="/auth/signup"
-              className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-1.5 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 text-sm font-medium rounded-lg transition-colors border border-transparent hover:border-rose-400"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Sign Up
+              <FaUserPlus className="h-4 w-4" />
+              <span>Sign Up</span>
             </Link>
           </div>
 
-          {/* Mobile Navigation */}
-          <div className="flex md:hidden items-center gap-2">
+          {/* Mobile Login/Signup Buttons */}
+          <div className="md:hidden flex items-center space-x-2">
             <Link
               href="/auth/login"
-              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-1 bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Login
+              <FaSignInAlt className="h-3 w-3" />
+              <span>Login</span>
             </Link>
             <Link
               href="/auth/signup"
-              className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-1 bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Sign Up
+              <FaUserPlus className="h-3 w-3" />
+              <span>Sign Up</span>
             </Link>
           </div>
-
-      
         </div>
       </div>
     </nav>
