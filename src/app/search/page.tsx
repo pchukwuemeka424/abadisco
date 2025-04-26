@@ -179,10 +179,10 @@ export default function SearchPage() {
   // Render search and filter components
   const renderSearchFilters = () => {
     return (
-      <form onSubmit={handleSearch} className="flex gap-2">
+      <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-grow">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -190,55 +190,59 @@ export default function SearchPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+            className="w-full py-3 pl-12 pr-4 border-0 rounded-xl focus:ring-2 focus:ring-rose-500 shadow-sm bg-white"
             placeholder="Search businesses, services, categories..."
           />
         </div>
-        <button
-          type="button"
-          onClick={() => setFiltersOpen(!filtersOpen)}
-          className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center gap-2 border border-gray-300"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          <span className="hidden sm:inline">Filters</span>
-          {(selectedCategory !== 'all' || minRating > 0 || priceFilter.length > 0 || selectedFeatures.length > 0) && (
-            <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-rose-500 rounded-full">
-              {(selectedCategory !== 'all' ? 1 : 0) + 
-               (minRating > 0 ? 1 : 0) + 
-               (priceFilter.length > 0 ? 1 : 0) + 
-               (selectedFeatures.length > 0 ? 1 : 0)}
-            </span>
-          )}
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg"
-        >
-          Search
-        </button>
-        <div className="hidden sm:flex border border-gray-300 rounded-lg">
+        <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => setViewMode('grid')}
-            className={`p-2 ${viewMode === 'grid' ? 'bg-gray-200' : 'bg-white'} rounded-l-lg`}
-            title="Grid view"
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            className="px-4 py-3 bg-white hover:bg-gray-50 rounded-xl flex items-center gap-2 shadow-sm transition-all duration-200"
+            aria-label="Open filters"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
             </svg>
+            <span className="hidden sm:inline font-medium">Filters</span>
+            {(selectedCategory !== 'all' || minRating > 0 || priceFilter.length > 0 || selectedFeatures.length > 0) && (
+              <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-rose-500 rounded-full">
+                {(selectedCategory !== 'all' ? 1 : 0) + 
+                (minRating > 0 ? 1 : 0) + 
+                (priceFilter.length > 0 ? 1 : 0) + 
+                (selectedFeatures.length > 0 ? 1 : 0)}
+              </span>
+            )}
           </button>
           <button
-            type="button"
-            onClick={() => setViewMode('map')}
-            className={`p-2 ${viewMode === 'map' ? 'bg-gray-200' : 'bg-white'} rounded-r-lg`}
-            title="Map view"
+            type="submit"
+            className="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl shadow-sm transition-all duration-200"
+            aria-label="Search"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
+            Search
           </button>
+          <div className="hidden sm:flex shadow-sm bg-white rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              className={`p-3 ${viewMode === 'grid' ? 'bg-rose-50 text-rose-600' : 'bg-white text-gray-700 hover:bg-gray-50'} transition-colors duration-200`}
+              aria-label="Grid view"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('map')}
+              className={`p-3 ${viewMode === 'map' ? 'bg-rose-50 text-rose-600' : 'bg-white text-gray-700 hover:bg-gray-50'} transition-colors duration-200`}
+              aria-label="Map view"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+            </button>
+          </div>
         </div>
       </form>
     );
@@ -249,20 +253,23 @@ export default function SearchPage() {
     return (
       <>
         <div 
-          className={`fixed inset-0 z-20 bg-black bg-opacity-30 transition-opacity duration-300 ${filtersOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          className={`fixed inset-0 z-20 bg-black bg-opacity-40 backdrop-blur-sm transition-opacity duration-300 ${filtersOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
           onClick={() => setFiltersOpen(false)}
+          aria-hidden="true"
         />
         <div 
           className={`fixed right-0 top-0 z-40 h-full w-full sm:w-96 bg-white shadow-xl transform transition-transform duration-300 overflow-y-auto ${
             filtersOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
+          aria-labelledby="filter-heading"
         >
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">Filters</h2>
+              <h2 id="filter-heading" className="text-xl font-semibold text-gray-900">Filters</h2>
               <button 
                 onClick={() => setFiltersOpen(false)}
-                className="p-2 rounded-full hover:bg-gray-100"
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors duration-200"
+                aria-label="Close filters"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -270,10 +277,10 @@ export default function SearchPage() {
               </button>
             </div>
             
-            <div className="space-y-6">
+            <div className="space-y-8">
               {/* Category Filter */}
               <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
                   Category
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -281,10 +288,10 @@ export default function SearchPage() {
                     <div
                       key={category.id}
                       onClick={() => setSelectedCategory(category.id)}
-                      className={`px-3 py-2 rounded-md cursor-pointer text-sm transition-colors ${
+                      className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-medium transition-all duration-200 ${
                         selectedCategory === category.id
-                          ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                          : 'bg-gray-100 hover:bg-gray-200 border border-gray-200'
+                          ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                          : 'bg-gray-50 hover:bg-gray-100 border border-gray-100'
                       }`}
                     >
                       {category.name}
@@ -295,7 +302,7 @@ export default function SearchPage() {
               
               {/* Rating Filter */}
               <div>
-                <label htmlFor="rating" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
                   Minimum Rating
                 </label>
                 <div className="flex items-center justify-between">
@@ -304,8 +311,8 @@ export default function SearchPage() {
                       key={rating}
                       type="button"
                       onClick={() => setMinRating(rating)}
-                      className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm ${
-                        minRating === rating ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-gray-100 hover:bg-gray-200 border border-gray-200'
+                      className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        minRating === rating ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-gray-50 hover:bg-gray-100 border border-gray-100'
                       }`}
                     >
                       {rating === 0 ? (
@@ -325,17 +332,17 @@ export default function SearchPage() {
               
               {/* Price Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Price Range</label>
                 <div className="flex gap-2">
                   {['$', '$$', '$$$'].map((price) => (
                     <button
                       key={price}
                       type="button"
                       onClick={() => togglePriceFilter(price)}
-                      className={`flex-1 px-2 py-2 rounded-md text-sm font-medium ${
+                      className={`flex-1 px-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                         priceFilter.includes(price)
-                          ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                          : 'bg-gray-100 hover:bg-gray-200 border border-gray-200'
+                          ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                          : 'bg-gray-50 hover:bg-gray-100 border border-gray-100'
                       }`}
                     >
                       {price}
@@ -346,21 +353,25 @@ export default function SearchPage() {
               
               {/* Features Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Features</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Features</label>
                 <div className="grid grid-cols-2 gap-2">
                   {features.map((feature) => (
                     <div
                       key={feature}
                       onClick={() => toggleFeature(feature)}
-                      className={`px-3 py-2 rounded-md cursor-pointer text-sm flex items-center gap-2 ${
+                      className={`px-3 py-2 rounded-lg cursor-pointer text-sm flex items-center gap-2 transition-all duration-200 ${
                         selectedFeatures.includes(feature)
-                          ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                          : 'bg-gray-100 hover:bg-gray-200 border border-gray-200'
+                          ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                          : 'bg-gray-50 hover:bg-gray-100 border border-gray-100'
                       }`}
                     >
-                      {selectedFeatures.includes(feature) && (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      {selectedFeatures.includes(feature) ? (
+                        <svg className="w-4 h-4 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 12m-8 0a8 8 0 1 0 16 0 8 8 0 1 0 -16 0" />
                         </svg>
                       )}
                       <span className="truncate">{feature}</span>
@@ -373,7 +384,7 @@ export default function SearchPage() {
                 <button
                   type="button"
                   onClick={handleSearch}
-                  className="w-full py-3 rounded-lg bg-rose-500 text-white hover:bg-rose-600 transition-colors font-medium"
+                  className="w-full py-3 rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-colors font-medium shadow-sm"
                 >
                   Apply Filters
                 </button>
@@ -385,7 +396,7 @@ export default function SearchPage() {
                     setPriceFilter([]);
                     setSelectedFeatures([]);
                   }}
-                  className="w-full py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors text-gray-700"
+                  className="w-full py-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors text-gray-700 font-medium"
                 >
                   Clear All Filters
                 </button>
@@ -399,14 +410,19 @@ export default function SearchPage() {
 
   // Render the active filter tags
   const renderFilterTags = () => {
+    if (selectedCategory === 'all' && minRating === 0 && !searchQuery && priceFilter.length === 0 && selectedFeatures.length === 0) {
+      return null;
+    }
+    
     return (
-      <div className="flex flex-wrap gap-2 mt-2">
+      <div className="flex flex-wrap gap-2 mt-3">
         {selectedCategory !== 'all' && (
-          <span className="px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-sm flex items-center gap-1">
+          <span className="px-4 py-2 bg-rose-50 text-rose-700 rounded-full text-sm font-medium flex items-center gap-1 shadow-sm">
             {categories.find(c => c.id === selectedCategory)?.name}
             <button 
               onClick={() => setSelectedCategory('all')}
-              className="ml-1 hover:text-rose-500"
+              className="ml-1 hover:text-rose-500 transition-colors"
+              aria-label={`Remove ${categories.find(c => c.id === selectedCategory)?.name} filter`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -415,11 +431,12 @@ export default function SearchPage() {
           </span>
         )}
         {minRating > 0 && (
-          <span className="px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-sm flex items-center gap-1">
+          <span className="px-4 py-2 bg-rose-50 text-rose-700 rounded-full text-sm font-medium flex items-center gap-1 shadow-sm">
             {minRating}+ Stars
             <button 
               onClick={() => setMinRating(0)}
-              className="ml-1 hover:text-rose-500"
+              className="ml-1 hover:text-rose-500 transition-colors"
+              aria-label="Remove rating filter"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -428,11 +445,40 @@ export default function SearchPage() {
           </span>
         )}
         {searchQuery && (
-          <span className="px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-sm flex items-center gap-1">
+          <span className="px-4 py-2 bg-rose-50 text-rose-700 rounded-full text-sm font-medium flex items-center gap-1 shadow-sm">
             &quot;{searchQuery}&quot;
             <button 
               onClick={() => setSearchQuery('')}
-              className="ml-1 hover:text-rose-500"
+              className="ml-1 hover:text-rose-500 transition-colors"
+              aria-label="Clear search query"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </span>
+        )}
+        {selectedFeatures.length > 0 && selectedFeatures.map(feature => (
+          <span key={feature} className="px-4 py-2 bg-rose-50 text-rose-700 rounded-full text-sm font-medium flex items-center gap-1 shadow-sm">
+            {feature}
+            <button 
+              onClick={() => toggleFeature(feature)}
+              className="ml-1 hover:text-rose-500 transition-colors"
+              aria-label={`Remove ${feature} filter`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </span>
+        ))}
+        {priceFilter.length > 0 && (
+          <span className="px-4 py-2 bg-rose-50 text-rose-700 rounded-full text-sm font-medium flex items-center gap-1 shadow-sm">
+            Price: {priceFilter.join(', ')}
+            <button 
+              onClick={() => setPriceFilter([])}
+              className="ml-1 hover:text-rose-500 transition-colors"
+              aria-label="Clear price filter"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -450,28 +496,30 @@ export default function SearchPage() {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredBusinesses.map((business) => (
-            <div key={business.id} className="flex flex-col h-full">
-              <Link href={`/search/${business.id}`} className="h-full">
-                <div className="h-full cursor-pointer">
-                  <BusinessCard business={business} />
-                </div>
-              </Link>
-            </div>
+            <Link 
+              key={business.id} 
+              href={`/search/${business.id}`} 
+              className="h-full transform hover:scale-105 transition-transform duration-300"
+            >
+              <div className="h-full cursor-pointer rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 bg-white">
+                <BusinessCard business={business} />
+              </div>
+            </Link>
           ))}
         </div>
       );
     }
     
     return (
-      <div className="col-span-full py-16 text-center">
-        <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-gray-100">
-          <svg className="h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="col-span-full py-16 text-center bg-white rounded-2xl shadow-sm my-6">
+        <div className="mx-auto flex items-center justify-center h-28 w-28 rounded-full bg-rose-50">
+          <svg className="h-14 w-14 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
-        <h3 className="mt-4 text-xl font-medium text-gray-900">No results found</h3>
-        <p className="mt-2 text-gray-500">Try adjusting your search or filter to find what you&apos;re looking for.</p>
-        <div className="mt-6">
+        <h3 className="mt-6 text-2xl font-medium text-gray-900">No results found</h3>
+        <p className="mt-3 text-gray-500 max-w-md mx-auto">We couldn't find any businesses matching your criteria. Try adjusting your search or filters.</p>
+        <div className="mt-8">
           <button
             type="button"
             onClick={() => {
@@ -482,7 +530,7 @@ export default function SearchPage() {
               setSelectedFeatures([]);
               router.push('/search');
             }}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            className="px-6 py-3 border border-gray-300 rounded-xl text-base font-medium text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-colors duration-200"
           >
             Clear all filters
           </button>
@@ -494,46 +542,63 @@ export default function SearchPage() {
   // Render map view
   const renderMapView = () => {
     return (
-      <div className="bg-gray-200 rounded-lg overflow-hidden h-[80vh] relative">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center px-4">
-            <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
-            <h3 className="mt-2 text-lg font-medium text-gray-900">Map view</h3>
-            <p className="mt-1 text-gray-500">Interactive map implementation would be placed here.</p>
+      <div className="bg-white rounded-2xl overflow-hidden h-[80vh] relative shadow-md my-6">
+        <div className="absolute inset-0 bg-gray-100">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center px-4">
+              <svg className="mx-auto h-20 w-20 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+              <h3 className="mt-4 text-xl font-medium text-gray-900">Map view</h3>
+              <p className="mt-2 text-gray-500">Interactive map showing all businesses in your area.</p>
+            </div>
           </div>
-        </div>
-        <div className="absolute left-4 top-4 bg-white shadow-md rounded-md p-4 max-w-xs max-h-[70vh] overflow-y-auto">
-          <h3 className="font-medium mb-3">Businesses in view ({filteredBusinesses.length})</h3>
-          <div className="space-y-3">
-            {filteredBusinesses.slice(0, 5).map((business) => (
-              <div key={business.id} className="flex gap-3 border-b pb-3 last:border-0">
-                <div className="relative h-16 w-16 rounded-md overflow-hidden flex-shrink-0">
-                  <Image
-                    src={business.image || '/images/logo.png'}
-                    fill
-                    className="object-cover"
-                    alt={business.business_name || 'Business'}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-sm truncate">{business.name || business.business_name}</h4>
-                  <div className="flex items-center text-xs text-yellow-500">
-                    {[...Array(5)].map((_, i) => (
-                      <svg key={i} className={`w-3 h-3 ${i < Math.floor(business.rating) ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    ))}
-                    <span className="ml-1 text-gray-600">{business.rating}</span>
+          <div className="absolute left-4 top-4 bg-white shadow-lg rounded-xl p-5 max-w-xs max-h-[70vh] overflow-y-auto">
+            <h3 className="font-medium text-lg mb-4 flex items-center justify-between">
+              <span>Businesses ({filteredBusinesses.length})</span>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </h3>
+            <div className="space-y-4">
+              {filteredBusinesses.slice(0, 5).map((business) => (
+                <Link key={business.id} href={`/search/${business.id}`} className="block">
+                  <div className="flex gap-3 pb-4 border-b border-gray-100 hover:bg-gray-50 transition-colors rounded-lg p-2">
+                    <div className="relative h-16 w-16 rounded-lg overflow-hidden flex-shrink-0">
+                      <Image
+                        src={business.image || '/images/logo.png'}
+                        fill
+                        className="object-cover"
+                        alt={business.business_name || 'Business'}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm truncate">{business.name || business.business_name}</h4>
+                      <div className="flex items-center text-xs text-yellow-500 mt-1">
+                        {[...Array(5)].map((_, i) => (
+                          <svg key={i} className={`w-3 h-3 ${i < Math.floor(business.rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        ))}
+                        <span className="ml-1 text-gray-600">{business.rating || 'N/A'}</span>
+                      </div>
+                      <p className="text-gray-500 text-xs truncate mt-1 flex items-center">
+                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {business.address || 'Location not available'}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-gray-500 text-xs truncate">{business.address}</p>
-                </div>
-              </div>
-            ))}
-            {filteredBusinesses.length > 5 && (
-              <p className="text-xs text-gray-500">+ {filteredBusinesses.length - 5} more businesses</p>
-            )}
+                </Link>
+              ))}
+              {filteredBusinesses.length > 5 && (
+                <p className="text-xs text-center text-rose-600 font-medium">
+                  + {filteredBusinesses.length - 5} more businesses
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -543,9 +608,10 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header with search and filters toggle */}
-      <div className="sticky top-0 z-30 bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="sticky top-0 z-30 bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           {renderSearchFilters()}
+          {renderFilterTags()}
         </div>
       </div>
       
@@ -557,14 +623,20 @@ export default function SearchPage() {
         {/* Results header with count and sort options */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">
-              {filteredBusinesses.length} {filteredBusinesses.length === 1 ? 'Result' : 'Results'}
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+              {filteredBusinesses.length} {filteredBusinesses.length === 1 ? 'Business' : 'Businesses'}
+              {isLoading && (
+                <svg className="animate-spin ml-3 h-5 w-5 text-rose-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              )}
             </h2>
-            {renderFilterTags()}
+            <p className="text-sm text-gray-500 mt-1">Showing results for your search</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="text-sm text-gray-700 whitespace-nowrap">Sort by:</span>
-            <select className="px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-rose-500 focus:border-rose-500">
+            <select className="px-4 py-2 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 border-0 text-sm">
               <option value="relevance">Relevance</option>
               <option value="rating">Highest Rated</option>
               <option value="newest">Newest</option>
@@ -572,15 +644,16 @@ export default function SearchPage() {
               <option value="price-high">Price: High to Low</option>
             </select>
             <button 
-              className="sm:hidden p-2 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center border border-gray-300"
+              className="sm:hidden p-3 bg-white shadow-sm rounded-xl flex items-center"
               onClick={() => setViewMode(viewMode === 'grid' ? 'map' : 'grid')}
+              aria-label="Toggle view"
             >
               {viewMode === 'grid' ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
               ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                 </svg>
               )}
@@ -590,14 +663,17 @@ export default function SearchPage() {
 
         {/* Loading state */}
         {isLoading ? (
-          <div className="flex justify-center items-center py-16">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-rose-500"></div>
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-rose-500">
-                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                </svg>
+          <div className="flex justify-center items-center py-20 bg-white rounded-2xl shadow-sm my-6">
+            <div className="text-center">
+              <div className="relative mx-auto">
+                <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-rose-500"></div>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-rose-500">
+                  <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                  </svg>
+                </div>
               </div>
+              <p className="mt-4 text-gray-500">Loading businesses...</p>
             </div>
           </div>
         ) : (
@@ -609,14 +685,21 @@ export default function SearchPage() {
         {/* Loading more indicator */}
         {isLoadingMore && (
           <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500"></div>
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-rose-500"></div>
+              <p className="mt-2 text-sm text-gray-500">Loading more businesses...</p>
+            </div>
           </div>
         )}
         
         {/* No more results indicator */}
         {!hasMore && !isLoadingMore && filteredBusinesses.length > 0 && (
-          <div className="text-center py-8 text-gray-500 text-sm">
-            You&apos;ve seen all available listings
+          <div className="text-center py-10 border-t border-gray-200 mt-6">
+            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
+            </svg>
+            <h3 className="mt-2 text-lg font-medium text-gray-900">All caught up!</h3>
+            <p className="mt-1 text-gray-500">You've seen all the available businesses.</p>
           </div>
         )}
       </div>
