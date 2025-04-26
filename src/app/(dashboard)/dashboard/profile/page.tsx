@@ -25,25 +25,203 @@ const BUSINESS_TYPES = [
   "Bar",
   "Cafe",
   "Bakery",
-  "Supermarket",
+  "Market",
   "Pharmacy",
   "Salon",
   "Hotel",
   "Boutique",
-  "Electronics",
-  "Bookstore",
+  "Spa",
   "Gym",
   "Laundry",
   "Auto Repair",
+  "Electronics",
   "Other"
 ];
+
+const MARKET_LOCATIONS = [
+  "Ariaria Market",
+  "Ahia Ohuru (New Market)",
+  "Cemetery Market",
+  "Eziukwu Market",
+  "Uratta Market",
+  "Railway Market"
+];
+
+const SERVICE_CATEGORIES = {
+  Restaurant: [
+    "Local Dishes",
+    "   - Nkwobi",
+    "   - Isiewu",
+    "   - Suya",
+    "   - Restaurant Pepper Soup",  // Qualified with category
+    "   - Egusi Soup",
+    "   - Ogbono Soup",
+    "   - Okra Soup",
+    "   - Afang Soup",
+    "   - Edikaikong",
+    "   - Oha Soup",
+    "   - Banga Soup",
+    "   - Jollof Rice",
+    "   - Native Rice",
+    "   - Ofada Rice & Sauce",
+    "   - Moi Moi",
+    "   - Akara",
+    "   - Tuwo Shinkafa",
+    "   - Amala & Ewedu",
+    "   - Eba & Soup",
+    "   - Fufu & Soup",
+    "   - Pounded Yam",
+    "Continental Dishes",
+    "Chinese Cuisine",
+    "Fast Food",
+    "Grills & BBQ",
+    "Seafood",
+    "Small Chops",
+    "Vegetarian Options",
+    "Desserts",
+    "Beverages",
+    "Catering",
+    "Takeaway",
+    "Delivery",
+    "Dine-in",
+    "Outdoor Seating",
+    "Private Dining",
+    "Event Catering"
+  ],
+  Bar: [
+    "Local Drinks",
+    "   - Palm Wine",
+    "   - Bar Pepper Soup",  // Qualified with category
+    "   - Bar Nkwobi",      // Qualified with category
+    "   - Isi Ewu",
+    "   - Point & Kill (Fresh Fish)",
+    "   - Bar Suya",        // Qualified with category
+    "Beverages",
+    "   - Local Beer",
+    "   - Imported Beer",
+    "   - Wine & Spirits",
+    "   - Cocktails",
+    "   - Soft Drinks",
+    "   - Fresh Juices",
+    "Bar Food",
+    "   - Small Chops",
+    "   - Grilled Fish",
+    "   - Grilled Meat",
+    "   - Shawarma",
+    "Services",
+    "   - Live Music",
+    "   - Sports Screening",
+    "   - Pool Table",
+    "   - Outdoor Seating",
+    "   - Private Events",
+    "   - Weekend Special",
+    "   - Happy Hour"
+  ],
+  Market: [
+    "Clothing & Textiles",
+    "Senator Wears",
+    "Ankara Fabrics",
+    "Aso Oke",
+    "Lace Materials",
+    "   - French Lace",
+    "   - Indian Lace",
+    "   - Swiss Lace",
+    "   - Voile Lace",
+    "   - Tulle Lace",
+    "   - Cord Lace",
+    "Adire (Tie & Dye)",
+    "George Fabrics",
+    "Electronics & Gadgets",
+    "Home Appliances",
+    "Footwear",
+    "Bags & Accessories",
+    "Cosmetics",
+    "Food & Groceries",
+    "Hardware & Tools",
+    "Auto Parts",
+    "Building Materials",
+    "Wholesale",
+    "Retail",
+    "Import/Export"
+  ],
+  Pharmacy: [
+    "Prescription Medications",
+    "Over-the-Counter Drugs",
+    "Health Supplements",
+    "Medical Supplies",
+    "Personal Care Products",
+    "Baby Care",
+    "Health Consultation",
+    "Home Delivery",
+    "24/7 Service"
+  ],
+  Electronics: [
+    "Phones & Accessories",
+    "Computers & Laptops",
+    "Audio Equipment",
+    "TVs & Home Theater",
+    "Gaming Devices",
+    "Electronic Components",
+    "Repair Services",
+    "Custom Builds",
+    "Installation Services"
+  ],
+  Hotel: [
+    "Room Service",
+    "Restaurant",
+    "Bar & Lounge",
+    "Conference Facilities",
+    "Swimming Pool",
+    "Gym",
+    "Spa Services",
+    "Airport Shuttle",
+    "Laundry Service",
+    "24/7 Reception",
+    "Wi-Fi"
+  ],
+  Salon: [
+    "Haircuts & Styling",
+    "Hair Coloring",
+    "Manicure & Pedicure",
+    "Facial Treatments",
+    "Makeup Services",
+    "Waxing",
+    "Braiding",
+    "Hair Extensions",
+    "Wedding Services"
+  ],
+  "Auto Repair": [
+    "General Repairs",
+    "Engine Service",
+    "Electrical Systems",
+    "AC Service",
+    "Brake Service",
+    "Tire Service",
+    "Body Work",
+    "Paint Jobs",
+    "Diagnostics",
+    "Emergency Service"
+  ],
+  default: [
+    "Standard Service",
+    "Premium Service",
+    "Express Service",
+    "Consultation",
+    "Custom Solutions",
+    "Delivery",
+    "Installation",
+    "Maintenance",
+    "Repair"
+  ]
+};
 
 export default function ProfilePage() {
   const { user, loading } = useAuth();
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
-  const [location, setLocation] = useState(""); // keep for form, but map to address
+  const [location, setLocation] = useState("");
+  const [market, setMarket] = useState(""); // Add market state
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [businessName, setBusinessName] = useState("");
   const [businessType, setBusinessType] = useState("");
@@ -167,13 +345,6 @@ export default function ProfilePage() {
     setError('');
     setSuccess('');
 
-    // Ensure services is a flat array of strings
-    const cleanedServices = Array.isArray(selectedServices) 
-      ? selectedServices.map(service => 
-          typeof service === 'string' ? service : JSON.stringify(service)
-        ).filter(Boolean)
-      : [];
-
     const { error: updateError } = await supabase
       .from("users")
       .update({
@@ -181,7 +352,8 @@ export default function ProfilePage() {
         email,
         website,
         address: location,
-        services: cleanedServices, // Use the cleaned services array
+        market, // Add market to update
+        services: selectedServices,
         business_name: businessName,
         business_type: businessType,
         registration_number: registrationNumber,
@@ -289,7 +461,7 @@ export default function ProfilePage() {
         setEmail(profile.email ?? "");
         setWebsite(profile.website ?? "");
         setLocation(profile.address ?? "");
-        
+        setMarket(profile.market ?? ""); // Load market from profile
         // Clean up services array when loading from database
         let servicesArr = [];
         if (Array.isArray(profile.services)) {
@@ -318,9 +490,13 @@ export default function ProfilePage() {
     loadProfile();
   }, [user, loading]);
 
+  const getServiceOptions = useCallback(() => {
+    if (!businessType) return SERVICE_CATEGORIES.default;
+    return SERVICE_CATEGORIES[businessType as keyof typeof SERVICE_CATEGORIES] || SERVICE_CATEGORIES.default;
+  }, [businessType]);
+
   return (
     <div className="min-h-screen flex bg-gray-50">
-     
       <main className="flex-1 flex items-center justify-center">
         <div className="bg-white rounded-xl shadow p-8 max-w-2xl w-full">
           <h1 className="text-2xl font-bold mb-6 text-rose-600 flex items-center gap-2"><span>👤</span> Profile</h1>
@@ -407,14 +583,31 @@ export default function ProfilePage() {
                   </select>
                 </div>
               </div>
+              {businessType === "Market" && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">Market Location</label>
+                  <select 
+                    className="w-full p-2 border rounded"
+                    value={market}
+                    onChange={(e) => setMarket(e.target.value)}
+                  >
+                    <option value="">Select market location</option>
+                    {MARKET_LOCATIONS.map((marketName) => (
+                      <option key={marketName} value={marketName}>{marketName}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="md:col-span-2 mb-6">
                 <div className="mb-2">
                   <h3 className="text-sm font-medium">Services Offered</h3>
-                  <p className="text-sm text-gray-600">Select the services you provide or add custom ones.</p>
+                  <p className="text-sm text-gray-600">
+                    {businessType ? `Select the services you provide as a ${businessType.toLowerCase()}` : 'Select your business type to see relevant services'}
+                  </p>
                 </div>
                 <div className="space-y-4">
                   <div className="flex flex-wrap gap-2">
-                    {SERVICES.map((service) => (
+                    {getServiceOptions().map((service) => (
                       <button
                         key={service}
                         type="button"
