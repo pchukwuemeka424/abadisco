@@ -16,7 +16,7 @@ type KYCVerification = {
   ai_result: string | null;
   admin_notes: string | null;
   created_at: string;
-  user: {
+  user?: {
     business_name: string;
     email: string;
   } | null;
@@ -77,7 +77,7 @@ export default function KYCTable() {
         data = basicData;
       }
       
-      setVerifications(data || []);
+      setVerifications((data as unknown as KYCVerification[]) || []);
     } catch (error) {
       console.error('Error fetching KYC verifications:', error);
       setError('Failed to fetch verification data. Please try again later.');
@@ -94,7 +94,9 @@ export default function KYCTable() {
   const handleUpdateStatus = async (id: string, status: 'approved' | 'rejected', notes?: string) => {
     try {
       const updateData: any = { status };
-      if (notes !== undefined) {
+      
+      // Only add notes to update data if it's not empty
+      if (notes !== undefined && notes.trim() !== '') {
         updateData.admin_notes = notes;
       }
       
@@ -103,19 +105,26 @@ export default function KYCTable() {
         .update(updateData)
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
       
       // Update local state
       setVerifications(verifications.map(v => {
         if (v.id === id) {
-          return { ...v, status, ...(notes !== undefined ? { admin_notes: notes } : {}) };
+          return { 
+            ...v, 
+            status, 
+            ...(notes !== undefined && notes.trim() !== '' ? { admin_notes: notes } : {}) 
+          };
         }
         return v;
       }));
       
       // Refresh data
       fetchVerifications();
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error updating verification status to ${status}:`, error);
     }
   };
@@ -302,7 +311,7 @@ export default function KYCTable() {
           verification={selectedVerification}
           isOpen={showDetailsModal}
           onClose={() => setShowDetailsModal(false)}
-          onStatusChange={(status, notes) => {
+          onStatusChange={(status: 'approved' | 'rejected', notes: string) => {
             handleUpdateStatus(selectedVerification.id, status, notes);
             setShowDetailsModal(false);
           }}
