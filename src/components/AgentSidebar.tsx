@@ -2,10 +2,18 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FaUser, FaChartBar, FaPlusCircle, FaTasks, FaSignOutAlt, FaUserPlus } from 'react-icons/fa';
+import { FaUser, FaChartBar, FaPlusCircle, FaTasks, FaSignOutAlt, FaUserPlus, FaList } from 'react-icons/fa';
+import { useEffect, useState } from 'react';
 
 export function AgentSidebar() {
   const pathname = usePathname();
+  // Use clientSide state to avoid hydration mismatch
+  const [currentPath, setCurrentPath] = useState('');
+
+  // Set the path after hydration to avoid mismatch
+  useEffect(() => {
+    setCurrentPath(pathname || '');
+  }, [pathname]);
 
   const navItems = [
     {
@@ -23,7 +31,11 @@ export function AgentSidebar() {
       href: '/agent/add-listing',
       icon: <FaPlusCircle className="w-5 h-5" />,
     },
-   
+    {
+      name: 'Manage Listings',
+      href: '/agent/manage-listing',
+      icon: <FaList className="w-5 h-5" />,
+    },
     {
       name: 'Weekly Tasks',
       href: '/agent/tasks',
@@ -48,7 +60,13 @@ export function AgentSidebar() {
         <h2 className="text-xl font-semibold mb-6 font-barlow">Agent Portal</h2>
         <div className="space-y-1">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            // Use startsWith to match current path more reliably
+            // Only apply exact match for the dashboard to avoid conflicts
+            const isActive = 
+              item.href === '/agent' 
+                ? currentPath === '/agent'
+                : currentPath.startsWith(item.href);
+
             return (
               <Link
                 key={item.name}
