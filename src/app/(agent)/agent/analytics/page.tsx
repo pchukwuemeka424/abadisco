@@ -4,9 +4,34 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/supabaseClient';
 import { FaChartBar, FaUsers, FaStore, FaMapMarkerAlt, FaTags } from 'react-icons/fa';
 
+// Define interfaces for our analytics data
+interface MonthlyData {
+  month: string;
+  count: number;
+}
+
+interface MarketData {
+  market: string;
+  count: number; // Supabase returns count as a number (BIGINT)
+}
+
+interface CategoryData {
+  category: string;
+  count: number; // Supabase returns count as a number (BIGINT)
+}
+
+interface AnalyticsState {
+  totalUsers: number;
+  usersByMonth: MonthlyData[];
+  usersByMarket: MarketData[];
+  usersByCategory: CategoryData[];
+  businessConversionRate: number;
+  totalBusinesses: number;
+}
+
 export default function AgentAnalytics() {
   const [loading, setLoading] = useState(true);
-  const [analytics, setAnalytics] = useState({
+  const [analytics, setAnalytics] = useState<AnalyticsState>({
     totalUsers: 0,
     usersByMonth: [],
     usersByMarket: [],
@@ -24,33 +49,54 @@ export default function AgentAnalytics() {
       setLoading(true);
       
       // Get agent ID from the authenticated user
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error('Authentication error:', authError);
+        return;
+      }
+      
       const agentId = user?.id;
       
-      if (!agentId) return;
+      if (!agentId) {
+        console.error('No agent ID found in authenticated user');
+        return;
+      }
+      
+      console.log('Fetching data for agent ID:', agentId);
       
       // Fetch total users registered by this agent
       const { data: totalUsers, error: totalError } = await supabase
         .from('users')
         .select('id', { count: 'exact' })
-        .eq('agent_user_id', agentId);
+        .eq('created_by', agentId);
+      
+      if (totalError) {
+        console.error('Error fetching total users:', totalError);
+        throw totalError;
+      }
       
       // Fetch total businesses (users with business_name)
       const { data: totalBusinesses, error: businessError } = await supabase
         .from('users')
         .select('id', { count: 'exact' })
-        .eq('agent_user_id', agentId)
+        .eq('created_by', agentId)
         .not('business_name', 'is', null);
+      
+      if (businessError) {
+        console.error('Error fetching total businesses:', businessError);
+        throw businessError;
+      }
       
       // Calculate the business conversion rate
       const totalUsersCount = totalUsers?.length || 0;
       const totalBusinessesCount = totalBusinesses?.length || 0;
       const businessConversionRate = totalUsersCount > 0 
         ? (totalBusinessesCount / totalUsersCount * 100).toFixed(1) 
-        : 0;
+        : "0";
       
       // Get users by month for the last 6 months
-      const monthlyData = [];
+      const monthlyData: MonthlyData[] = [];
       const now = new Date();
       
       for (let i = 5; i >= 0; i--) {
@@ -62,11 +108,14 @@ export default function AgentAnalytics() {
         const { data: monthUsers, error: monthError } = await supabase
           .from('users')
           .select('id', { count: 'exact' })
-          .eq('agent_user_id', agentId)
+          .eq('created_by', agentId)
           .gte('created_at', monthStart.toISOString())
           .lte('created_at', monthEnd.toISOString());
         
-        if (monthError) throw monthError;
+        if (monthError) {
+          console.error('Error fetching monthly data:', monthError);
+          throw monthError;
+        }
         
         const monthName = monthStart.toLocaleString('default', { month: 'short' });
         monthlyData.push({
@@ -75,37 +124,84 @@ export default function AgentAnalytics() {
         });
       }
       
-      // Get users by market
-      const { data: marketData, error: marketError } = await supabase
-        .from('users')
-        .select('market, count')
-        .eq('agent_user_id', agentId)
-        .not('market', 'is', null)
-        .group('market');
+      // Use a different approach for market and category data
+      // Since grouping directly isn't working properly, we'll collect all market data and group it in JavaScript
+      try {
+        // Fetch all users with market data
+        const { data: usersWithMarket, error: marketError } = await supabase
+          .from('users')
+          .select('market')
+          .eq('created_by', agentId)
+          .not('market', 'is', null);
+        
+        if (marketError) {
+          console.error('Error fetching users with market:', marketError);
+          throw marketError;
+        }
+        
+        // Group market data in JavaScript
+        const marketCounts: Record<string, number> = {};
+        usersWithMarket?.forEach(user => {
+          if (user.market) {
+            marketCounts[user.market] = (marketCounts[user.market] || 0) + 1;
+          }
+        });
+        
+        const marketData: MarketData[] = Object.entries(marketCounts).map(([market, count]) => ({
+          market,
+          count
+        })).sort((a, b) => b.count - a.count);
+        
+        // Fetch all users with category data
+        const { data: usersWithCategory, error: categoryError } = await supabase
+          .from('users')
+          .select('category')
+          .eq('created_by', agentId)
+          .not('category', 'is', null);
+        
+        if (categoryError) {
+          console.error('Error fetching users with category:', categoryError);
+          throw categoryError;
+        }
+        
+        // Group category data in JavaScript
+        const categoryCounts: Record<string, number> = {};
+        usersWithCategory?.forEach(user => {
+          if (user.category) {
+            categoryCounts[user.category] = (categoryCounts[user.category] || 0) + 1;
+          }
+        });
+        
+        const categoryData: CategoryData[] = Object.entries(categoryCounts).map(([category, count]) => ({
+          category,
+          count
+        })).sort((a, b) => b.count - a.count);
+        
+        setAnalytics({
+          totalUsers: totalUsersCount,
+          usersByMonth: monthlyData,
+          usersByMarket: marketData || [],
+          usersByCategory: categoryData || [],
+          businessConversionRate: parseFloat(businessConversionRate),
+          totalBusinesses: totalBusinessesCount
+        });
+      } catch (innerError) {
+        console.error('Inner error with market/category queries:', innerError);
+        
+        // Fallback to a simplified approach if the queries fail
+        setAnalytics({
+          totalUsers: totalUsersCount,
+          usersByMonth: monthlyData,
+          usersByMarket: [],
+          usersByCategory: [],
+          businessConversionRate: parseFloat(businessConversionRate),
+          totalBusinesses: totalBusinessesCount
+        });
+      }
       
-      if (marketError) throw marketError;
-      
-      // Get users by category
-      const { data: categoryData, error: categoryError } = await supabase
-        .from('users')
-        .select('category, count')
-        .eq('agent_user_id', agentId)
-        .not('category', 'is', null)
-        .group('category');
-      
-      if (categoryError) throw categoryError;
-      
-      setAnalytics({
-        totalUsers: totalUsersCount,
-        usersByMonth: monthlyData,
-        usersByMarket: marketData || [],
-        usersByCategory: categoryData || [],
-        businessConversionRate: parseFloat(businessConversionRate),
-        totalBusinesses: totalBusinessesCount
-      });
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching analytics data:', error);
+      console.error('Error details:', JSON.stringify(error));
     } finally {
       setLoading(false);
     }
