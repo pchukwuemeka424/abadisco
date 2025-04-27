@@ -5,6 +5,7 @@ import Image from "next/image";
 import { supabase } from "@/supabaseClient";
 import { useAuth } from "@/context/auth-context";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
 // Dynamic import for Cropper component to avoid SSR issues
 const Cropper = dynamic(() => import('react-easy-crop'), {
@@ -217,6 +218,7 @@ const SERVICE_CATEGORIES = {
 
 export default function ProfilePage() {
   const { user, loading } = useAuth();
+  const router = useRouter();
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
@@ -241,6 +243,7 @@ export default function ProfilePage() {
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ width: number; height: number; x: number; y: number } | null>(null);
   const [croppingImage, setCroppingImage] = useState<string>("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -368,7 +371,11 @@ export default function ProfilePage() {
     if (updateError) {
       setError("Failed to update profile");
     } else {
-      setSuccess("Profile updated!");
+      setSuccess("Profile updated successfully!");
+      setShowSuccessModal(true);
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
     }
   };
 
@@ -497,6 +504,30 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen flex bg-gray-50">
+      {showSuccessModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full transform transition-all animate-fadeIn">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Profile Updated!</h3>
+              <p className="text-gray-600 mb-6">Your profile has been successfully updated. Redirecting to dashboard...</p>
+              <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                <div className="bg-green-500 h-2 rounded-full w-full animate-pulse"></div>
+              </div>
+              <button 
+                onClick={() => router.push('/dashboard')}
+                className="px-6 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors font-medium"
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <main className="flex-1 flex items-center justify-center">
         <div className="bg-white rounded-xl shadow p-4 sm:p-8 max-w-2xl w-full">
           <h1 className="text-2xl font-bold mb-6 text-rose-600 flex items-center gap-2"><span>👤</span> Profile</h1>

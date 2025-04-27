@@ -68,7 +68,7 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    // Optionally fetch user row from users table
+    // Fetch user row from users table
     const { data: userRow, error: userError } = await supabase
       .from('users')
       .select('*')
@@ -79,8 +79,13 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    // Redirect to dashboard
-    window.location.href = '/dashboard/profile';
+    
+    // Redirect based on user role
+    if (userRow.role === 1) {
+      window.location.href = '/dashboard/';
+    } else {
+      window.location.href = '/admin';
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -89,7 +94,7 @@ export default function LoginPage() {
     const { error: googleError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard/profile`
+        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard/`
       }
     });
     if (googleError) {
