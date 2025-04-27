@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { z } from "zod";
 import { supabase } from "@/supabaseClient";
 import { FaIdCard, FaUpload, FaSpinner } from "react-icons/fa";
@@ -29,6 +29,42 @@ export default function KYCPage() {
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [existingVerification, setExistingVerification] = useState<any>(null);
+
+  // Check for existing verification on component mount
+  useEffect(() => {
+    async function checkExistingVerification() {
+      if (!user) return;
+      try {
+        const { data, error } = await supabase
+          .from("kyc_verifications")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching verification:', error);
+          return;
+        }
+
+        if (data) {
+          setExistingVerification(data);
+          setFullName(data.full_name || "");
+          setIdType(data.id_type || "");
+          setIdNumber(data.id_number || "");
+          // If verification exists and is already approved, mark as submitted
+          if (data.status === "approved") {
+            setSubmitted(true);
+            setVerificationStatus("success");
+          }
+        }
+      } catch (err) {
+        console.error('Error checking verification status:', err);
+      }
+    }
+
+    checkExistingVerification();
+  }, [user]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -74,7 +110,7 @@ export default function KYCPage() {
         return;
       }
 
-      if (!idFile) {
+      if (!idFile && !existingVerification?.id_file_url) {
         setError("Please upload an ID document");
         setVerificationStatus("error");
         return;
@@ -86,36 +122,58 @@ export default function KYCPage() {
         return;
       }
 
-      // Upload ID document to storage
-      const fileExt = idFile.name.split(".").pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from("kyc-documents")
-        .upload(fileName, idFile);
+      let idFileUrl = existingVerification?.id_file_url;
 
-      if (uploadError) {
-        throw new Error("Failed to upload document");
+      // Upload ID document to storage if a new file is selected
+      if (idFile) {
+        const fileExt = idFile.name.split(".").pop();
+        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+        const { error: uploadError, data } = await supabase.storage
+          .from("kyc")
+          .upload(fileName, idFile);
+
+        if (uploadError) {
+          throw new Error("Failed to upload document: " + uploadError.message);
+        }
+
+        // Get the public URL of the uploaded file
+        const { data: { publicUrl } } = supabase.storage
+          .from("kyc")
+          .getPublicUrl(fileName);
+
+        idFileUrl = publicUrl;
       }
 
-      // Get the public URL of the uploaded file
-      const { data: { publicUrl } } = supabase.storage
-        .from("kyc-documents")
-        .getPublicUrl(fileName);
+      // Check if we need to create or update a record
+      if (existingVerification) {
+        // Update existing verification record
+        const { error: updateError } = await supabase
+          .from("kyc_verifications")
+          .update({
+            full_name: fullName,
+            id_type: idType,
+            id_number: idNumber,
+            id_file_url: idFileUrl,
+            status: "pending",
+          })
+          .eq("id", existingVerification.id);
 
-      // Update KYC verification record
-      const { error: updateError } = await supabase
-        .from("kyc_verifications")
-        .update({
-          full_name: fullName,
-          id_type: idType,
-          id_number: idNumber,
-          document_url: publicUrl,
-          status: "pending",
-          submitted_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id);
+        if (updateError) throw new Error("Failed to update verification status: " + updateError.message);
+      } else {
+        // Create new verification record
+        const { error: insertError } = await supabase
+          .from("kyc_verifications")
+          .insert({
+            user_id: user.id,
+            full_name: fullName,
+            id_type: idType,
+            id_number: idNumber,
+            id_file_url: idFileUrl,
+            status: "pending",
+          });
 
-      if (updateError) throw new Error("Failed to update verification status");
+        if (insertError) throw new Error("Failed to submit verification: " + insertError.message);
+      }
 
       setVerificationStatus("success");
       setSubmitted(true);
@@ -256,6 +314,15 @@ export default function KYCPage() {
                             className="mx-auto h-32 w-auto object-contain"
                           />
                         </div>
+                      ) : existingVerification?.id_file_url ? (
+                        <div className="mb-4">
+                          <img
+                            src={existingVerification.id_file_url}
+                            alt="Current ID Document"
+                            className="mx-auto h-32 w-auto object-contain"
+                          />
+                          <p className="text-xs text-gray-500 mt-2">Current ID document</p>
+                        </div>
                       ) : (
                         <FaUpload className="mx-auto h-12 w-12 text-gray-400" />
                       )}
@@ -295,9 +362,7 @@ export default function KYCPage() {
                     <FaSpinner className="animate-spin" />
                     Submitting...
                   </>
-                ) : (
-                  "Submit Verification"
-                )}
+                ) : existingVerification ? "Update Verification" : "Submit Verification"}
               </button>
             </form>
           )}
