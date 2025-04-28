@@ -182,6 +182,15 @@ export default function AgentDashboard() {
               Congratulations! You've met your weekly target! 🎉
             </div>
           )}
+          {/* Warning message and alert if target not met */}
+          {!loading && !stats.weeklyTargetMet && (
+            <div className="text-center text-yellow-700 font-semibold mt-4">
+              <span role="alert" className="inline-flex items-center">
+                <svg className="w-5 h-5 mr-2 text-yellow-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z" /></svg>
+                Warning: You have not met your weekly target. Please try to register more users this week!
+              </span>
+            </div>
+          )}
         </div>
       </div>
       

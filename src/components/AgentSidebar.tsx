@@ -26,11 +26,11 @@ export function AgentSidebar() {
       href: '/agent/profile',
       icon: <FaUser className="w-5 h-5" />,
     },
-    {
-      name: 'Add Listing',
-      href: '/agent/add-listing',
-      icon: <FaPlusCircle className="w-5 h-5" />,
-    },
+    // {
+    //   name: 'Add Listing',
+    //   href: '/agent/add-listing',
+    //   icon: <FaPlusCircle className="w-5 h-5" />,
+    // },
     {
       name: 'Manage Listings',
       href: '/agent/manage-listing',

@@ -27,6 +27,7 @@ export default function ManageListingPage() {
   const [businessTypeFilter, setBusinessTypeFilter] = useState("all");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [imageCounts, setImageCounts] = useState<{ [listingId: string]: number }>({});
 
   useEffect(() => {
     if (!loading && user) {
@@ -86,6 +87,25 @@ export default function ManageListingPage() {
       setIsLoading(false);
     }
   };
+
+  // Fetch image counts for all listings
+  useEffect(() => {
+    async function fetchImageCounts() {
+      if (!listings.length) return;
+      const counts: { [listingId: string]: number } = {};
+      await Promise.all(
+        listings.map(async (listing) => {
+          const { count, error } = await supabase
+            .from("products")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", listing.id);
+          counts[listing.id] = count || 0;
+        })
+      );
+      setImageCounts(counts);
+    }
+    fetchImageCounts();
+  }, [listings]);
 
   const filteredListings = listings.filter(listing => {
     const matchesStatus = statusFilter === "all" || listing.status === statusFilter;
@@ -173,6 +193,10 @@ export default function ManageListingPage() {
     );
   }
 
+  // Determine if all listings are registration completed
+  const allListingsCompleted =
+    listings.length === 0 || listings.every(l => (imageCounts[l.id] || 0) >= 6);
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
@@ -182,15 +206,22 @@ export default function ManageListingPage() {
             <h1 className="text-2xl font-bold text-gray-900 flex items-center">
               <span className="mr-2 text-rose-600">🏬</span> Manage Business Listings
             </h1>
-            <button 
-              onClick={() => router.push('/agent/add-listing')}
-              className="mt-2 sm:mt-0 px-4 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700 transition-colors flex items-center"
-            >
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
-              </svg>
-              Add New Listing
-            </button>
+            <div className="mt-2 sm:mt-0 flex flex-col items-end">
+              <button
+                onClick={() => router.push('/agent/add-listing')}
+                className={`px-4 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700 transition-colors flex items-center ${!allListingsCompleted ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={!allListingsCompleted}
+                title={!allListingsCompleted ? 'Complete registration for your existing listing(s) before adding another.' : ''}
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add New Listing
+              </button>
+              {!allListingsCompleted && listings.length > 0 && (
+                <span className="text-xs text-rose-600 mt-1">You must complete registration for your existing listing(s) before adding another.</span>
+              )}
+            </div>
           </div>
 
           {/* Filters */}
@@ -265,102 +296,118 @@ export default function ManageListingPage() {
             </div>
           ) : (
             <ul className="divide-y divide-gray-200">
-              {filteredListings.map((listing) => (
-                <li key={listing.id} className="px-6 py-5 hover:bg-gray-50">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0 h-16 w-16 rounded-md overflow-hidden border border-gray-200">
-                        {listing.logo_url ? (
-                          <Image 
-                            src={listing.logo_url} 
-                            alt={listing.business_name}
-                            width={64}
-                            height={64}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-full w-full bg-gray-200 flex items-center justify-center">
-                            <span className="text-2xl">🏬</span>
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900">{listing.business_name}</h3>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            {listing.business_type}
-                          </span>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            listing.status === "Now Open" 
-                              ? "bg-green-100 text-green-800" 
-                              : listing.status === "Closed" 
-                              ? "bg-red-100 text-red-800" 
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}>
-                            {listing.status}
-                          </span>
-                          {listing.market && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {listing.market}
-                            </span>
+              {filteredListings.map((listing) => {
+                const imgCount = imageCounts[listing.id] || 0;
+                const registrationStatus =
+                  imgCount >= 6 ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">
+                      Registration Completed
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 ml-2">
+                      Pending ({imgCount}/6)
+                    </span>
+                  );
+                return (
+                  <li key={listing.id} className="px-6 py-5 hover:bg-gray-50">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex-shrink-0 h-16 w-16 rounded-md overflow-hidden border border-gray-200">
+                          {listing.logo_url ? (
+                            <Image 
+                              src={listing.logo_url} 
+                              alt={listing.business_name}
+                              width={64}
+                              height={64}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-full w-full bg-gray-200 flex items-center justify-center">
+                              <span className="text-2xl">🏬</span>
+                            </div>
                           )}
                         </div>
-                        <p className="mt-1 text-sm text-gray-500">
-                          Added on {formatDate(listing.created_at)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-3 sm:mt-0 flex items-center space-x-2">
-                      <button
-                        onClick={() => handleEditListing(listing.id)}
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500"
-                      >
-                        <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => router.push(`/agent/upload-images/${listing.id}`)}
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                        Images
-                      </button>
-                      {confirmDelete === listing.id ? (
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handleDeleteListing(listing.id)}
-                            disabled={deleteLoading}
-                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                          >
-                            {deleteLoading ? "Deleting..." : "Confirm"}
-                          </button>
-                          <button
-                            onClick={handleDeleteCancel}
-                            className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                          >
-                            Cancel
-                          </button>
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                            {listing.business_name}
+                            {registrationStatus}
+                          </h3>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              {listing.business_type}
+                            </span>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              listing.status === "Now Open" 
+                                ? "bg-green-100 text-green-800" 
+                                : listing.status === "Closed" 
+                                ? "bg-red-100 text-red-800" 
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}>
+                              {listing.status}
+                            </span>
+                            {listing.market && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {listing.market}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm text-gray-500">
+                            Added on {formatDate(listing.created_at)}
+                          </p>
                         </div>
-                      ) : (
+                      </div>
+                      <div className="mt-3 sm:mt-0 flex items-center space-x-2">
                         <button
-                          onClick={() => handleDeleteConfirm(listing.id)}
-                          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                          onClick={() => handleEditListing(listing.id)}
+                          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500"
                         >
                           <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                           </svg>
-                          Delete
+                          Edit
                         </button>
-                      )}
+                        <button
+                          onClick={() => router.push(`/agent/upload-images/${listing.id}`)}
+                          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                          <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                          </svg>
+                          Images
+                        </button>
+                        {confirmDelete === listing.id ? (
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => handleDeleteListing(listing.id)}
+                              disabled={deleteLoading}
+                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            >
+                              {deleteLoading ? "Deleting..." : "Confirm"}
+                            </button>
+                            <button
+                              onClick={handleDeleteCancel}
+                              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleDeleteConfirm(listing.id)}
+                            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                          >
+                            <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            Delete
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <p className="mt-3 text-sm text-gray-600 line-clamp-2">{listing.description || "No description provided."}</p>
-                </li>
-              ))}
+                    <p className="mt-3 text-sm text-gray-600 line-clamp-2">{listing.description || "No description provided."}</p>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
