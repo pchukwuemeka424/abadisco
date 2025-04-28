@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from '@/context/auth-context';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/supabaseClient';
 import imageCompression from 'browser-image-compression';
 
@@ -14,11 +14,13 @@ export default function UploadProduct() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(true);
   const dropRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const paramId = searchParams.get('id');
+  const params = useParams();
+  const id = params.id as string;
 
   // Handle file drop
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -99,7 +101,7 @@ export default function UploadProduct() {
 
         // Upload to storage
         const fileExt = uploadFile.name.split('.').pop();
-        const filePath = `products/${paramId || user.id}_${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
+        const filePath = `products/${id || user.id}_${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
         const { error: storageError } = await supabase.storage
           .from('uploads')
           .upload(filePath, uploadFile, { upsert: true });
@@ -120,8 +122,8 @@ export default function UploadProduct() {
       // Insert into database
       const { error: dbError } = await supabase.from('products').insert({
         image_urls: imageUrls[0], // Main image
-        // Use paramId if available, otherwise fall back to user.id
-        user_id: paramId || user.id,
+        // Use id parameter from URL, fallback to user.id if not available
+        user_id: id || user.id,
       });
 
       if (dbError) throw new Error(dbError.message);
@@ -133,13 +135,72 @@ export default function UploadProduct() {
       
       setTimeout(() => {
         setShowModal(false);
-        router.push('/dashboard/manage-products');
+        router.push('/agent/upload-images/'+id);
       }, 2000);
 
     } catch (error) {
       alert(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setUploading(false);
+    }
+  };
+
+  // Fetch all uploaded images for this user/agent
+  useEffect(() => {
+    async function fetchGallery() {
+      setGalleryLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('image_urls')
+          .eq('user_id', id);
+        if (error) throw error;
+        // Flatten all image_urls (handle string or array)
+        const images: string[] = [];
+        (data || []).forEach((row) => {
+          if (!row.image_urls) return;
+          try {
+            // Try to parse as JSON array
+            const parsed = JSON.parse(row.image_urls);
+            if (Array.isArray(parsed)) {
+              images.push(...parsed);
+            } else if (typeof parsed === 'string') {
+              images.push(parsed);
+            }
+          } catch {
+            // Not JSON, treat as single string
+            images.push(row.image_urls);
+          }
+        });
+        setGalleryImages(images);
+      } catch (e) {
+        setGalleryImages([]);
+      } finally {
+        setGalleryLoading(false);
+      }
+    }
+    if (id) fetchGallery();
+  }, [id]);
+
+  // Delete image from storage and DB
+  const handleDeleteImage = async (imgUrl: string) => {
+    if (!window.confirm('Are you sure you want to delete this image?')) return;
+    setGalleryLoading(true);
+    try {
+      // Extract storage path from public URL
+      const uploadsUrl = supabase.storage.from('uploads').getPublicUrl('x').data.publicUrl.replace('/x', '');
+      const filePath = imgUrl.replace(uploadsUrl, '').replace(/^\//, '');
+      // Remove from storage
+      const { error: storageError } = await supabase.storage.from('uploads').remove([filePath]);
+      if (storageError) throw storageError;
+      // Remove from DB: delete product row with this image (if you want to delete only the image, you may need to update the row instead)
+      await supabase.from('products').delete().eq('image_urls', imgUrl).eq('user_id', id);
+      // Refresh gallery
+      setGalleryImages(galleryImages.filter((url) => url !== imgUrl));
+    } catch (e) {
+      alert('Failed to delete image.');
+    } finally {
+      setGalleryLoading(false);
     }
   };
 
@@ -186,6 +247,38 @@ export default function UploadProduct() {
               </div>
             </div>
           )}
+
+          {/* Gallery Section */}
+          <div className="mb-10">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="p-2 bg-rose-100 rounded-xl">🖼️</span>
+              Uploaded Images Gallery
+            </h2>
+            {galleryLoading ? (
+              <div className="text-gray-500 py-8 text-center">Loading images...</div>
+            ) : galleryImages.length === 0 ? (
+              <div className="text-gray-400 py-8 text-center">No images uploaded yet.</div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {galleryImages.map((src, i) => (
+                  <div key={i} className="aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-100 group relative">
+                    <img src={src} alt={`Uploaded ${i + 1}`} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105" />
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteImage(src)}
+                      className="absolute top-2 right-2 bg-white/80 hover:bg-rose-600 hover:text-white text-rose-600 rounded-full p-1 shadow transition-colors z-10"
+                      title="Delete image"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-6 md:p-8">
