@@ -6,13 +6,15 @@ import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { 
   FaHome, FaUsers, FaBox, FaIdCard, FaChartBar, 
-  FaCog, FaBell, FaSignOutAlt, FaBars, FaTimes 
+  FaCog, FaBell, FaSignOutAlt, FaBars, FaTimes, FaUserSecret, FaChartLine
 } from 'react-icons/fa';
 import { supabase } from '@/supabaseClient';
 
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: <FaHome /> },
   { name: 'Users', href: '/admin/users', icon: <FaUsers /> },
+  { name: 'Agents', href: '/admin/agents', icon: <FaUserSecret /> },
+  { name: 'Agent Analytics', href: '/admin/agents/analytics', icon: <FaChartLine /> },
   { name: 'Products', href: '/admin/products', icon: <FaBox /> },
   { name: 'KYC Verification', href: '/admin/kyc', icon: <FaIdCard /> },
   { name: 'Analytics', href: '/admin/analytics', icon: <FaChartBar /> },

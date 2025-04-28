@@ -1,20 +1,24 @@
--- Create agents table
-CREATE TABLE public.agents (
-  id uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email text NOT NULL UNIQUE,
-  full_name text NOT NULL,
-  phone text,
-  role text NOT NULL DEFAULT 'agent',
-  status text NOT NULL DEFAULT 'pending', -- 'pending', 'active', 'suspended'
-  avatar_url text,
-  weekly_target integer NOT NULL DEFAULT 40,
-  weekly_target_met boolean NOT NULL DEFAULT false,
-  current_week_registrations integer NOT NULL DEFAULT 0,
-  total_registrations integer NOT NULL DEFAULT 0,
-  total_businesses integer NOT NULL DEFAULT 0,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  updated_at timestamp with time zone
-);
+create table public.agents (
+  id uuid not null,
+  user_id uuid not null,
+  email text not null,
+  full_name text not null,
+  phone text null,
+  role text not null default 'agent'::text,
+  status text not null default 'pending'::text,
+  avatar_url text null,
+  weekly_target integer not null default 40,
+  weekly_target_met boolean not null default false,
+  current_week_registrations integer not null default 0,
+  total_registrations integer not null default 0,
+  total_businesses integer not null default 0,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone null,
+  created_by text null,
+  constraint agents_pkey primary key (id),
+  constraint agents_email_key unique (email),
+  constraint agents_user_id_fkey foreign KEY (user_id) references auth.users (id) on delete CASCADE
+) TABLESPACE pg_default;
 
 -- Create RLS policies for the agents table
 ALTER TABLE public.agents ENABLE ROW LEVEL SECURITY;
