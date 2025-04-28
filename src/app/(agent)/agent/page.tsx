@@ -12,6 +12,7 @@ export default function AgentDashboard() {
     totalListings: 0,
     weeklyProgress: 0,
     weeklyTargetMet: false,
+    weeklyTarget: 40, // Default value until we fetch the actual target
   });
   const [loading, setLoading] = useState(true);
   const [recentUsers, setRecentUsers] = useState([]);
@@ -37,6 +38,21 @@ export default function AgentDashboard() {
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
         endOfWeek.setHours(23, 59, 59, 999);
+        
+        // Fetch agent details including weekly_target
+        const { data: agentData, error: agentError } = await supabase
+          .from('agents')
+          .select('weekly_target')
+          .eq('user_id', agentId)
+          .single();
+        
+        if (agentError) {
+          console.error('Error fetching agent data:', agentError);
+          // Continue with default value if there's an error
+        }
+        
+        // Get the weekly target from agent data or use default
+        const weeklyTarget = agentData?.weekly_target || 40;
         
         // Fetch stats
         const { data: totalUsers, error: totalUsersError } = await supabase
@@ -66,14 +82,11 @@ export default function AgentDashboard() {
           .limit(5);
         
         if (recentError) throw recentError;
-
-        // fetch agent details from agent table
         
         setRecentUsers(recent || []);
         
         // Calculate weekly progress
         const weeklyCount = weeklyUsers?.length || 0;
-        const weeklyTarget = 40;
         const progress = Math.min((weeklyCount / weeklyTarget) * 100, 100);
         const targetMet = weeklyCount >= weeklyTarget;
         
@@ -83,6 +96,7 @@ export default function AgentDashboard() {
           totalListings: totalListings?.length || 0,
           weeklyProgress: progress,
           weeklyTargetMet: targetMet,
+          weeklyTarget: weeklyTarget,
         });
         
       } catch (error) {
@@ -148,7 +162,7 @@ export default function AgentDashboard() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Weekly Target</p>
-              <h3 className="text-2xl font-bold">{stats.weeklyUsers}/40</h3>
+              <h3 className="text-2xl font-bold">{stats.weeklyUsers}/{stats.weeklyTarget}</h3>
             </div>
           </div>
         </div>
@@ -168,7 +182,7 @@ export default function AgentDashboard() {
             </div>
             <div className="text-right">
               <span className="text-xs font-semibold inline-block text-gray-600">
-                Goal: 40 Users
+                Goal: {stats.weeklyTarget} Users
               </span>
             </div>
           </div>

@@ -20,9 +20,10 @@ export default function AgentTasks() {
     startDate: '',
     endDate: '',
     registered: 0,
-    target: 40,
+    target: 40, // Default value until we fetch the actual target
     completed: false
   });
+  const [weeklyTarget, setWeeklyTarget] = useState(40); // Default value until we fetch the actual target
 
   useEffect(() => {
     fetchTasksData();
@@ -37,6 +38,22 @@ export default function AgentTasks() {
       const agentId = user?.id;
       
       if (!agentId) return;
+      
+      // Fetch agent details including weekly_target
+      const { data: agentData, error: agentError } = await supabase
+        .from('agents')
+        .select('weekly_target')
+        .eq('user_id  ', agentId)
+        .single();
+      
+      if (agentError) {
+        console.error('Error fetching agent data:', agentError);
+        // Continue with default value if there's an error
+      }
+      
+      // Get the weekly target from agent data or use default
+      const target = agentData?.weekly_target || 40;
+      setWeeklyTarget(target);
       
       // Get current date info for weekly ranges
       const now = new Date();
@@ -66,14 +83,14 @@ export default function AgentTasks() {
         if (error) throw error;
         
         const registeredCount = weekUsers?.length || 0;
-        const targetMet = registeredCount >= 40;
+        const targetMet = registeredCount >= target;
         
         weekData.push({
           weekNumber: i === 0 ? 'Current Week' : `Week ${i}`,
           startDate: weekStartDate.toLocaleDateString(),
           endDate: weekEndDate.toLocaleDateString(),
           registered: registeredCount,
-          target: 40,
+          target: target,
           completed: targetMet
         });
         
@@ -84,7 +101,7 @@ export default function AgentTasks() {
             startDate: weekStartDate.toLocaleDateString(),
             endDate: weekEndDate.toLocaleDateString(),
             registered: registeredCount,
-            target: 40,
+            target: target,
             completed: targetMet
           });
         }
@@ -105,7 +122,7 @@ export default function AgentTasks() {
   // --- Monthly Progress Calculation (last 4 weeks) ---
   const last4Weeks = weeklyData.slice(0, 4); // Most recent 4 weeks
   const monthlyRegistered = last4Weeks.reduce((sum, week) => sum + week.registered, 0);
-  const monthlyTarget = 40 * 4;
+  const monthlyTarget = weeklyTarget * 4;
   const monthlyProgress = Math.min((monthlyRegistered / monthlyTarget) * 100, 100);
   const monthlyCompleted = monthlyRegistered >= monthlyTarget;
 
