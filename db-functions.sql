@@ -53,3 +53,23 @@ CREATE TABLE IF NOT EXISTS public.products (
 
 -- Add an index on user_id for faster lookups
 CREATE INDEX IF NOT EXISTS idx_products_user_id ON public.products(user_id);
+
+-- Function to increment agent statistics upon new business registration
+CREATE OR REPLACE FUNCTION increment_agent_stats(agent_id_param UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  UPDATE agents
+  SET
+    total_registrations = COALESCE(total_registrations, 0) + 1,
+    total_businesses = COALESCE(total_businesses, 0) + 1,
+    -- Note: This simple increment assumes current_week_registrations is managed elsewhere
+    -- (e.g., reset weekly by a cron job or trigger). If not, this logic needs adjustment.
+    current_week_registrations = COALESCE(current_week_registrations, 0) + 1
+  WHERE id = agent_id_param;
+
+  -- Optional: Add logging or return value if needed
+  -- RAISE NOTICE 'Agent stats updated for ID: %', agent_id_param;
+END;
+$$;

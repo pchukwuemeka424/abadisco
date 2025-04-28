@@ -480,6 +480,42 @@ export default function ProfilePage() {
         throw new Error(`Failed to add business: ${insertError.message}`);
       }
 
+      // update the agent's profile increment create const num = +1 current_week_registrations total_registrations 
+      
+// First, get the current agent's registration counts
+const { data: agentData, error: agentError } = await supabase
+  .from('agents')
+  .select('total_registrations, current_week_registrations')
+  .eq('id', currentAgentId)
+  .single();
+
+if (agentError) {
+  console.error('Error fetching agent data:', agentError);
+  return;
+}
+
+// Then, increment the values
+const newTotal = (agentData.total_registrations || 0) + 1;
+const newWeekly = (agentData.current_week_registrations || 0) + 1;
+
+// Now, update the database with the new incremented values
+const { data: agentUpdateData, error: agentUpdateError } = await supabase
+  .from('agents')
+  .update({
+    total_registrations: newTotal,
+    current_week_registrations: newWeekly
+  })
+  .eq('id', currentAgentId)
+  .select()
+  .single();
+
+if (agentUpdateError) {
+  console.error('Error updating agent data:', agentUpdateError);
+} else {
+  console.log('Agent data updated:', agentUpdateData);
+}
+
+
       console.log("Business added successfully:", insertData);
       setSuccess("Business listing added successfully!");
       setShowSuccessModal(true);
