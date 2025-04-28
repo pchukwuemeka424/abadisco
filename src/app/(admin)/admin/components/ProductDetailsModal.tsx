@@ -7,15 +7,15 @@ import { FaTimes } from 'react-icons/fa';
 type Product = {
   id: string;
   user_id: string;
-  name: string;
-  description: string;
-  price: string;
-  image_urls: string;
-  category: string;
+  name?: string;
+  description?: string;
+  price?: string;
+  image_urls: string | string[];
+  category?: string;
   created_at: string;
-  business: {
-    business_name: string;
-    full_name: string;
+  users?: {
+    full_name?: string;
+    email?: string;
   } | null;
 };
 
@@ -55,13 +55,33 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
       
       setIsEditing(false);
     } catch (error) {
-      console.error('Error updating product:', error);
+      console.error('Error updating product:', error?.message || 'Unknown error occurred');
     } finally {
       setLoading(false);
     }
   };
   
-  const imageUrls = productData.image_urls ? productData.image_urls.split(',') : [];
+  // Handle both string and array image_urls formats
+  const getImageUrls = () => {
+    if (!productData.image_urls) return [];
+    
+    if (typeof productData.image_urls === 'string') {
+      // Try to parse as JSON if it's a JSON string array
+      try {
+        const parsed = JSON.parse(productData.image_urls);
+        return Array.isArray(parsed) ? parsed : productData.image_urls.split(',');
+      } catch (e) {
+        // If parsing fails, assume it's comma-separated
+        return productData.image_urls.split(',');
+      }
+    } else if (Array.isArray(productData.image_urls)) {
+      return productData.image_urls;
+    }
+    
+    return [];
+  };
+  
+  const imageUrls = getImageUrls();
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -172,16 +192,16 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
               </div>
               
               <div className="mb-6">
-                <h3 className="text-lg font-medium mb-4">Business Information</h3>
+                <h3 className="text-lg font-medium mb-4">User Information</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
-                    <p className="text-gray-900">{productData.business?.business_name || 'N/A'}</p>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">User Name</label>
+                    <p className="text-gray-900">{productData.users?.full_name || 'N/A'}</p>
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Owner</label>
-                    <p className="text-gray-900">{productData.business?.full_name || 'N/A'}</p>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <p className="text-gray-900">{productData.users?.email || 'N/A'}</p>
                   </div>
                   
                   <div>

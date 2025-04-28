@@ -8,15 +8,15 @@ import ProductDetailsModal from './ProductDetailsModal';
 type Product = {
   id: string;
   user_id: string;
-  name: string;
-  description: string;
-  price: string;
-  image_urls: string;
-  category: string;
+  name?: string;
+  description?: string;
+  price?: string;
+  image_urls: string | string[];
+  category?: string;
   created_at: string;
-  business: {
-    business_name: string;
-    full_name: string;
+  users?: {
+    full_name?: string;
+    email?: string;
   } | null;
 };
 
@@ -32,19 +32,32 @@ export default function ProductsTable() {
       try {
         setLoading(true);
         
+        // First, let's check if the products table has all required columns
+        const { data: tableInfo, error: tableError } = await supabase
+          .from('products')
+          .select('*')
+          .limit(1);
+          
+        if (tableError) {
+          console.error('Error checking products table:', tableError.message);
+          throw tableError;
+        }
+        
+        // Modify query based on available columns
         const { data, error } = await supabase
           .from('products')
           .select(`
             *,
-            users:user_id(business_name, full_name)
+            users(full_name, email)
           `)
           .order('created_at', { ascending: false });
         
         if (error) throw error;
         
+        console.log('Products fetched:', data);
         setProducts(data || []);
       } catch (error) {
-        console.error('Error fetching products:', error);
+        console.error('Error fetching products:', error?.message || 'Unknown error occurred');
       } finally {
         setLoading(false);
       }
@@ -70,18 +83,21 @@ export default function ProductsTable() {
         
         setProducts(products.filter(product => product.id !== productId));
       } catch (error) {
-        console.error('Error deleting product:', error);
+        console.error('Error deleting product:', error?.message || 'Unknown error occurred');
       }
     }
   };
   
   const filteredProducts = products.filter(product => {
+    if (!searchTerm) return true;
+    
     const searchLower = searchTerm.toLowerCase();
     return (
-      product.name?.toLowerCase().includes(searchLower) ||
-      product.description?.toLowerCase().includes(searchLower) ||
-      product.category?.toLowerCase().includes(searchLower) ||
-      product.business?.business_name?.toLowerCase().includes(searchLower)
+      (product.name?.toLowerCase().includes(searchLower) || false) ||
+      (product.description?.toLowerCase().includes(searchLower) || false) ||
+      (product.category?.toLowerCase().includes(searchLower) || false) ||
+      (product.users?.full_name?.toLowerCase().includes(searchLower) || false) ||
+      (product.users?.email?.toLowerCase().includes(searchLower) || false)
     );
   });
   
@@ -106,10 +122,9 @@ export default function ProductsTable() {
           <table className="min-w-full bg-white">
             <thead className="bg-gray-100">
               <tr>
-                <th className="py-3 px-4 text-left">Product</th>
+                <th className="py-3 px-4 text-left">Images</th>
                 <th className="py-3 px-4 text-left">Business</th>
-                <th className="py-3 px-4 text-left">Category</th>
-                <th className="py-3 px-4 text-left">Price</th>
+               
                 <th className="py-3 px-4 text-left">Date Added</th>
                 <th className="py-3 px-4 text-center">Actions</th>
               </tr>
@@ -122,7 +137,9 @@ export default function ProductsTable() {
                       <div className="h-10 w-10 flex-shrink-0 mr-3">
                         {product.image_urls && (
                           <img
-                            src={product.image_urls.split(',')[0]}
+                            src={typeof product.image_urls === 'string' ? product.image_urls.split(',')[0] : 
+                                 Array.isArray(product.image_urls) && product.image_urls.length > 0 ? product.image_urls[0] : 
+                                 '/images/logo.png'}
                             alt={product.name || 'Product image'}
                             className="h-10 w-10 rounded-full object-cover"
                             onError={(e) => {
@@ -133,13 +150,12 @@ export default function ProductsTable() {
                         )}
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{product.name || 'Unnamed Product'}</div>
+                       
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-4">{product.business?.business_name || 'N/A'}</td>
-                  <td className="py-3 px-4">{product.category || 'Uncategorized'}</td>
-                  <td className="py-3 px-4">{product.price ? `₦${product.price}` : 'N/A'}</td>
+                  <td className="py-3 px-4">{product.users?.full_name || 'N/A'}</td>
+                 
                   <td className="py-3 px-4">
                     {new Date(product.created_at).toLocaleDateString()}
                   </td>
