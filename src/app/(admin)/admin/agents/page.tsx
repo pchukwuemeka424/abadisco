@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/supabaseClient';
-import { FaUserPlus, FaCheck, FaTimes, FaSpinner, FaBan, FaUser, FaEdit } from 'react-icons/fa';
+import { FaUserPlus, FaCheck, FaTimes, FaSpinner, FaBan, FaUser, FaEdit, FaUniversity } from 'react-icons/fa';
 
 export default function AdminAgentsPage() {
   const [agents, setAgents] = useState([]);
@@ -17,7 +17,40 @@ export default function AdminAgentsPage() {
     phone: '',
     status: '',
     weekly_target: 40,
+    weekly_target_met: false,
+    current_week_registrations: 0,
+    total_registrations: 0,
+    total_businesses: 0,
+    Bank_name: '',
+    Bank_acno: '',
   });
+
+  // Nigerian banks including OPay
+  const nigerianBanks = [
+    "Access Bank",
+    "Citibank",
+    "Ecobank Nigeria",
+    "Fidelity Bank",
+    "First Bank of Nigeria",
+    "First City Monument Bank",
+    "Guaranty Trust Bank",
+    "Heritage Bank",
+    "Jaiz Bank",
+    "Keystone Bank",
+    "OPay",
+    "Palmpay",
+    "Polaris Bank",
+    "Providus Bank",
+    "Stanbic IBTC Bank",
+    "Standard Chartered Bank",
+    "Sterling Bank",
+    "SunTrust Bank",
+    "Union Bank of Nigeria",
+    "United Bank for Africa",
+    "Unity Bank",
+    "Wema Bank",
+    "Zenith Bank"
+  ];
 
   useEffect(() => {
     fetchAgents();
@@ -54,6 +87,12 @@ export default function AdminAgentsPage() {
       phone: agent.phone || '',
       status: agent.status,
       weekly_target: agent.weekly_target || 40,
+      weekly_target_met: agent.weekly_target_met || false,
+      current_week_registrations: agent.current_week_registrations || 0,
+      total_registrations: agent.total_registrations || 0,
+      total_businesses: agent.total_businesses || 0,
+      Bank_name: agent.Bank_name || '',
+      Bank_acno: agent.Bank_acno || '',
     });
     setShowModal(true);
   };
@@ -67,7 +106,10 @@ export default function AdminAgentsPage() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'weekly_target' ? parseInt(value) : value,
+      [name]: name === 'weekly_target' || name === 'current_week_registrations' || 
+              name === 'total_registrations' || name === 'total_businesses' 
+                ? parseInt(value) 
+                : value,
     }));
   };
   
@@ -119,6 +161,12 @@ export default function AdminAgentsPage() {
           phone: formData.phone,
           status: formData.status,
           weekly_target: formData.weekly_target,
+          weekly_target_met: formData.weekly_target_met,
+          current_week_registrations: formData.current_week_registrations,
+          total_registrations: formData.total_registrations,
+          total_businesses: formData.total_businesses,
+          Bank_name: formData.Bank_name,
+          Bank_acno: formData.Bank_acno,
           updated_at: new Date().toISOString(),
         })
         .eq('id', formData.id)
@@ -201,6 +249,9 @@ export default function AdminAgentsPage() {
                     Performance
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Banking Info
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Joined
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -249,7 +300,21 @@ export default function AdminAgentsPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           <div>Weekly: {agent.current_week_registrations}/{agent.weekly_target}</div>
+                          <div>Target Met: {agent.weekly_target_met ? 'Yes' : 'No'}</div>
                           <div>Total: {agent.total_registrations} users</div>
+                          <div>Businesses: {agent.total_businesses}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {agent.Bank_name ? (
+                            <>
+                              <div>{agent.Bank_name}</div>
+                              <div className="text-xs text-gray-500">{agent.Bank_acno || 'No account number'}</div>
+                            </>
+                          ) : (
+                            'Not provided'
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -298,7 +363,7 @@ export default function AdminAgentsPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                       No agents found.
                     </td>
                   </tr>
@@ -383,20 +448,129 @@ export default function AdminAgentsPage() {
                   </select>
                 </div>
                 
-                <div>
-                  <label htmlFor="weekly_target" className="block text-sm font-medium text-gray-700">
-                    Weekly Target (Users)
-                  </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="weekly_target" className="block text-sm font-medium text-gray-700">
+                      Weekly Target
+                    </label>
+                    <input
+                      type="number"
+                      id="weekly_target"
+                      name="weekly_target"
+                      value={formData.weekly_target}
+                      onChange={handleChange}
+                      min="1"
+                      required
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="current_week_registrations" className="block text-sm font-medium text-gray-700">
+                      Current Week Regs
+                    </label>
+                    <input
+                      type="number"
+                      id="current_week_registrations"
+                      name="current_week_registrations"
+                      value={formData.current_week_registrations}
+                      onChange={handleChange}
+                      min="0"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="total_registrations" className="block text-sm font-medium text-gray-700">
+                      Total Registrations
+                    </label>
+                    <input
+                      type="number"
+                      id="total_registrations"
+                      name="total_registrations"
+                      value={formData.total_registrations}
+                      onChange={handleChange}
+                      min="0"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="total_businesses" className="block text-sm font-medium text-gray-700">
+                      Total Businesses
+                    </label>
+                    <input
+                      type="number"
+                      id="total_businesses"
+                      name="total_businesses"
+                      value={formData.total_businesses}
+                      onChange={handleChange}
+                      min="0"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+                
+                <div className="pt-2 border-t border-gray-200">
+                  <h4 className="text-sm font-medium text-gray-800 flex items-center mb-2">
+                    <FaUniversity className="mr-1" /> Banking Information
+                  </h4>
+                  
+                  <div className="mb-3">
+                    <label htmlFor="Bank_name" className="block text-sm font-medium text-gray-700">
+                      Bank Name
+                    </label>
+                    <select
+                      id="Bank_name"
+                      name="Bank_name"
+                      value={formData.Bank_name}
+                      onChange={handleChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white"
+                    >
+                      <option value="">Select a bank</option>
+                      {nigerianBanks.map((bank) => (
+                        <option key={bank} value={bank}>
+                          {bank}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="Bank_acno" className="block text-sm font-medium text-gray-700">
+                      Bank Account Number
+                    </label>
+                    <input
+                      type="text"
+                      id="Bank_acno"
+                      name="Bank_acno"
+                      value={formData.Bank_acno}
+                      onChange={handleChange}
+                      maxLength={10}
+                      minLength={10}
+                      pattern="[0-9]{10}"
+                      placeholder="10-digit account number"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex items-center mt-2">
                   <input
-                    type="number"
-                    id="weekly_target"
-                    name="weekly_target"
-                    value={formData.weekly_target}
-                    onChange={handleChange}
-                    min="1"
-                    required
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    id="weekly_target_met"
+                    name="weekly_target_met"
+                    type="checkbox"
+                    checked={formData.weekly_target_met}
+                    onChange={(e) => 
+                      setFormData((prev) => ({ ...prev, weekly_target_met: e.target.checked }))
+                    }
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
+                  <label htmlFor="weekly_target_met" className="ml-2 block text-sm text-gray-700">
+                    Weekly Target Met
+                  </label>
                 </div>
               </div>
               
