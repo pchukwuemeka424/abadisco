@@ -2,15 +2,52 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/supabaseClient';
-import { FaUser, FaEdit, FaSave } from 'react-icons/fa';
+import { FaUser, FaEdit, FaSave, FaBank } from 'react-icons/fa';
+
+// Nigerian banks including OPay
+const nigerianBanks = [
+  "Access Bank",
+  "Citibank",
+  "Ecobank Nigeria",
+  "Fidelity Bank",
+  "First Bank of Nigeria",
+  "First City Monument Bank",
+  "Guaranty Trust Bank",
+  "Heritage Bank",
+  "Jaiz Bank",
+  "Keystone Bank",
+  "OPay",
+  "Palmpay",
+  "Polaris Bank",
+  "Providus Bank",
+  "Stanbic IBTC Bank",
+  "Standard Chartered Bank",
+  "Sterling Bank",
+  "SunTrust Bank",
+  "Union Bank of Nigeria",
+  "United Bank for Africa",
+  "Unity Bank",
+  "Wema Bank",
+  "Zenith Bank"
+];
 
 export default function AgentProfile() {
   const [profile, setProfile] = useState({
     id: '',
+    user_id: '',
     email: '',
     full_name: '',
     phone: '',
     avatar_url: '',
+    role: 'agent',
+    status: 'pending',
+    weekly_target: 40,
+    weekly_target_met: false,
+    current_week_registrations: 0,
+    total_registrations: 0,
+    total_businesses: 0,
+    Bank_name: '',
+    Bank_acno: '',
     created_at: ''
   });
   
@@ -36,7 +73,7 @@ export default function AgentProfile() {
       const { data, error } = await supabase
         .from('agents')
         .select('*')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single();
       
       if (error && error.code !== 'PGRST116') {
@@ -46,20 +83,40 @@ export default function AgentProfile() {
       if (data) {
         setProfile({
           id: data.id,
+          user_id: data.user_id,
           email: data.email,
           full_name: data.full_name || '',
           phone: data.phone || '',
           avatar_url: data.avatar_url || '',
+          role: data.role || 'agent',
+          status: data.status || 'pending',
+          weekly_target: data.weekly_target || 40,
+          weekly_target_met: data.weekly_target_met || false,
+          current_week_registrations: data.current_week_registrations || 0,
+          total_registrations: data.total_registrations || 0,
+          total_businesses: data.total_businesses || 0,
+          Bank_name: data.Bank_name || '',
+          Bank_acno: data.Bank_acno || '',
           created_at: data.created_at
         });
       } else {
-        // If no profile in agents table, use auth user data
+        // If no profile in agents table, use auth user data with defaults
         setProfile({
-          id: user.id,
+          id: '', // will be generated upon insert
+          user_id: user.id,
           email: user.email || '',
           full_name: '',
           phone: '',
           avatar_url: '',
+          role: 'agent',
+          status: 'pending',
+          weekly_target: 40,
+          weekly_target_met: false,
+          current_week_registrations: 0,
+          total_registrations: 0,
+          total_businesses: 0,
+          Bank_name: '',
+          Bank_acno: '',
           created_at: user.created_at
         });
       }
@@ -80,15 +137,26 @@ export default function AgentProfile() {
       setUpdateLoading(true);
       setMessage({ type: '', content: '' });
       
+      // Get current user to ensure we're updating with correct user_id
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) throw new Error('User not authenticated');
+      
+      const profileData = {
+        id: profile.id || undefined, // If empty, will be auto-generated
+        user_id: user.id,
+        email: profile.email,
+        full_name: profile.full_name,
+        phone: profile.phone,
+        Bank_name: profile.Bank_name,
+        Bank_acno: profile.Bank_acno,
+        updated_at: new Date().toISOString()
+      };
+      
+      // If id is empty, it's a new record, otherwise update existing
       const { data, error } = await supabase
         .from('agents')
-        .upsert({
-          id: profile.id,
-          email: profile.email,
-          full_name: profile.full_name,
-          phone: profile.phone,
-          updated_at: new Date().toISOString()
-        })
+        .upsert(profileData)
         .select()
         .single();
       
@@ -141,6 +209,7 @@ export default function AgentProfile() {
                 <div>
                   <h2 className="text-xl font-semibold">{profile.full_name || 'Agent'}</h2>
                   <p className="text-gray-600">{profile.email}</p>
+                  <p className="text-sm text-gray-500">Status: <span className={`font-medium ${profile.status === 'active' ? 'text-green-600' : 'text-amber-600'}`}>{profile.status}</span></p>
                 </div>
               </div>
               
@@ -216,6 +285,69 @@ export default function AgentProfile() {
                   <p className="py-2">
                     {profile.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}
                   </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                  {editing ? (
+                    <select
+                      name="Bank_name"
+                      value={profile.Bank_name}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white"
+                    >
+                      <option value="">Select a bank</option>
+                      {nigerianBanks.map((bank) => (
+                        <option key={bank} value={bank}>
+                          {bank}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="py-2">{profile.Bank_name || 'Not set'}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bank Account Number</label>
+                  {editing ? (
+                    <input
+                      type="text"
+                      name="Bank_acno"
+                      value={profile.Bank_acno}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      maxLength={10} 
+                      minLength={10}
+                      pattern="[0-9]{10}"
+                      title="Bank account number must be exactly 10 digits"
+                      placeholder="Enter 10-digit account number"
+                    />
+                  ) : (
+                    <p className="py-2">{profile.Bank_acno || 'Not set'}</p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="border-t border-gray-200 pt-4 mt-6">
+                <h3 className="text-lg font-medium mb-4">Performance Statistics</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <p className="text-sm text-blue-700">Weekly Target</p>
+                    <p className="text-2xl font-bold">{profile.weekly_target}</p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <p className="text-sm text-green-700">This Week</p>
+                    <p className="text-2xl font-bold">{profile.current_week_registrations}</p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <p className="text-sm text-purple-700">Total Registrations</p>
+                    <p className="text-2xl font-bold">{profile.total_registrations}</p>
+                  </div>
+                  <div className="bg-amber-50 p-4 rounded-lg">
+                    <p className="text-sm text-amber-700">Total Businesses</p>
+                    <p className="text-2xl font-bold">{profile.total_businesses}</p>
+                  </div>
                 </div>
               </div>
             </div>
