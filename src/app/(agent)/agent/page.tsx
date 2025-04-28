@@ -66,6 +66,8 @@ export default function AgentDashboard() {
           .limit(5);
         
         if (recentError) throw recentError;
+
+        // fetch agent details from agent table
         
         setRecentUsers(recent || []);
         

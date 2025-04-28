@@ -195,7 +195,7 @@ export default function ManageListingPage() {
 
   // Determine if all listings are registration completed
   const allListingsCompleted =
-    listings.length === 0 || listings.every(l => (imageCounts[l.id] || 0) >= 0);
+    listings.length === 0 || listings.every(l => (imageCounts[l.id] || 0) >= 6);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
