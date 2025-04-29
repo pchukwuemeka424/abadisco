@@ -1,4 +1,6 @@
-const nextConfig = {
+import { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
   images: {
     domains: ['wfhjcblhlsdtxpwuxvgm.supabase.co', 'images.unsplash.com'],
   },
@@ -12,4 +14,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
