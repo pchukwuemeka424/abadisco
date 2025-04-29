@@ -2,7 +2,7 @@
 -- Create the activities table
 CREATE TABLE IF NOT EXISTS public.activities (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id),
+    user_id UUID,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     action_type VARCHAR(50) NOT NULL,  -- login, logout, create, update, delete, settings, kyc, etc.
     user_type VARCHAR(20) NOT NULL,    -- admin, agent, user
@@ -13,6 +13,16 @@ CREATE TABLE IF NOT EXISTS public.activities (
     resource_id UUID DEFAULT NULL,     -- optional reference to affected resource
     resource_type VARCHAR(50) DEFAULT NULL -- type of resource (product, user, etc.)
 );
+
+-- Add foreign key with ON DELETE SET NULL for safer handling
+ALTER TABLE public.activities 
+DROP CONSTRAINT IF EXISTS fk_activities_users;
+
+ALTER TABLE public.activities
+ADD CONSTRAINT fk_activities_users 
+FOREIGN KEY (user_id) 
+REFERENCES public.users(id) 
+ON DELETE SET NULL;
 
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS activities_user_id_idx ON public.activities(user_id);
@@ -62,11 +72,16 @@ DECLARE
     action_description TEXT;
     resource_type TEXT;
 BEGIN
-    -- Get current user ID and role from auth.uid() or session variables
+    -- Get current user ID from auth.uid() or session variables
     current_user_id := auth.uid();
     
     -- Get user role from users table
     SELECT role INTO current_user_role FROM public.users WHERE id = current_user_id;
+    
+    -- Set default user_type if NULL (this fixes the not-null constraint issue)
+    IF current_user_role IS NULL THEN
+        current_user_role := 'system';
+    END IF;
     
     -- Determine which table was affected
     CASE TG_TABLE_NAME
@@ -87,11 +102,11 @@ BEGIN
             
             -- Create appropriate description based on operation
             IF (TG_OP = 'INSERT') THEN
-                action_description := 'User created: ' || NEW.email;
+                action_description := 'User created: ' || COALESCE(NEW.email, 'Unknown');
             ELSIF (TG_OP = 'UPDATE') THEN
-                action_description := 'User updated: ' || NEW.email;
+                action_description := 'User updated: ' || COALESCE(NEW.email, 'Unknown');
             ELSIF (TG_OP = 'DELETE') THEN
-                action_description := 'User deleted: ' || OLD.email;
+                action_description := 'User deleted: ' || COALESCE(OLD.email, 'Unknown');
             END IF;
             
         WHEN 'kyc_verifications' THEN
@@ -108,6 +123,30 @@ BEGIN
                 END IF;
             ELSIF (TG_OP = 'DELETE') THEN
                 action_description := 'KYC verification deleted';
+            END IF;
+        
+        WHEN 'markets' THEN
+            resource_type := 'markets';
+            
+            -- Create appropriate description based on operation
+            IF (TG_OP = 'INSERT') THEN
+                action_description := 'Market created: ' || COALESCE(NEW.name, 'Unknown');
+            ELSIF (TG_OP = 'UPDATE') THEN
+                action_description := 'Market updated: ' || COALESCE(NEW.name, 'Unknown');
+            ELSIF (TG_OP = 'DELETE') THEN
+                action_description := 'Market deleted: ' || COALESCE(OLD.name, 'Unknown');
+            END IF;
+            
+        WHEN 'businesses' THEN
+            resource_type := 'businesses';
+            
+            -- Create appropriate description based on operation
+            IF (TG_OP = 'INSERT') THEN
+                action_description := 'Business created: ' || COALESCE(NEW.name, 'Unknown');
+            ELSIF (TG_OP = 'UPDATE') THEN
+                action_description := 'Business updated: ' || COALESCE(NEW.name, 'Unknown');
+            ELSIF (TG_OP = 'DELETE') THEN
+                action_description := 'Business deleted: ' || COALESCE(OLD.name, 'Unknown');
             END IF;
             
         ELSE
@@ -170,10 +209,22 @@ CREATE TRIGGER log_user_activity
 AFTER INSERT OR UPDATE OR DELETE ON public.users
 FOR EACH ROW EXECUTE FUNCTION log_activity();
 
--- KYC verifications table (assuming it exists)
+-- KYC verifications table
 DROP TRIGGER IF EXISTS log_kyc_activity ON public.kyc_verifications;
 CREATE TRIGGER log_kyc_activity
 AFTER INSERT OR UPDATE OR DELETE ON public.kyc_verifications
+FOR EACH ROW EXECUTE FUNCTION log_activity();
+
+-- Markets table
+DROP TRIGGER IF EXISTS log_market_activity ON public.markets;
+CREATE TRIGGER log_market_activity
+AFTER INSERT OR UPDATE OR DELETE ON public.markets
+FOR EACH ROW EXECUTE FUNCTION log_activity();
+
+-- Businesses table
+DROP TRIGGER IF EXISTS log_business_activity ON public.businesses;
+CREATE TRIGGER log_business_activity
+AFTER INSERT OR UPDATE OR DELETE ON public.businesses
 FOR EACH ROW EXECUTE FUNCTION log_activity();
 
 -- Create a function to log authentication events (login/logout)
@@ -190,13 +241,18 @@ BEGIN
     -- Get user role
     SELECT role INTO user_role FROM public.users WHERE id = NEW.auth_user_id;
     
+    -- Set default user_type if NULL
+    IF user_role IS NULL THEN
+        user_role := 'user';
+    END IF;
+    
     -- Determine action type and description
     IF NEW.event = 'login' THEN
-        action_desc := user_email || ' logged in';
+        action_desc := COALESCE(user_email, 'Unknown user') || ' logged in';
     ELSIF NEW.event = 'logout' THEN
-        action_desc := user_email || ' logged out';
+        action_desc := COALESCE(user_email, 'Unknown user') || ' logged out';
     ELSE
-        action_desc := user_email || ' performed ' || NEW.event;
+        action_desc := COALESCE(user_email, 'Unknown user') || ' performed ' || NEW.event;
     END IF;
     
     -- Insert the activity
@@ -221,52 +277,3 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Add sample data for testing
-INSERT INTO public.activities (
-    user_id, 
-    action_type, 
-    user_type, 
-    description, 
-    severity, 
-    ip_address
-) VALUES 
-(
-    -- Replace with actual admin user ID from your database
-    (SELECT id FROM auth.users WHERE email = 'admin@example.com' LIMIT 1), 
-    'login', 
-    'admin', 
-    'Admin user logged in', 
-    'info', 
-    '192.168.1.1'
-),
-(
-    -- Replace with actual admin user ID from your database
-    (SELECT id FROM auth.users WHERE email = 'admin@example.com' LIMIT 1), 
-    'update', 
-    'admin', 
-    'Updated system settings', 
-    'medium', 
-    '192.168.1.1'
-),
-(
-    -- Replace with actual agent user ID from your database
-    (SELECT id FROM auth.users WHERE email = 'agent@example.com' LIMIT 1), 
-    'create', 
-    'agent', 
-    'Created new product listing', 
-    'low', 
-    '192.168.1.2'
-),
-(
-    -- Replace with actual user ID from your database
-    (SELECT id FROM auth.users WHERE email = 'user@example.com' LIMIT 1), 
-    'kyc', 
-    'user', 
-    'Submitted KYC documents for verification', 
-    'medium', 
-    '192.168.1.3'
-);
-
--- NOTE: You may need to adjust the sample data above to match your actual users in the database
--- If the INSERT fails because the user IDs don't exist, you can comment out the sample data section

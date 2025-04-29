@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { BusinessCard } from '@/components/BusinessCard';
+import BusinessCard from '@/components/BusinessCard';
 import { supabase } from '@/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
 
