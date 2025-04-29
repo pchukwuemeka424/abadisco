@@ -131,18 +131,48 @@ export default function ManageListingPage() {
   const handleDeleteListing = async (id: string) => {
     try {
       setDeleteLoading(true);
+      
+      // First, get the business name before deletion for activity logging
+      const { data: businessData, error: businessError } = await supabase
+        .from("users")
+        .select("business_name")
+        .eq("id", id)
+        .single();
+      
+      if (businessError) {
+        console.error("Error fetching business data:", businessError.message || businessError);
+        throw new Error(businessError.message || "Failed to fetch business data");
+      }
+      
+      const businessName = businessData?.business_name || 'Unknown business';
+      
+      // First, delete all products associated with this listing to avoid foreign key constraint violation
+      const { error: productsError } = await supabase
+        .from("products")
+        .delete()
+        .eq("user_id", id);
+        
+      if (productsError) {
+        console.error("Error deleting related products:", productsError.message || productsError);
+        throw new Error(productsError.message || "Failed to delete related products");
+      }
+      
+      // Now we can safely delete the business listing
       const { error } = await supabase
         .from("users")
         .delete()
         .eq("id", id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error deleting listing:", error.message || error);
+        throw new Error(error.message || "Failed to delete listing");
+      }
       
       setListings(listings.filter(listing => listing.id !== id));
       setConfirmDelete(null);
-    } catch (err) {
-      console.error("Error deleting listing:", err);
-      setError("Failed to delete listing");
+    } catch (err: any) {
+      console.error("Error deleting listing:", err.message || err);
+      setError(err.message || "Failed to delete listing. Please try again.");
     } finally {
       setDeleteLoading(false);
     }

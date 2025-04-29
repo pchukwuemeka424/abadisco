@@ -58,6 +58,23 @@ export default function UploadProduct() {
     setProgress(0);
     const imageUrls: string[] = [];
     try {
+      // Fetch business name for activity description
+      let businessName = "Unknown business";
+      try {
+        const { data: businessData } = await supabase
+          .from("users")
+          .select("business_name")
+          .eq("id", id)
+          .single();
+          
+        if (businessData && businessData.business_name) {
+          businessName = businessData.business_name;
+        }
+      } catch (businessError) {
+        console.error("Error fetching business data:", businessError);
+        // Continue with generic business name
+      }
+      
       for (let i = 0; i < files.length; i++) {
         let file = files[i];
         if (!file.type.startsWith("image/")) {
@@ -87,11 +104,21 @@ export default function UploadProduct() {
         imageUrls.push(publicUrlData.publicUrl);
         setProgress(Math.round(((i + 1) / files.length) * 100));
       }
-      const { error: dbError } = await supabase.from('products').insert({
-        image_urls: imageUrls[0],
-        user_id: id || user.id,
-      });
+      
+      // Insert product record
+      const { data: productData, error: dbError } = await supabase
+        .from('products')
+        .insert({
+          image_urls: imageUrls[0],
+          user_id: id || user.id,
+        })
+        .select()
+        .single();
+        
       if (dbError) throw new Error(dbError.message);
+      
+ 
+      
       setShowModal(true);
       setFiles([]);
       setPreviews([]);

@@ -86,13 +86,25 @@ BEGIN
   -- Set the resource type based on the table being modified
   resource_type := TG_TABLE_NAME;
   
-  -- Create appropriate descriptions based on operation type
+  -- Create appropriate descriptions based on operation type and table
   IF (TG_OP = 'INSERT') THEN
-    action_description := 'New ' || TG_TABLE_NAME || ' created: ' || coalesce(NEW.name, NEW.title, 'ID ' || NEW.id);
+    IF (TG_TABLE_NAME = 'products') THEN
+      action_description := 'New ' || TG_TABLE_NAME || ' created: ID ' || NEW.id;
+    ELSE
+      action_description := 'New ' || TG_TABLE_NAME || ' created: ' || coalesce(NEW.name, NEW.title, 'ID ' || NEW.id);
+    END IF;
   ELSIF (TG_OP = 'UPDATE') THEN
-    action_description := TG_TABLE_NAME || ' updated: ' || coalesce(NEW.name, NEW.title, 'ID ' || NEW.id);
+    IF (TG_TABLE_NAME = 'products') THEN
+      action_description := TG_TABLE_NAME || ' updated: ID ' || NEW.id;
+    ELSE
+      action_description := TG_TABLE_NAME || ' updated: ' || coalesce(NEW.name, NEW.title, 'ID ' || NEW.id);
+    END IF;
   ELSIF (TG_OP = 'DELETE') THEN
-    action_description := TG_TABLE_NAME || ' deleted: ' || coalesce(OLD.name, OLD.title, 'ID ' || OLD.id);
+    IF (TG_TABLE_NAME = 'products') THEN
+      action_description := TG_TABLE_NAME || ' deleted: ID ' || OLD.id;
+    ELSE
+      action_description := TG_TABLE_NAME || ' deleted: ' || coalesce(OLD.name, OLD.title, 'ID ' || OLD.id);
+    END IF;
   END IF;
 
   -- Insert activity record

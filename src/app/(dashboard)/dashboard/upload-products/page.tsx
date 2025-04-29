@@ -76,6 +76,20 @@ export default function UploadProduct() {
     const imageUrls: string[] = [];
 
     try {
+      // Fetch business name for activity description (if paramId is provided)
+      let businessName = "your business";
+      if (paramId) {
+        const { data: businessData, error: businessError } = await supabase
+          .from("users")
+          .select("business_name")
+          .eq("id", paramId)
+          .single();
+          
+        if (!businessError && businessData?.business_name) {
+          businessName = businessData.business_name;
+        }
+      }
+      
       for (let i = 0; i < files.length; i++) {
         let file = files[i];
         
@@ -118,13 +132,35 @@ export default function UploadProduct() {
       }
 
       // Insert into database
-      const { error: dbError } = await supabase.from('products').insert({
-        image_urls: imageUrls[0], // Main image
-        // Use paramId if available, otherwise fall back to user.id
-        user_id: paramId || user.id,
-      });
+      const { data: productData, error: dbError } = await supabase
+        .from('products')
+        .insert({
+          image_urls: imageUrls[0], // Main image
+          tags: tags.length > 0 ? tags : null,
+          // Use paramId if available, otherwise fall back to user.id
+          user_id: paramId || user.id,
+        })
+        .select()
+        .single();
 
       if (dbError) throw new Error(dbError.message);
+      
+      // Log activity with proper description
+      const { error: activityError } = await supabase
+        .from('activities')
+        .insert({
+          action_type: 'upload',
+          user_type: 'user',
+          description: `Uploaded ${files.length} product image${files.length > 1 ? 's' : ''} for ${businessName}`,
+          user_id: user.id,
+          resource_type: 'product',
+          resource_id: productData?.id || null
+        });
+        
+      if (activityError) {
+        console.error('Error logging activity:', activityError);
+        // Continue even if activity logging fails
+      }
 
       setShowModal(true);
       setFiles([]);
