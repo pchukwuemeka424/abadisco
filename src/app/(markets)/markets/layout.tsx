@@ -1,5 +1,5 @@
 import { Navbar } from '@/components/Navbar';
-import { TopNavbar } from '@/components/TopNavbar';
+import TopNavbar from '@/components/TopNavbar';
 import React from 'react';
 
 export default function MarketLayout({ children }: { children: React.ReactNode }) {

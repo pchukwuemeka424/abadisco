@@ -3,6 +3,13 @@ import { supabase } from '@/supabaseClient';
 
 export async function GET(request: Request) {
   try {
+    // Check for required environment variables
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return NextResponse.json({ 
+        error: 'Missing Supabase credentials. Please check your environment variables.' 
+      }, { status: 500 });
+    }
+
     const url = new URL(request.url);
     const marketId = url.searchParams.get('marketId');
     const categoryId = url.searchParams.get('categoryId');
