@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@/supabaseClient';
 import BusinessCard from '@/components/BusinessCard';
+import React from 'react'; // Add React import to use React.use()
 
 interface Market {
   id: string;
@@ -27,6 +28,9 @@ interface Business {
 }
 
 export default function MarketDetailPage({ params }: { params: { id: string } }) {
+  // Use React.use() to unwrap the params object
+  const marketId = React.use(params).id;
+  
   const [market, setMarket] = useState<Market | null>(null);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +44,7 @@ export default function MarketDetailPage({ params }: { params: { id: string } })
         const { data: marketData, error: marketError } = await supabase
           .from('markets')
           .select('*')
-          .eq('id', params.id)
+          .eq('id', marketId)
           .single();
 
         if (marketError) {
@@ -57,7 +61,7 @@ export default function MarketDetailPage({ params }: { params: { id: string } })
             market:markets(name, location),
             category:business_categories(title, icon_type)
           `)
-          .eq('market_id', params.id)
+          .eq('market_id', marketId)
           .eq('status', 'active');
 
         if (businessesError) {
@@ -74,7 +78,7 @@ export default function MarketDetailPage({ params }: { params: { id: string } })
     }
 
     fetchMarketAndBusinesses();
-  }, [params.id]);
+  }, [marketId]);
 
   if (loading) {
     return (
