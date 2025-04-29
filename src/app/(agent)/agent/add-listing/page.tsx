@@ -1,6 +1,6 @@
 "use client";
 import dynamic from 'next/dynamic';
-import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { supabase } from "@/supabaseClient";
 import { useAuth } from "@/context/auth-context";
@@ -37,15 +37,6 @@ const BUSINESS_TYPES = [
   "Auto Repair",
   "Electronics",
   "Other"
-];
-
-const MARKET_LOCATIONS = [
-  "Ariaria Market",
-  "Ahia Ohuru (New Market)",
-  "Cemetery Market",
-  "Eziukwu Market",
-  "Uratta Market",
-  "Railway Market"
 ];
 
 const SERVICE_CATEGORIES = {
@@ -225,6 +216,7 @@ export default function ProfilePage() {
   const [website, setWebsite] = useState("");
   const [location, setLocation] = useState("");
   const [market, setMarket] = useState(""); // Add market state
+  const [marketLocations, setMarketLocations] = useState<{id: string, name: string}[]>([]); // Add state for market locations
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [businessName, setBusinessName] = useState("");
   const [businessType, setBusinessType] = useState("");
@@ -261,6 +253,32 @@ export default function ProfilePage() {
       }
     }
   }, [user, loading, email]); // These dependencies are consistent
+
+  // Add useEffect to fetch market locations from the database
+  useEffect(() => {
+    const fetchMarketLocations = async () => {
+      try {
+        const { data: markets, error } = await supabase
+          .from('markets')
+          .select('id, name')
+          .eq('is_active', true)
+          .order('name');
+          
+        if (error) {
+          console.error('Error fetching markets:', error.message);
+          return;
+        }
+        
+        if (markets) {
+          setMarketLocations(markets);
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching markets:', err);
+      }
+    };
+    
+    fetchMarketLocations();
+  }, []);
 
   // Logo handling functions
   const handleLogoDrop = (e: React.DragEvent) => {
@@ -463,7 +481,6 @@ export default function ProfilePage() {
         role: 'business',
         // Use agent's user_id for created_by field, not the agent's id
         created_by: userIdString,
-        
       };
 
       console.log("Inserting business data:", userData);
@@ -479,42 +496,84 @@ export default function ProfilePage() {
         console.error("Error inserting business:", insertError);
         throw new Error(`Failed to add business: ${insertError.message}`);
       }
+      
+      // If a market is selected, also insert into businesses table
+      if (market) {
+        // Find the market ID based on the selected market name
+        let marketId: string | null = null;
+        const selectedMarketObj = marketLocations.find(m => m.name === market);
+        
+        if (selectedMarketObj) {
+          marketId = selectedMarketObj.id;
+          
+          // Prepare data for businesses table
+          const businessData = {
+            name: businessName,
+            description: description || null,
+            market_id: marketId,
+            owner_id: insertData.id, // Use the newly created user record as the owner
+            contact_phone: phone || null,
+            contact_email: email || null,
+            address: location || null,
+            logo_url: logoPreview || null,
+            status: 'active',
+          };
+          
+          console.log("Inserting into businesses table:", businessData);
+          
+          // Insert into businesses table
+          const { data: businessInsertData, error: businessInsertError } = await supabase
+            .from('businesses')
+            .insert(businessData)
+            .select()
+            .single();
+            
+          if (businessInsertError) {
+            console.error("Error inserting into businesses table:", businessInsertError);
+            // We won't throw here since the user record was created successfully
+            // Just log the error for reference
+          } else {
+            console.log("Business record created successfully:", businessInsertData);
+          }
+        } else {
+          console.warn("Selected market not found in marketLocations array:", market);
+        }
+      }
 
       // update the agent's profile increment create const num = +1 current_week_registrations total_registrations 
       
-// First, get the current agent's registration counts
-const { data: agentData, error: agentError } = await supabase
-  .from('agents')
-  .select('total_registrations, current_week_registrations')
-  .eq('id', currentAgentId)
-  .single();
+      // First, get the current agent's registration counts
+      const { data: agentData, error: agentError } = await supabase
+        .from('agents')
+        .select('total_registrations, current_week_registrations')
+        .eq('id', currentAgentId)
+        .single();
 
-if (agentError) {
-  console.error('Error fetching agent data:', agentError);
-  return;
-}
+      if (agentError) {
+        console.error('Error fetching agent data:', agentError);
+        return;
+      }
 
-// Then, increment the values
-const newTotal = (agentData.total_registrations || 0) + 1;
-const newWeekly = (agentData.current_week_registrations || 0) + 1;
+      // Then, increment the values
+      const newTotal = (agentData.total_registrations || 0) + 1;
+      const newWeekly = (agentData.current_week_registrations || 0) + 1;
 
-// Now, update the database with the new incremented values
-const { data: agentUpdateData, error: agentUpdateError } = await supabase
-  .from('agents')
-  .update({
-    total_registrations: newTotal,
-    current_week_registrations: newWeekly
-  })
-  .eq('id', currentAgentId)
-  .select()
-  .single();
+      // Now, update the database with the new incremented values
+      const { data: agentUpdateData, error: agentUpdateError } = await supabase
+        .from('agents')
+        .update({
+          total_registrations: newTotal,
+          current_week_registrations: newWeekly
+        })
+        .eq('id', currentAgentId)
+        .select()
+        .single();
 
-if (agentUpdateError) {
-  console.error('Error updating agent data:', agentUpdateError);
-} else {
-  console.log('Agent data updated:', agentUpdateData);
-}
-
+      if (agentUpdateError) {
+        console.error('Error updating agent data:', agentUpdateError);
+      } else {
+        console.log('Agent data updated:', agentUpdateData);
+      }
 
       console.log("Business added successfully:", insertData);
       setSuccess("Business listing added successfully!");
@@ -890,10 +949,17 @@ if (agentUpdateError) {
                     onChange={(e) => setMarket(e.target.value)}
                   >
                     <option value="">Select market location</option>
-                    {MARKET_LOCATIONS.map((marketName) => (
-                      <option key={marketName} value={marketName}>{marketName}</option>
-                    ))}
+                    {marketLocations.length > 0 ? (
+                      marketLocations.map((marketLocation) => (
+                        <option key={marketLocation.id} value={marketLocation.name}>{marketLocation.name}</option>
+                      ))
+                    ) : (
+                      <option value="" disabled>Loading market locations...</option>
+                    )}
                   </select>
+                  {marketLocations.length === 0 && (
+                    <p className="text-xs text-orange-600 mt-1">Loading market locations from database...</p>
+                  )}
                 </div>
               )}
               <div className="md:col-span-2 my-6">

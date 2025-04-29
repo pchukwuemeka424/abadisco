@@ -1,6 +1,6 @@
 "use client";
 import dynamic from 'next/dynamic';
-import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { supabase } from "@/supabaseClient";
 import { useAuth } from "@/context/auth-context";
@@ -38,15 +38,6 @@ const BUSINESS_TYPES = [
   "Auto Repair",
   "Electronics",
   "Other"
-];
-
-const MARKET_LOCATIONS = [
-  "Ariaria Market",
-  "Ahia Ohuru (New Market)",
-  "Cemetery Market",
-  "Eziukwu Market",
-  "Uratta Market",
-  "Railway Market"
 ];
 
 const SERVICE_CATEGORIES = {
@@ -226,7 +217,8 @@ export default function EditListingPage() {
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
   const [location, setLocation] = useState("");
-  const [market, setMarket] = useState(""); // Add market state
+  const [market, setMarket] = useState(""); // Market state
+  const [marketLocations, setMarketLocations] = useState<{id: string, name: string}[]>([]); // Add state for market locations
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [businessName, setBusinessName] = useState("");
   const [businessType, setBusinessType] = useState("");
@@ -263,6 +255,32 @@ export default function EditListingPage() {
       }
     }
   }, [user, loading, email]);
+
+  // Add useEffect to fetch market locations from the database
+  useEffect(() => {
+    const fetchMarketLocations = async () => {
+      try {
+        const { data: markets, error } = await supabase
+          .from('markets')
+          .select('id, name')
+          .eq('is_active', true)
+          .order('name');
+          
+        if (error) {
+          console.error('Error fetching markets:', error.message);
+          return;
+        }
+        
+        if (markets) {
+          setMarketLocations(markets);
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching markets:', err);
+      }
+    };
+    
+    fetchMarketLocations();
+  }, []);
 
   // Logo handling functions
   const handleLogoDrop = (e: React.DragEvent) => {
@@ -472,6 +490,75 @@ export default function EditListingPage() {
       if (updateError) {
         console.error("Error updating business:", updateError);
         throw new Error(`Failed to update business: ${updateError.message}`);
+      }
+
+      // Now handle updating the businesses table if market is selected
+      if (market) {
+        // Find the market ID based on the selected market name
+        let marketId: string | null = null;
+        const selectedMarketObj = marketLocations.find(m => m.name === market);
+        
+        if (selectedMarketObj) {
+          marketId = selectedMarketObj.id;
+          
+          // First check if a record already exists in the businesses table for this user
+          const { data: existingBusiness, error: existingError } = await supabase
+            .from('businesses')
+            .select('id')
+            .eq('owner_id', listingId)
+            .maybeSingle();
+            
+          if (existingError) {
+            console.error("Error checking existing business record:", existingError);
+          }
+          
+          // Prepare data for businesses table
+          const businessData = {
+            name: businessName,
+            description: description || null,
+            market_id: marketId,
+            owner_id: listingId,
+            contact_phone: phone || null,
+            contact_email: email || null,
+            address: location || null,
+            logo_url: logoPreview || null,
+            status: 'active',
+            updated_at: new Date().toISOString()
+          };
+          
+          if (existingBusiness) {
+            // Update existing record
+            console.log("Updating existing business record in businesses table...");
+            const { data: businessUpdateData, error: businessUpdateError } = await supabase
+              .from('businesses')
+              .update(businessData)
+              .eq('id', existingBusiness.id)
+              .select()
+              .single();
+              
+            if (businessUpdateError) {
+              console.error("Error updating businesses table:", businessUpdateError);
+            } else {
+              console.log("Business record updated successfully:", businessUpdateData);
+            }
+          } else {
+            // Insert new record
+            console.log("Inserting new business record into businesses table...");
+            const { data: businessInsertData, error: businessInsertError } = await supabase
+              .from('businesses')
+              .insert(businessData)
+              .select()
+              .single();
+              
+            if (businessInsertError) {
+              console.error("Error inserting into businesses table:", businessInsertError);
+            } else {
+              console.log("Business record created successfully:", businessInsertData);
+            }
+          }
+        } else {
+          console.warn("Selected market not found in marketLocations array:", market);
+        }
       }
 
       console.log("Business updated successfully:", updateData);
@@ -876,10 +963,17 @@ export default function EditListingPage() {
                     onChange={(e) => setMarket(e.target.value)}
                   >
                     <option value="">Select market location</option>
-                    {MARKET_LOCATIONS.map((marketName) => (
-                      <option key={marketName} value={marketName}>{marketName}</option>
-                    ))}
+                    {marketLocations.length > 0 ? (
+                      marketLocations.map((marketLocation) => (
+                        <option key={marketLocation.id} value={marketLocation.name}>{marketLocation.name}</option>
+                      ))
+                    ) : (
+                      <option value="" disabled>Loading market locations...</option>
+                    )}
                   </select>
+                  {marketLocations.length === 0 && (
+                    <p className="text-xs text-orange-600 mt-1">Loading market locations from database...</p>
+                  )}
                 </div>
               )}
               <div className="md:col-span-2 my-6">
