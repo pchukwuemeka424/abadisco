@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import { FaCheck, FaTimes, FaSearch, FaSpinner } from 'react-icons/fa';
 import { supabase } from '../../../../supabaseClient';
