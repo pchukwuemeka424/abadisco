@@ -39,7 +39,7 @@ export function Navbar() {
                   priority
                 />
               </div>
-              <span className="ml-2 text-xl font-bold text-white hidden sm:inline tracking-wide">
+              <span className="ml-2 text-xl font-bold text-white hidden sm:inline tracking-wide drop-shadow-md">
                 Aba Directory
               </span>
             </Link>

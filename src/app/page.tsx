@@ -108,23 +108,21 @@ export default function Home() {
         <div className="relative z-20 h-full flex flex-col items-center justify-center px-4">
           <div className="text-center max-w-5xl mx-auto">
             <div className="inline-block mb-4">
-              <span className="bg-red-500/20 text-red-400 px-4 py-1 rounded-full text-sm font-medium tracking-wide">
+              <span className="bg-red-500/30 text-white px-4 py-1 rounded-full text-sm font-medium tracking-wide text-shadow-sm">
                 EASTERN NIGERIA'S COMMERCIAL HUB
               </span>
             </div>
             
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-4 tracking-tight animate-fade-in">
-              Discover <span className="text-red-400">City of Aba</span>
+            <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold text-white mb-4 tracking-tight animate-fade-in text-shadow-md">
+              Discover <span className="text-red-300">City of Aba</span>
             </h1>
-            <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto animate-fade-in-delay-1">
+            <p className="text-lg sm:text-xl md:text-2xl text-white mb-8 max-w-3xl mx-auto animate-fade-in-delay-1 text-shadow-sm">
               Eastern Nigeria's commercial hub with vibrant markets, skilled craftsmanship, and rich cultural experiences
             </p>
             
             <div className="w-full max-w-2xl mx-auto mb-10 animate-fade-in-delay-2">
               <SearchBar />
             </div>
-
-           
             
             {/* Scroll Down Indicator */}
             <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
@@ -160,8 +158,8 @@ export default function Home() {
                       {category.icon}
                     </div>
                     <h3 className="text-2xl font-bold text-white mb-2">{category.title}</h3>
-                    <p className="text-white/80 mb-4">{category.description}</p>
-                    <div className="flex items-center text-red-400 font-semibold">
+                    <p className="text-white text-shadow-sm mb-4">{category.description}</p>
+                    <div className="flex items-center text-white font-semibold">
                       <span>Explore</span>
                       <svg className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
