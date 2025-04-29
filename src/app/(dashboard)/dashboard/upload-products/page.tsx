@@ -136,7 +136,7 @@ export default function UploadProduct() {
         .from('products')
         .insert({
           image_urls: imageUrls[0], // Main image
-          tags: tags.length > 0 ? tags : null,
+         
           // Use paramId if available, otherwise fall back to user.id
           user_id: paramId || user.id,
         })
@@ -145,22 +145,7 @@ export default function UploadProduct() {
 
       if (dbError) throw new Error(dbError.message);
       
-      // Log activity with proper description
-      const { error: activityError } = await supabase
-        .from('activities')
-        .insert({
-          action_type: 'upload',
-          user_type: 'user',
-          description: `Uploaded ${files.length} product image${files.length > 1 ? 's' : ''} for ${businessName}`,
-          user_id: user.id,
-          resource_type: 'product',
-          resource_id: productData?.id || null
-        });
-        
-      if (activityError) {
-        console.error('Error logging activity:', activityError);
-        // Continue even if activity logging fails
-      }
+    
 
       setShowModal(true);
       setFiles([]);
