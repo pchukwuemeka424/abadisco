@@ -73,3 +73,43 @@ BEGIN
   -- RAISE NOTICE 'Agent stats updated for ID: %', agent_id_param;
 END;
 $$;
+
+-- Function to log activities (for triggers)
+CREATE OR REPLACE FUNCTION log_activity()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  action_description TEXT;
+  resource_type TEXT;
+BEGIN
+  -- Set the resource type based on the table being modified
+  resource_type := TG_TABLE_NAME;
+  
+  -- Create appropriate descriptions based on operation type
+  IF (TG_OP = 'INSERT') THEN
+    action_description := 'New ' || TG_TABLE_NAME || ' created: ' || coalesce(NEW.name, NEW.title, 'ID ' || NEW.id);
+  ELSIF (TG_OP = 'UPDATE') THEN
+    action_description := TG_TABLE_NAME || ' updated: ' || coalesce(NEW.name, NEW.title, 'ID ' || NEW.id);
+  ELSIF (TG_OP = 'DELETE') THEN
+    action_description := TG_TABLE_NAME || ' deleted: ' || coalesce(OLD.name, OLD.title, 'ID ' || OLD.id);
+  END IF;
+
+  -- Insert activity record
+  INSERT INTO activities (action_type, user_type, description, resource_type, resource_id)
+  VALUES (
+    lower(TG_OP),  -- 'insert', 'update', or 'delete'
+    'system',      -- Default to system since triggers don't have user context
+    action_description,
+    resource_type,
+    CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END
+  );
+  
+  -- Return the appropriate record based on operation
+  IF (TG_OP = 'DELETE') THEN
+    RETURN OLD;
+  ELSE
+    RETURN NEW;
+  END IF;
+END;
+$$;

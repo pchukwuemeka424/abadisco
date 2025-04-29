@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { 
   FaUsers, FaBox, FaIdCard, FaChartLine, FaTags, FaCog,
   FaExclamationTriangle, FaGlobe, FaComment, FaShoppingBag,
-  FaCalendarAlt, FaBusinessTime, FaBell, FaEye
+  FaCalendarAlt, FaBusinessTime, FaBell, FaEye, FaStore
 } from 'react-icons/fa';
 import { supabase } from '@/supabaseClient';
+import MarketStats from './components/MarketStats';
 
 // Stats Card Component
 const StatsCard = ({ title, value, subtitle, icon, color, percentChange }: { 
@@ -262,7 +263,7 @@ export default function AdminDashboard() {
               title="Active Markets"
               value={formatNumber(stats.marketsCount)}
               subtitle="Commercial hub locations"
-              icon={<FaShoppingBag size={20} />}
+              icon={<FaStore size={20} />}
               color="border-purple-600"
             />
 
@@ -282,6 +283,9 @@ export default function AdminDashboard() {
               color="border-pink-600"
             />
           </div>
+          
+          {/* Market Statistics */}
+          <MarketStats />
           
           {/* Quick actions */}
           <div className="mb-8">
@@ -309,6 +313,14 @@ export default function AdminDashboard() {
                 icon={<FaIdCard size={20} />}
                 href="/admin/kyc"
                 color="border-yellow-600"
+              />
+              
+              <ActionCard
+                title="Market Management"
+                description="Manage markets and market data"
+                icon={<FaStore size={20} />}
+                href="/admin/markets"
+                color="border-purple-600"
               />
               
               <ActionCard

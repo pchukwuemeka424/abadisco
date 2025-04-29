@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { 
   FaHome, FaUsers, FaBox, FaIdCard, FaChartBar, FaClock,
   FaCog, FaBell, FaSignOutAlt, FaBars, FaTimes, FaUserSecret, FaChartLine,
-  FaTags
+  FaTags, FaStore
 } from 'react-icons/fa';
 import { supabase } from '@/supabaseClient';
 
@@ -16,6 +16,7 @@ const navItems = [
   { name: 'Users', href: '/admin/users', icon: <FaUsers /> },
   { name: 'Agents', href: '/admin/agents', icon: <FaUserSecret /> },
   { name: 'Agent Analytics', href: '/admin/agents/analytics', icon: <FaChartLine /> },
+  { name: 'Markets', href: '/admin/markets', icon: <FaStore /> },
   { name: 'Categories', href: '/admin/categories', icon: <FaTags /> },
   { name: 'Products', href: '/admin/products', icon: <FaBox /> },
   { name: 'KYC Verification', href: '/admin/kyc', icon: <FaIdCard /> },
