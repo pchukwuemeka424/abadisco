@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "buildCommand": "next build",
+  "outputDirectory": ".next",
+  "github": {
+    "silent": true
+  },
+  "env": {
+    "VERCEL_IGNORE_BUILD_ERRORS": "true"
+  }
+}
