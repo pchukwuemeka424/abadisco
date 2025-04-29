@@ -101,7 +101,7 @@ export default function UserDetailsModal({ user, isOpen, onClose }: UserDetailsM
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Owner's Full Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Owner&apos;s Full Name</label>
                     {isEditing ? (
                       <input 
                         type="text" 

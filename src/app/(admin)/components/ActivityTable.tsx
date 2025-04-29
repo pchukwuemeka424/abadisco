@@ -1,9 +1,29 @@
 import React from 'react';
 import Image from 'next/image';
-import { FaExclamationTriangle, FaCheck, FaUser, FaUserSecret, FaShoppingBag, FaIdCard, FaEdit, FaTrash, FaSignInAlt, FaSignOutAlt, FaCog, FaQuestionCircle } from 'react-icons/fa';
+import { FaExclamationTriangle, FaUser, FaUserSecret, FaShoppingBag, FaIdCard, FaEdit, FaTrash, FaSignInAlt, FaSignOutAlt, FaCog, FaQuestionCircle } from 'react-icons/fa';
+
+// Define types for better type safety
+interface ActivityUser {
+  email: string;
+  full_name: string;
+  role: string;
+  avatar_url?: string;
+}
+
+interface Activity {
+  id: string;
+  created_at: string;
+  action_type: string;
+  description: string;
+  ip_address?: string;
+  user_type: string;
+  users?: ActivityUser;
+  severity?: string;
+  metadata?: Record<string, unknown>;
+}
 
 interface ActivityTableProps {
-  activities: any[];
+  activities: Activity[];
   loading: boolean;
 }
 
@@ -160,7 +180,7 @@ export default function ActivityTable({ activities, loading }: ActivityTableProp
                 {new Date(activity.created_at).toLocaleString()}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                {getSeverityBadge(activity.severity)}
+                {getSeverityBadge(activity.severity || 'info')}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {activity.ip_address || 'N/A'}

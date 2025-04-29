@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { FaCheck, FaTimes, FaClock } from 'react-icons/fa';
-import Image from 'next/image';
+import NextImage from 'next/image';
 
 type KYCVerification = {
   id: string;
@@ -110,9 +110,11 @@ export default function KYCDetailsModal({
               {verification.id_file_url ? (
                 <div className="border rounded-lg overflow-hidden">
                   <div className="relative aspect-[4/3] w-full">
-                    <img
+                    <NextImage
                       src={verification.id_file_url}
                       alt="ID Document"
+                      width={600}
+                      height={450}
                       className="object-contain w-full h-full"
                     />
                   </div>

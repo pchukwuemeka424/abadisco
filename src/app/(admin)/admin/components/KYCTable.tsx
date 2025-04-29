@@ -22,6 +22,11 @@ type KYCVerification = {
   } | null;
 };
 
+interface UpdateData {
+  status: 'approved' | 'rejected';
+  admin_notes?: string;
+}
+
 export default function KYCTable() {
   const [verifications, setVerifications] = useState<KYCVerification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,8 +82,9 @@ export default function KYCTable() {
         data = basicData;
       }
       
-      setVerifications((data as unknown as KYCVerification[]) || []);
-    } catch (error) {
+      setVerifications((data as KYCVerification[]) || []);
+    } catch (err) {
+      const error = err as Error;
       console.error('Error fetching KYC verifications:', error);
       setError('Failed to fetch verification data. Please try again later.');
     } finally {
@@ -93,7 +99,7 @@ export default function KYCTable() {
   
   const handleUpdateStatus = async (id: string, status: 'approved' | 'rejected', notes?: string) => {
     try {
-      const updateData: any = { status };
+      const updateData: UpdateData = { status };
       
       // Only add notes to update data if it's not empty
       if (notes !== undefined && notes.trim() !== '') {
@@ -124,7 +130,8 @@ export default function KYCTable() {
       
       // Refresh data
       fetchVerifications();
-    } catch (error: any) {
+    } catch (err) {
+      const error = err as Error;
       console.error(`Error updating verification status to ${status}:`, error);
     }
   };

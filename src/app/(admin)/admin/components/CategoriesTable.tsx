@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FaEdit, FaTrash, FaEye, FaSyncAlt } from 'react-icons/fa';
-import { supabase } from '@/supabaseClient';
 import Image from 'next/image';
 import { format } from 'date-fns';
 
@@ -58,6 +57,7 @@ export default function CategoriesTable({
     return 0;
   });
 
+  // Rest of the component remains unchanged
   return (
     <div className="bg-white shadow-lg rounded-lg overflow-hidden">
       <div className="p-4 flex justify-between items-center border-b">

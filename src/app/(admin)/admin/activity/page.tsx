@@ -6,12 +6,35 @@ import { supabase } from '@/supabaseClient';
 import ActivityTable from '../../components/ActivityTable';
 import ActivityFilterModal from '../../components/ActivityFilterModal';
 
+// Define types for better type safety
+interface ActivityUser {
+  email: string;
+  full_name: string;
+  role: string;
+}
+
+interface Activity {
+  id: string;
+  created_at: string;
+  action_type: string;
+  description: string;
+  ip_address?: string;
+  user_type: string;
+  users?: ActivityUser;
+}
+
+interface FilterOptions {
+  actionType: string;
+  userType: string;
+  dateRange: string;
+}
+
 export default function AdminActivity() {
-  const [activities, setActivities] = useState<any[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [filterOptions, setFilterOptions] = useState({
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     actionType: 'all',
     userType: 'all',
     dateRange: 'all',
@@ -28,7 +51,7 @@ export default function AdminActivity() {
     if (!error) {
       fetchActivities();
     }
-  }, [filterOptions, error]);
+  }, [filterOptions, error, searchQuery]);
 
   const checkActivitiesTable = async () => {
     try {
@@ -36,7 +59,7 @@ export default function AdminActivity() {
       setError(null);
       
       // First check if the activities table exists
-      const { data, error: tableError } = await supabase
+      const { error: tableError } = await supabase
         .from('activities')
         .select('id')
         .limit(1);
@@ -52,8 +75,9 @@ export default function AdminActivity() {
       
       // Table exists, fetch activities
       fetchActivities();
-    } catch (err: any) {
-      setError(`Failed to check activities table: ${err.message || JSON.stringify(err)}`);
+    } catch (err) {
+      const error = err as Error;
+      setError(`Failed to check activities table: ${error.message || JSON.stringify(error)}`);
     } finally {
       setLoading(false);
     }
@@ -122,15 +146,16 @@ export default function AdminActivity() {
       }
       
       setActivities(data || []);
-    } catch (err: any) {
-      console.error('Error fetching activities:', err);
-      setError(`Failed to fetch activities: ${err.message || JSON.stringify(err)}`);
+    } catch (err) {
+      const error = err as Error;
+      console.error('Error fetching activities:', error);
+      setError(`Failed to fetch activities: ${error.message || JSON.stringify(error)}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFilterChange = (newFilterOptions: any) => {
+  const handleFilterChange = (newFilterOptions: FilterOptions) => {
     setFilterOptions(newFilterOptions);
     setShowFilterModal(false);
   };
