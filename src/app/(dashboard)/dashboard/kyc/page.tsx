@@ -1,371 +1,404 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
-import { z } from "zod";
-import { supabase } from "@/supabaseClient";
-import { FaIdCard, FaUpload, FaSpinner } from "react-icons/fa";
-import { useAuth } from "@/context/auth-context";
+import { useState, useEffect, useRef } from 'react';
+import DashboardSidebar from '@/components/DashboardSidebar';
+import { supabase } from '@/supabaseClient';
+import { useAuth } from '@/context/auth-context';
+import { FaIdCard, FaFileUpload, FaCheck, FaTimes, FaSpinner } from 'react-icons/fa';
+import Image from 'next/image';
 
-const kycSchema = z.object({
-  fullName: z.string().min(2, "Full name is required"),
-  idType: z.string().min(1, "Please select an ID type"),
-  idNumber: z.string().min(1, "ID number is required"),
-});
-
-const ID_TYPES = [
-  { value: "national-id", label: "National ID" },
-  { value: "passport", label: "Passport" },
-  { value: "drivers-license", label: "Driver's License" },
-  { value: "voters-card", label: "Voter's Card" },
-];
+// Define proper types
+interface KYCVerification {
+  id: string;
+  user_id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  document_type: string;
+  document_url?: string;
+  submitted_at: string;
+  verification_date?: string;
+  rejected_reason?: string;
+}
 
 export default function KYCPage() {
   const { user } = useAuth();
-  const [fullName, setFullName] = useState("");
-  const [idType, setIdType] = useState("");
-  const [idNumber, setIdNumber] = useState("");
-  const [idFile, setIdFile] = useState<File | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState<"idle" | "processing" | "success" | "error">("idle");
-  const [error, setError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [documentType, setDocumentType] = useState('national_id');
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [existingVerification, setExistingVerification] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [existingVerification, setExistingVerification] = useState<KYCVerification | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [agreementChecked, setAgreementChecked] = useState(false);
 
-  // Check for existing verification on component mount
+  // Check for existing verification
   useEffect(() => {
-    async function checkExistingVerification() {
+    const checkExistingVerification = async () => {
       if (!user) return;
+      
       try {
         const { data, error } = await supabase
-          .from("kyc_verifications")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching verification:', error);
-          return;
+          .from('kyc_verifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('submitted_at', { ascending: false })
+          .limit(1);
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          setExistingVerification(data[0] as KYCVerification);
         }
-
-        if (data) {
-          setExistingVerification(data);
-          setFullName(data.full_name || "");
-          setIdType(data.id_type || "");
-          setIdNumber(data.id_number || "");
-          // If verification exists and is already approved, mark as submitted
-          if (data.status === "approved") {
-            setSubmitted(true);
-            setVerificationStatus("success");
-          }
-        }
-      } catch (err) {
-        console.error('Error checking verification status:', err);
+      } catch (error) {
+        console.error('Error checking existing verification:', error);
       }
-    }
-
+    };
+    
     checkExistingVerification();
   }, [user]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.type)) {
-        setError("Please upload a valid image (JPG, PNG, WEBP) or PDF file");
-        return;
-      }
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError("File size should be less than 5MB");
-        return;
-      }
-
-      setIdFile(file);
-      setError("");
-
-      // Create preview URL for images
-      if (file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setPreviewUrl(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        setPreviewUrl(null);
-      }
+    if (!file) return;
+    
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMessage('File size exceeds 5MB. Please choose a smaller file.');
+      return;
     }
+    
+    // Check file type
+    if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.type)) {
+      setErrorMessage('Only JPEG, PNG, WEBP and PDF files are allowed.');
+      return;
+    }
+    
+    setDocumentFile(file);
+    
+    // Create preview for images
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setPreviewUrl(null);
+    }
+    
+    setErrorMessage('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setVerificationStatus("processing");
-
+    
+    if (!user || !documentFile || !agreementChecked) {
+      setErrorMessage('Please select a document and agree to the terms.');
+      return;
+    }
+    
+    setLoading(true);
+    setErrorMessage('');
+    
     try {
-      // Validate form
-      const result = kycSchema.safeParse({ fullName, idType, idNumber });
-      if (!result.success) {
-        setError(result.error.errors[0].message);
-        setVerificationStatus("error");
-        return;
-      }
-
-      if (!idFile && !existingVerification?.id_file_url) {
-        setError("Please upload an ID document");
-        setVerificationStatus("error");
-        return;
-      }
-
-      if (!user) {
-        setError("User not authenticated");
-        setVerificationStatus("error");
-        return;
-      }
-
-      let idFileUrl = existingVerification?.id_file_url;
-
-      // Upload ID document to storage if a new file is selected
-      if (idFile) {
-        const fileExt = idFile.name.split(".").pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const { error: uploadError, data } = await supabase.storage
-          .from("kyc")
-          .upload(fileName, idFile);
-
-        if (uploadError) {
-          throw new Error("Failed to upload document: " + uploadError.message);
-        }
-
-        // Get the public URL of the uploaded file
-        const { data: { publicUrl } } = supabase.storage
-          .from("kyc")
-          .getPublicUrl(fileName);
-
-        idFileUrl = publicUrl;
-      }
-
-      // Check if we need to create or update a record
-      if (existingVerification) {
-        // Update existing verification record
-        const { error: updateError } = await supabase
-          .from("kyc_verifications")
-          .update({
-            full_name: fullName,
-            id_type: idType,
-            id_number: idNumber,
-            id_file_url: idFileUrl,
-            status: "pending",
-          })
-          .eq("id", existingVerification.id);
-
-        if (updateError) throw new Error("Failed to update verification status: " + updateError.message);
-      } else {
-        // Create new verification record
-        const { error: insertError } = await supabase
-          .from("kyc_verifications")
-          .insert({
+      // Upload file to storage
+      const fileExt = documentFile.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `kyc-documents/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('kyc-documents')
+        .upload(filePath, documentFile);
+      
+      if (uploadError) throw uploadError;
+      
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('kyc-documents')
+        .getPublicUrl(filePath);
+      
+      const documentUrl = publicUrlData.publicUrl;
+      
+      // Save verification record
+      const { error: insertError } = await supabase
+        .from('kyc_verifications')
+        .insert([
+          {
             user_id: user.id,
-            full_name: fullName,
-            id_type: idType,
-            id_number: idNumber,
-            id_file_url: idFileUrl,
-            status: "pending",
-          });
-
-        if (insertError) throw new Error("Failed to submit verification: " + insertError.message);
+            document_type: documentType,
+            document_url: documentUrl,
+            status: 'pending',
+            submitted_at: new Date().toISOString(),
+          },
+        ]);
+      
+      if (insertError) throw insertError;
+      
+      // Update successful status
+      setSubmissionStatus('success');
+      
+      // Refresh the existing verification data
+      const { data } = await supabase
+        .from('kyc_verifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('submitted_at', { ascending: false })
+        .limit(1);
+      
+      if (data && data.length > 0) {
+        setExistingVerification(data[0] as KYCVerification);
       }
+      
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      setSubmissionStatus('error');
+      setErrorMessage('There was an error uploading your document. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      setVerificationStatus("success");
-      setSubmitted(true);
-    } catch (err: any) {
-      setError(err.message || "Failed to submit KYC verification");
-      setVerificationStatus("error");
+  const resetForm = () => {
+    setDocumentFile(null);
+    setPreviewUrl(null);
+    setSubmissionStatus('idle');
+    setErrorMessage('');
+    setAgreementChecked(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-gray-50 to-rose-50 py-12 px-4 sm:px-6 lg:px-8">
-      <main className="flex-1 max-w-2xl mx-auto">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-          {/* Breadcrumb */}
-          <nav className="mb-4 text-sm text-gray-500 flex items-center gap-2">
-            <a href="/dashboard" className="hover:text-rose-600 transition-colors">Dashboard</a>
-            <span className="text-gray-300">/</span>
-            <span className="text-gray-900 font-medium">KYC Verification</span>
-          </nav>
-
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-              <span className="p-2 bg-rose-100 rounded-xl">
-                <FaIdCard className="text-rose-600" />
+    <div className="flex min-h-screen bg-gray-50">
+      <DashboardSidebar />
+      <main className="flex-grow px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6">KYC Verification</h1>
+        
+        {existingVerification ? (
+          <div className="bg-white rounded-lg shadow mb-6 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium">Verification Status</h2>
+              <span
+                className={`px-3 py-1 text-sm rounded-full ${
+                  existingVerification.status === 'approved'
+                    ? 'bg-green-100 text-green-800'
+                    : existingVerification.status === 'rejected'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-yellow-100 text-yellow-800'
+                }`}
+              >
+                {existingVerification.status.charAt(0).toUpperCase() + existingVerification.status.slice(1)}
               </span>
-              KYC Verification
-            </h1>
-            <p className="mt-2 text-gray-600">
-              Complete your identity verification to access all features of your account.
-            </p>
-          </div>
-
-          {/* Instructions */}
-          <div className="mb-8 p-4 bg-blue-50 border border-blue-100 rounded-lg">
-            <h3 className="font-semibold text-blue-800 mb-2">Requirements:</h3>
-            <ul className="text-sm text-blue-700 space-y-1">
-              <li>• A valid government-issued photo ID</li>
-              <li>• Clear, readable images of your ID document</li>
-              <li>• File size less than 5MB (JPG, PNG, WEBP, or PDF)</li>
-              <li>• Information matching your account details</li>
-            </ul>
-          </div>
-
-          {submitted ? (
-            <div className={`rounded-lg p-6 ${
-              verificationStatus === "success" 
-                ? "bg-green-50 border border-green-100" 
-                : "bg-red-50 border border-red-100"
-            }`}>
-              <div className="text-center">
-                {verificationStatus === "success" ? (
-                  <>
-                    <h3 className="text-green-800 font-semibold mb-2">Verification Submitted Successfully!</h3>
-                    <p className="text-green-700 text-sm">
-                      Your verification is being processed. We'll notify you once it's complete.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <h3 className="text-red-800 font-semibold mb-2">Verification Failed</h3>
-                    <p className="text-red-700 text-sm">{error}</p>
-                  </>
-                )}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <p className="text-sm text-gray-500">Document Type</p>
+                <p className="font-medium capitalize">{existingVerification.document_type.replace('_', ' ')}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Submitted Date</p>
+                <p className="font-medium">{new Date(existingVerification.submitted_at).toLocaleDateString()}</p>
               </div>
             </div>
-          ) : (
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              {error && (
-                <div className="bg-red-50 border border-red-100 rounded-lg p-4 text-red-600 text-sm">
-                  {error}
-                </div>
-              )}
-
-              <div className="space-y-4">
-                {/* Full Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="appearance-none block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-rose-500 focus:border-rose-500 sm:text-sm"
-                    placeholder="Enter your full name as it appears on your ID"
-                    required
-                  />
-                </div>
-
-                {/* ID Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ID Type
-                  </label>
-                  <select
-                    value={idType}
-                    onChange={(e) => setIdType(e.target.value)}
-                    className="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500 sm:text-sm"
-                    required
-                  >
-                    <option value="">Select ID Type</option>
-                    {ID_TYPES.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* ID Number */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ID Number
-                  </label>
-                  <input
-                    type="text"
-                    value={idNumber}
-                    onChange={(e) => setIdNumber(e.target.value)}
-                    className="appearance-none block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-rose-500 focus:border-rose-500 sm:text-sm"
-                    placeholder="Enter your ID number"
-                    required
-                  />
-                </div>
-
-                {/* ID Document Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Upload ID Document
-                  </label>
-                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
-                    <div className="space-y-1 text-center">
-                      {previewUrl ? (
-                        <div className="mb-4">
-                          <img
-                            src={previewUrl}
-                            alt="ID Preview"
-                            className="mx-auto h-32 w-auto object-contain"
-                          />
-                        </div>
-                      ) : existingVerification?.id_file_url ? (
-                        <div className="mb-4">
-                          <img
-                            src={existingVerification.id_file_url}
-                            alt="Current ID Document"
-                            className="mx-auto h-32 w-auto object-contain"
-                          />
-                          <p className="text-xs text-gray-500 mt-2">Current ID document</p>
-                        </div>
-                      ) : (
-                        <FaUpload className="mx-auto h-12 w-12 text-gray-400" />
-                      )}
-                      <div className="flex text-sm text-gray-600">
-                        <label
-                          htmlFor="file-upload"
-                          className="relative cursor-pointer bg-white rounded-md font-medium text-rose-600 hover:text-rose-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-rose-500"
-                        >
-                          <span>Upload a file</span>
-                          <input
-                            id="file-upload"
-                            name="file-upload"
-                            type="file"
-                            className="sr-only"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            accept="image/*,.pdf"
-                          />
-                        </label>
-                        <p className="pl-1">or drag and drop</p>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        PNG, JPG, WEBP or PDF up to 5MB
-                      </p>
+            
+            {existingVerification.status === 'rejected' && existingVerification.rejected_reason && (
+              <div className="bg-red-50 border border-red-200 rounded p-4 mb-4">
+                <p className="text-sm text-gray-700">Your verification was rejected for the following reason:</p>
+                <p className="font-medium text-red-600">{existingVerification.rejected_reason}</p>
+              </div>
+            )}
+            
+            {existingVerification.document_url && (
+              <div className="mb-4">
+                <p className="text-sm text-gray-500 mb-2">Submitted Document</p>
+                <div className="bg-gray-100 rounded-lg p-2 relative">
+                  {existingVerification.document_url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                    <div className="relative w-full h-64">
+                      <Image 
+                        src={existingVerification.document_url} 
+                        alt="KYC document" 
+                        fill
+                        style={{ objectFit: 'contain' }}
+                        className="rounded"
+                      />
                     </div>
+                  ) : (
+                    <a
+                      href={existingVerification.document_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block bg-blue-50 p-4 text-center text-blue-600 hover:underline"
+                    >
+                      View Document
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {existingVerification.status === 'rejected' && (
+              <div className="mt-4">
+                <button
+                  onClick={resetForm}
+                  className="w-full flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  Submit New Document
+                </button>
+              </div>
+            )}
+          </div>
+        ) : submissionStatus === 'success' ? (
+          <div className="bg-white rounded-lg shadow mb-6 p-6">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                <FaCheck className="h-6 w-6 text-green-600" />
+              </div>
+              <h3 className="mt-2 text-lg font-medium">Verification Submitted</h3>
+              <p className="mt-2 text-gray-600">
+                Your verification document has been submitted successfully. We will review it and update you with the status.
+              </p>
+              <div className="mt-4">
+                <p className="text-sm text-gray-500">This process typically takes 1-2 business days.</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow mb-6 p-6">
+            <h2 className="text-lg font-medium mb-4">Submit Your Documents</h2>
+            <p className="text-gray-600 mb-6">
+              To verify your identity, please upload one of the following documents. This helps us maintain security and prevent fraud.
+            </p>
+            
+            <form onSubmit={handleSubmit}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Document Type</label>
+                <select
+                  value={documentType}
+                  onChange={(e) => setDocumentType(e.target.value)}
+                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="national_id">National ID Card</option>
+                  <option value="drivers_license">Driver&apos;s License</option>
+                  <option value="passport">Passport</option>
+                  <option value="voter_card">Voter&apos;s Card</option>
+                </select>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Upload Document</label>
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                  <div className="space-y-1 text-center">
+                    <div className="flex justify-center">
+                      <FaFileUpload className="mx-auto h-12 w-12 text-gray-400" />
+                    </div>
+                    <div className="flex text-sm text-gray-600">
+                      <label
+                        htmlFor="document-upload"
+                        className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500"
+                      >
+                        <span>Upload a file</span>
+                        <input
+                          id="document-upload"
+                          name="document-upload"
+                          type="file"
+                          className="sr-only"
+                          onChange={handleFileChange}
+                          ref={fileInputRef}
+                          accept="image/jpeg,image/png,image/webp,application/pdf"
+                        />
+                      </label>
+                      <p className="pl-1">or drag and drop</p>
+                    </div>
+                    <p className="text-xs text-gray-500">PNG, JPEG, WEBP or PDF up to 5MB</p>
                   </div>
                 </div>
               </div>
-
+              
+              {previewUrl && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Document Preview</label>
+                  <div className="relative h-64 w-full border border-gray-200 rounded-md overflow-hidden">
+                    <Image 
+                      src={previewUrl} 
+                      alt="Document preview" 
+                      fill
+                      style={{ objectFit: 'contain' }} 
+                      className="rounded"
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {errorMessage && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600">{errorMessage}</p>
+                </div>
+              )}
+              
+              <div className="mb-6">
+                <div className="flex items-start">
+                  <div className="flex items-center h-5">
+                    <input
+                      id="agreement"
+                      type="checkbox"
+                      checked={agreementChecked}
+                      onChange={(e) => setAgreementChecked(e.target.checked)}
+                      className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    />
+                  </div>
+                  <div className="ml-3 text-sm">
+                    <label htmlFor="agreement" className="text-gray-700">
+                      I confirm that the information provided is accurate, and I consent to the processing of my data for verification purposes.
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
               <button
                 type="submit"
-                disabled={verificationStatus === "processing"}
-                className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={!documentFile || loading || !agreementChecked}
+                className={`w-full flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                  !documentFile || loading || !agreementChecked
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
               >
-                {verificationStatus === "processing" ? (
+                {loading ? (
                   <>
-                    <FaSpinner className="animate-spin" />
-                    Submitting...
+                    <FaSpinner className="animate-spin mr-2" />
+                    Uploading...
                   </>
-                ) : existingVerification ? "Update Verification" : "Submit Verification"}
+                ) : (
+                  'Submit for Verification'
+                )}
               </button>
             </form>
-          )}
+          </div>
+        )}
+        
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-medium mb-4">KYC Verification FAQs</h2>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-medium">Why do I need to verify my identity?</h3>
+              <p className="text-gray-600 mt-1">
+                Identity verification helps us prevent fraud, maintain security, and comply with regulatory requirements.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-medium">How long does verification take?</h3>
+              <p className="text-gray-600 mt-1">
+                The verification process typically takes 1-2 business days. You&apos;ll be notified once your documents have been reviewed.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-medium">Is my data secure?</h3>
+              <p className="text-gray-600 mt-1">
+                Yes, all your personal information and documents are encrypted and securely stored. We follow strict data protection protocols.
+              </p>
+            </div>
+          </div>
         </div>
       </main>
     </div>
