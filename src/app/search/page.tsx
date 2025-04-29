@@ -179,7 +179,7 @@ export default function SearchPage() {
   // Render search and filter components
   const renderSearchFilters = () => {
     return (
-      <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
+      <form onSubmit={handleSearch} className="flex flex-col gap-3">
         <div className="relative flex-grow">
           <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
             <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,13 +198,13 @@ export default function SearchPage() {
           <button
             type="button"
             onClick={() => setFiltersOpen(!filtersOpen)}
-            className="px-4 py-3 bg-white hover:bg-gray-50 rounded-xl flex items-center gap-2 shadow-sm transition-all duration-200"
+            className="px-4 py-3 bg-white hover:bg-gray-50 rounded-xl flex items-center gap-2 shadow-sm transition-all duration-200 flex-grow"
             aria-label="Open filters"
           >
             <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
             </svg>
-            <span className="hidden sm:inline font-medium">Filters</span>
+            <span className="font-medium">Filters</span>
             {(selectedCategory !== 'all' || minRating > 0 || priceFilter.length > 0 || selectedFeatures.length > 0) && (
               <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-rose-500 rounded-full">
                 {(selectedCategory !== 'all' ? 1 : 0) + 
@@ -221,28 +221,30 @@ export default function SearchPage() {
           >
             Search
           </button>
-          <div className="hidden sm:flex shadow-sm bg-white rounded-xl overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setViewMode('grid')}
-              className={`p-3 ${viewMode === 'grid' ? 'bg-rose-50 text-rose-600' : 'bg-white text-gray-700 hover:bg-gray-50'} transition-colors duration-200`}
-              aria-label="Grid view"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('map')}
-              className={`p-3 ${viewMode === 'map' ? 'bg-rose-50 text-rose-600' : 'bg-white text-gray-700 hover:bg-gray-50'} transition-colors duration-200`}
-              aria-label="Map view"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-            </button>
-          </div>
+        </div>
+        <div className="shadow-sm bg-white rounded-xl overflow-hidden flex">
+          <button
+            type="button"
+            onClick={() => setViewMode('grid')}
+            className={`p-3 flex-1 ${viewMode === 'grid' ? 'bg-rose-50 text-rose-600' : 'bg-white text-gray-700 hover:bg-gray-50'} transition-colors duration-200`}
+            aria-label="Grid view"
+          >
+            <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            <span className="text-xs mt-1 block">Grid</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('map')}
+            className={`p-3 flex-1 ${viewMode === 'map' ? 'bg-rose-50 text-rose-600' : 'bg-white text-gray-700 hover:bg-gray-50'} transition-colors duration-200`}
+            aria-label="Map view"
+          >
+            <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+            <span className="text-xs mt-1 block">Map</span>
+          </button>
         </div>
       </form>
     );
@@ -494,7 +496,7 @@ export default function SearchPage() {
   const renderBusinessGrid = () => {
     if (filteredBusinesses.length > 0) {
       return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredBusinesses.map((business) => (
             <Link 
               key={business.id} 
@@ -605,64 +607,40 @@ export default function SearchPage() {
     );
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header with search and filters toggle */}
-      <div className="sticky top-0 z-30 bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          {renderSearchFilters()}
-          {renderFilterTags()}
+  // Render business results section
+  const renderBusinessResults = () => {
+    // Results header with count and sort options
+    const resultsHeader = (
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+            {filteredBusinesses.length} {filteredBusinesses.length === 1 ? 'Business' : 'Businesses'}
+            {isLoading && (
+              <svg className="animate-spin ml-3 h-5 w-5 text-rose-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            )}
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">Showing results for your search</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-700 whitespace-nowrap">Sort by:</span>
+          <select className="px-4 py-2 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 border-0 text-sm">
+            <option value="relevance">Relevance</option>
+            <option value="rating">Highest Rated</option>
+            <option value="newest">Newest</option>
+            <option value="price-low">Price: Low to High</option>
+            <option value="price-high">Price: High to Low</option>
+          </select>
         </div>
       </div>
-      
-      {/* Filters panel */}
-      {renderFilterPanel()}
+    );
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" ref={mainRef}>
-        {/* Results header with count and sort options */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-              {filteredBusinesses.length} {filteredBusinesses.length === 1 ? 'Business' : 'Businesses'}
-              {isLoading && (
-                <svg className="animate-spin ml-3 h-5 w-5 text-rose-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              )}
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">Showing results for your search</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-700 whitespace-nowrap">Sort by:</span>
-            <select className="px-4 py-2 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 border-0 text-sm">
-              <option value="relevance">Relevance</option>
-              <option value="rating">Highest Rated</option>
-              <option value="newest">Newest</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-            </select>
-            <button 
-              className="sm:hidden p-3 bg-white shadow-sm rounded-xl flex items-center"
-              onClick={() => setViewMode(viewMode === 'grid' ? 'map' : 'grid')}
-              aria-label="Toggle view"
-            >
-              {viewMode === 'grid' ? (
-                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Loading state */}
-        {isLoading ? (
+    if (isLoading) {
+      return (
+        <>
+          {resultsHeader}
           <div className="flex justify-center items-center py-20 bg-white rounded-2xl shadow-sm my-6">
             <div className="text-center">
               <div className="relative mx-auto">
@@ -676,11 +654,14 @@ export default function SearchPage() {
               <p className="mt-4 text-gray-500">Loading businesses...</p>
             </div>
           </div>
-        ) : (
-          <>
-            {viewMode === 'grid' ? renderBusinessGrid() : renderMapView()}
-          </>
-        )}
+        </>
+      );
+    }
+
+    return (
+      <>
+        {resultsHeader}
+        {viewMode === 'grid' ? renderBusinessGrid() : renderMapView()}
         
         {/* Loading more indicator */}
         {isLoadingMore && (
@@ -702,6 +683,66 @@ export default function SearchPage() {
             <p className="mt-1 text-gray-500">You've seen all the available businesses.</p>
           </div>
         )}
+      </>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Split screen layout */}
+      <div className="flex flex-col lg:flex-row">
+        {/* Left side: Search container (fixed on desktop) */}
+        <div className="lg:w-1/2 lg:fixed lg:top-0 lg:bottom-0 lg:left-0 lg:overflow-y-auto bg-white shadow-md p-6">
+          <div className="max-w-xl mx-auto">
+            <h1 className="text-3xl font-bold text-gray-900 mb-8">Find Businesses in Aba</h1>
+            {renderSearchFilters()}
+            {renderFilterTags()}
+            
+            {/* Filters panel */}
+            {renderFilterPanel()}
+            
+            {/* Additional search information for desktop */}
+            <div className="mt-10 hidden lg:block">
+              <div className="rounded-2xl bg-rose-50 p-6">
+                <h3 className="font-medium text-rose-800 text-lg mb-2">Looking for something specific?</h3>
+                <p className="text-rose-700 text-sm">Our search tool helps you find businesses, services, and products from all markets in Aba.</p>
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-rose-700">
+                    <svg className="w-5 h-5 text-rose-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Search by business name</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-rose-700">
+                    <svg className="w-5 h-5 text-rose-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Filter by category</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-rose-700">
+                    <svg className="w-5 h-5 text-rose-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Sort by ratings</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-rose-700">
+                    <svg className="w-5 h-5 text-rose-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>View on interactive map</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Right side: Results container (scrollable) */}
+        <div className="lg:w-1/2 lg:ml-auto py-6 px-4 sm:px-6" ref={mainRef}>
+          <div className="max-w-3xl mx-auto">
+            {renderBusinessResults()}
+          </div>
+        </div>
       </div>
     </div>
   );

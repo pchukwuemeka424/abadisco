@@ -21,6 +21,7 @@
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "browser-image-compression": "^2.0.2",
+    "framer-motion": "^12.9.2",
     "lodash": "^4.17.21",
     "next": "15.3.1",
     "openai": "^4.96.0",
