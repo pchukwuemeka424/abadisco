@@ -4,6 +4,10 @@ import { SearchBar } from '@/components/SearchBar';
 import { Navbar } from '@/components/Navbar';
 import Image from 'next/image';
 import Link from 'next/link';
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+import { useRef } from 'react';
 
 // Business categories for featured sections
 const businessCategories = [
@@ -40,6 +44,61 @@ const businessCategories = [
       </svg>
     ),
     link: "/search?category=restaurants"
+  },
+  {
+    title: "Electronics",
+    description: "Latest gadgets and tech solutions",
+    image: "/images/Uratta Market.jpeg",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+      </svg>
+    ),
+    link: "/search?category=electronics"
+  },
+  {
+    title: "Hotels & Lodging",
+    description: "Comfortable stays for travelers",
+    image: "/images/RAILWAY .jpeg",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+      </svg>
+    ),
+    link: "/search?category=hotels"
+  },
+  {
+    title: "Footwear & Leather",
+    description: "Quality shoes and leather products",
+    image: "/images/ariaria-market.png",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+      </svg>
+    ),
+    link: "/search?category=footwear"
+  },
+  {
+    title: "Automotive",
+    description: "Vehicle parts and repair services",
+    image: "/images/Cemetery Market.jpeg",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21H5a2 2 0 01-2-2V6a2 2 0 012-2h2V3a1 1 0 011-1h8a1 1 0 011 1v1h2a2 2 0 012 2v13a2 2 0 01-2 2z"></path>
+      </svg>
+    ),
+    link: "/search?category=automotive"
+  },
+  {
+    title: "Art & Crafts",
+    description: "Local artisan creations and crafts",
+    image: "/images/Ahia Ohuru (New Market).webp",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+      </svg>
+    ),
+    link: "/search?category=art"
   }
 ];
 
@@ -142,9 +201,31 @@ export default function Home() {
             <p className="text-gray-600 max-w-2xl mx-auto">Discover the diverse commercial ecosystem that makes Aba the manufacturing powerhouse of Eastern Nigeria</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <Slider 
+            slidesToShow={3} 
+            slidesToScroll={1} 
+            autoplay={true} 
+            autoplaySpeed={3000}
+            responsive={[
+              {
+                breakpoint: 1024,
+                settings: {
+                  slidesToShow: 2,
+                  slidesToScroll: 1,
+                }
+              },
+              {
+                breakpoint: 640,
+                settings: {
+                  slidesToShow: 1,
+                  slidesToScroll: 1,
+                }
+              }
+            ]}
+            className="mx-4 md:mx-8"
+          >
             {businessCategories.map((category, index) => (
-              <Link href={category.link} key={index} className="group">
+              <Link href={category.link} key={index} className="group px-3">
                 <div className="relative h-80 overflow-hidden rounded-xl shadow-lg transform transition-all duration-500 hover:scale-[1.02] hover:shadow-xl">
                   <Image
                     src={category.image}
@@ -169,7 +250,7 @@ export default function Home() {
                 </div>
               </Link>
             ))}
-          </div>
+          </Slider>
         </div>
       </section>
       

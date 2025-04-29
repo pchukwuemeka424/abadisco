@@ -21,6 +21,7 @@
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "browser-image-compression": "^2.0.2",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.9.2",
     "lodash": "^4.17.21",
     "next": "15.3.1",
@@ -29,6 +30,8 @@
     "react-dom": "^19.0.0",
     "react-easy-crop": "^5.4.1",
     "react-icons": "^5.5.0",
+    "react-slick": "^0.30.3",
+    "slick-carousel": "^1.8.1",
     "uuid": "^11.1.0",
     "zod": "^3.24.3"
   },
