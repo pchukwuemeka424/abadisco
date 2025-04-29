@@ -3,6 +3,13 @@ import { supabase } from '@/supabaseClient';
 
 export async function GET() {
   try {
+    // Check for required environment variables
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return NextResponse.json({ 
+        error: 'Missing Supabase credentials. Please check your environment variables.' 
+      }, { status: 500 });
+    }
+    
     // Check if table exists
     const { data: tableCheck, error: tableError } = await supabase
       .from('markets')
