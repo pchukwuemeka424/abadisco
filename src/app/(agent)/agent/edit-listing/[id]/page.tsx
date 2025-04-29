@@ -883,7 +883,13 @@ export default function EditListingPage() {
                 )}
                 {logoPreview && (
                   <div className="relative group w-24 h-24">
-                    <img src={logoPreview} alt="Logo Preview" className="w-24 h-24 object-cover rounded border shadow-sm" />
+                    <Image 
+                      src={logoPreview} 
+                      alt="Logo Preview" 
+                      width={96}
+                      height={96}
+                      className="w-24 h-24 object-cover rounded border shadow-sm" 
+                    />
                     <button type="button" onClick={handleRemoveLogo} className="absolute top-1 right-1 bg-white/80 hover:bg-rose-500 hover:text-white text-rose-600 rounded-full p-1 shadow transition-opacity opacity-80 group-hover:opacity-100" title="Remove">
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>

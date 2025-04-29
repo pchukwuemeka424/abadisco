@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "../supabaseClient";
 
 const sidebarLinks = [
@@ -91,7 +92,13 @@ export default function DashboardSidebar() {
         {/* User Info */}
         <div className="flex items-center gap-3 h-16 border-b border-gray-100 px-4">
           <div className="relative flex-shrink-0">
-            <img src={user.avatar} alt="avatar" className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 object-cover" />
+            <Image 
+              src={user.avatar} 
+              alt="avatar" 
+              width={40}
+              height={40}
+              className="rounded-full bg-gray-100 border border-gray-200 object-cover" 
+            />
             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-white rounded-full"></div>
           </div>
           {!collapsed && (

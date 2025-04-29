@@ -5,6 +5,7 @@ import { useAuth } from '@/context/auth-context';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/supabaseClient';
 import imageCompression from 'browser-image-compression';
+import Image from 'next/image';
 
 export default function UploadProduct() {
   const [files, setFiles] = useState<File[]>([]);
@@ -239,7 +240,14 @@ export default function UploadProduct() {
                   <p className="text-gray-600 mb-6">{files.length} image{files.length !== 1 ? 's' : ''} uploaded successfully.</p>
                   <div className="flex flex-wrap gap-2 justify-center mb-4">
                     {previews.map((src, i) => (
-                      <img key={i} src={src} alt="Preview" className="w-12 h-12 object-cover rounded-lg border" />
+                      <Image 
+                        key={i} 
+                        src={src} 
+                        alt="Preview" 
+                        width={48}
+                        height={48}
+                        className="w-12 h-12 object-cover rounded-lg border" 
+                      />
                     ))}
                   </div>
                   <p className="text-sm text-gray-500">Redirecting to manage products...</p>
@@ -262,7 +270,13 @@ export default function UploadProduct() {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {galleryImages.map((src, i) => (
                   <div key={i} className="aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-100 group relative">
-                    <img src={src} alt={`Uploaded ${i + 1}`} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105" />
+                    <Image 
+                      src={src} 
+                      alt={`Uploaded ${i + 1}`} 
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105" 
+                    />
                     <button
                       type="button"
                       onClick={() => handleDeleteImage(src)}
@@ -314,7 +328,13 @@ export default function UploadProduct() {
                         {previews.map((src, i) => (
                           <div key={i} className="relative group">
                             <div className="w-32 h-32 rounded-xl overflow-hidden border border-gray-200">
-                              <img src={src} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
+                              <Image 
+                                src={src} 
+                                alt={`Preview ${i + 1}`}
+                                width={128}
+                                height={128}
+                                className="w-full h-full object-cover" 
+                              />
                             </div>
                             <button
                               type="button"
