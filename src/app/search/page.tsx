@@ -1,13 +1,26 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import BusinessCard from '@/components/BusinessCard';
 import { supabase } from '@/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function SearchPage() {
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="min-h-screen flex flex-col items-center justify-center p-4">
+    <div className="text-center">
+      <h1 className="text-2xl font-bold mb-4">Loading search results...</h1>
+      <div className="flex justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-500"></div>
+      </div>
+    </div>
+  </div>
+);
+
+// Main component with search functionality that safely uses useSearchParams inside Suspense
+function SearchPageContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [minRating, setMinRating] = useState(0);
@@ -745,5 +758,14 @@ export default function SearchPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <SearchPageContent />
+    </Suspense>
   );
 }
