@@ -510,17 +510,20 @@ function SearchPageContent() {
     if (filteredBusinesses.length > 0) {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredBusinesses.map((business) => (
-            <Link 
-              key={business.id} 
-              href={`/search/${business.id}`} 
-              className="h-full transform hover:scale-105 transition-transform duration-300"
-            >
-              <div className="h-full cursor-pointer rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 bg-white">
-                <BusinessCard business={business} />
+          {filteredBusinesses.map((business) => {
+            // Ensure business has a valid name for alt text
+            if (!business.name) {
+              business.name = business.business_name || 'Business';
+            }
+            
+            return (
+              <div key={business.id} className="h-full transform hover:scale-105 transition-transform duration-300">
+                <div className="h-full cursor-pointer rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 bg-white">
+                  <BusinessCard business={business} />
+                </div>
               </div>
-            </Link>
-          ))}
+            );
+          })}
         </div>
       );
     }
@@ -584,7 +587,7 @@ function SearchPageContent() {
                         src={business.image || '/images/logo.png'}
                         fill
                         className="object-cover"
-                        alt={business.business_name || 'Business'}
+                        alt={`${business.name || business.business_name || 'Business'} logo`}
                       />
                     </div>
                     <div className="flex-1 min-w-0">

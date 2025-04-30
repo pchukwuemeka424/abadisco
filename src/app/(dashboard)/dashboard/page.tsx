@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { supabase } from '@/supabaseClient';
-import DashboardSidebar from '@/components/DashboardSidebar';
 import { useAuth } from '@/context/auth-context';
 import { FaStore, FaBox, FaChartLine, FaUsers } from 'react-icons/fa';
 import Link from 'next/link';
@@ -102,8 +101,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <DashboardSidebar />
+    <div className="min-h-screen bg-gray-50">
       <main className="flex-grow p-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
         

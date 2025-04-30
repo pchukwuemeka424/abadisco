@@ -7,7 +7,8 @@ import Link from 'next/link';
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { supabase } from '@/supabaseClient';
 
 // Business categories for featured sections
 const businessCategories = [
@@ -102,35 +103,78 @@ const businessCategories = [
   }
 ];
 
-// Featured businesses showcase
-const featuredBusinesses = [
-  {
-    name: "Ariaria International Market",
-    category: "Market",
-    rating: 4.8,
-    reviews: 420,
-    image: "/images/ariaria-market.png",
-    highlights: ["Largest market in Eastern Nigeria", "Specializes in garments and footwear", "Over 10,000 shops"]
-  },
-  {
-    name: "Eziukwu Road Market",
-    category: "Market",
-    rating: 4.6,
-    reviews: 380,
-    image: "/images/Eziukwu Market.jpg",
-    highlights: ["Known for electronics", "Wide variety of imported goods", "Central location"]
-  },
-  {
-    name: "Luxury Hotel Aba",
-    category: "Hotel",
-    rating: 4.7,
-    reviews: 215,
-    image: "/images/Uratta Market.jpeg",
-    highlights: ["5-star accommodation", "Conference facilities", "Exquisite dining"]
-  }
-];
-
 export default function Home() {
+  const [featuredBusinesses, setFeaturedBusinesses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchMarkets = async () => {
+      try {
+        setLoading(true);
+        // Fetch active markets from the database, ordered by created_at
+        const { data, error } = await supabase
+          .from('markets')
+          .select('id, name, location, description, image_url')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(3); // Fetch only 3 markets for the featured section
+        
+        if (error) {
+          throw error;
+        }
+
+        if (data && data.length > 0) {
+          // Transform the data to match the structure expected by the UI
+          const transformedData = data.map(market => ({
+            name: market.name,
+            category: "Market",
+            rating: 4.7, // Default rating since we don't have ratings in the table
+            reviews: Math.floor(Math.random() * 300) + 100, // Random number of reviews for demo
+            image: market.image_url || "/images/ariaria-market.png", // Fallback image if none provided
+            highlights: [
+              market.location || "Aba, Abia State",
+              market.description?.split('.')[0] || "Popular market in Aba", // First sentence of description
+              "Visit for quality products"
+            ]
+          }));
+          
+          setFeaturedBusinesses(transformedData);
+        } else {
+          // If no data is returned, use a fallback
+          setFeaturedBusinesses([
+            {
+              name: "Ariaria International Market",
+              category: "Market",
+              rating: 4.8,
+              reviews: 420,
+              image: "/images/ariaria-market.png",
+              highlights: ["Largest market in Eastern Nigeria", "Specializes in garments and footwear", "Over 10,000 shops"]
+            },
+          ]);
+        }
+      } catch (err) {
+        console.error("Error fetching markets:", err);
+        setError(err.message);
+        // Use fallback data in case of error
+        setFeaturedBusinesses([
+          {
+            name: "Ariaria International Market",
+            category: "Market",
+            rating: 4.8,
+            reviews: 420,
+            image: "/images/ariaria-market.png",
+            highlights: ["Largest market in Eastern Nigeria", "Specializes in garments and footwear", "Over 10,000 shops"]
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMarkets();
+  }, []);
+
   return (
     <main className="min-h-screen bg-gray-50">
       {/* Hero Section with Fixed Height Instead of Full Screen */}
@@ -158,8 +202,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Navbar */}
-        <div className="relative z-20">
+        {/* Navbar - Updated to make it clickable */}
+        <div className="relative z-40">
           <Navbar />
         </div>
 
@@ -258,57 +302,67 @@ export default function Home() {
       <section className="py-20 px-4 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Featured Businesses</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">Discover top-rated establishments that showcase the best Aba has to offer</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Featured Markets</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">Discover top-rated markets that showcase the best Aba has to offer</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredBusinesses.map((business, index) => (
-              <div key={index} className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <div className="relative h-48">
-                  <Image
-                    src={business.image}
-                    alt={business.name}
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute top-4 left-4 bg-red-500/90 text-white px-3 py-1 rounded-full text-sm font-medium">
-                    {business.category}
-                  </div>
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold mb-2">{business.name}</h3>
-                  <div className="flex items-center mb-4">
-                    <div className="flex items-center text-red-500">
-                      {[...Array(5)].map((_, i) => (
-                        <svg key={i} className={`w-4 h-4 ${i < Math.floor(business.rating) ? 'text-red-500' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      ))}
+          {loading ? (
+            <div className="flex justify-center items-center h-48">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+            </div>
+          ) : error ? (
+            <div className="text-center text-red-500">
+              <p>Failed to load markets. Please try again later.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {featuredBusinesses.map((business, index) => (
+                <div key={index} className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <div className="relative h-48">
+                    <Image
+                      src={business.image}
+                      alt={business.name}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute top-4 left-4 bg-red-500/90 text-white px-3 py-1 rounded-full text-sm font-medium">
+                      {business.category}
                     </div>
-                    <span className="text-sm text-gray-600 ml-2">{business.rating} ({business.reviews} reviews)</span>
                   </div>
-                  <ul className="space-y-2 mb-4">
-                    {business.highlights.map((highlight, i) => (
-                      <li key={i} className="flex items-start">
-                        <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span className="text-gray-600 text-sm">{highlight}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link href={`/business/${business.name.toLowerCase().replace(/\s+/g, '-')}`} className="inline-block bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors">
-                    View Details
-                  </Link>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold mb-2">{business.name}</h3>
+                    <div className="flex items-center mb-4">
+                      <div className="flex items-center text-red-500">
+                        {[...Array(5)].map((_, i) => (
+                          <svg key={i} className={`w-4 h-4 ${i < Math.floor(business.rating) ? 'text-red-500' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-600 ml-2">{business.rating} ({business.reviews} reviews)</span>
+                    </div>
+                    <ul className="space-y-2 mb-4">
+                      {business.highlights.map((highlight, i) => (
+                        <li key={i} className="flex items-start">
+                          <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span className="text-gray-600 text-sm">{highlight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <Link href={`/markets/${business.name.toLowerCase().replace(/\s+/g, '-')}`} className="inline-block bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors">
+                      View Details
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
           
           <div className="text-center mt-12">
-            <Link href="/search" className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 transition-colors">
-              View All Businesses
+            <Link href="/markets" className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 transition-colors">
+              View All Markets
               <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>

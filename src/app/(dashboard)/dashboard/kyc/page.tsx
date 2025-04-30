@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import DashboardSidebar from '@/components/DashboardSidebar';
 import { supabase } from '@/supabaseClient';
 import { useAuth } from '@/context/auth-context';
 import { FaIdCard, FaFileUpload, FaCheck, FaTimes, FaSpinner } from 'react-icons/fa';
@@ -43,13 +42,20 @@ export default function KYCPage() {
           .order('submitted_at', { ascending: false })
           .limit(1);
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error checking existing verification:', error.message || 'Unknown error', error);
+          setErrorMessage('Failed to retrieve verification status. Please try refreshing the page.');
+          return;
+        }
         
         if (data && data.length > 0) {
           setExistingVerification(data[0] as KYCVerification);
         }
-      } catch (error) {
-        console.error('Error checking existing verification:', error);
+      } catch (error: any) {
+        // Properly handle the error with more information
+        const errorMessage = error?.message || 'Unknown error occurred';
+        console.error('Error checking existing verification:', errorMessage, error);
+        setErrorMessage('Failed to retrieve verification status. Please try refreshing the page.');
       }
     };
     
@@ -109,12 +115,19 @@ export default function KYCPage() {
         .from('kyc-documents')
         .upload(filePath, documentFile);
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Error uploading document to storage:', uploadError.message || 'Storage error', uploadError);
+        throw new Error(`Document upload failed: ${uploadError.message || 'Storage error'}`);
+      }
       
       // Get public URL
       const { data: publicUrlData } = supabase.storage
         .from('kyc-documents')
         .getPublicUrl(filePath);
+      
+      if (!publicUrlData || !publicUrlData.publicUrl) {
+        throw new Error('Failed to get public URL for uploaded document');
+      }
       
       const documentUrl = publicUrlData.publicUrl;
       
@@ -131,27 +144,35 @@ export default function KYCPage() {
           },
         ]);
       
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Error inserting KYC record:', insertError.message || 'Database error', insertError);
+        throw new Error(`Verification record creation failed: ${insertError.message || 'Database error'}`);
+      }
       
       // Update successful status
       setSubmissionStatus('success');
       
       // Refresh the existing verification data
-      const { data } = await supabase
+      const { data, error: refreshError } = await supabase
         .from('kyc_verifications')
         .select('*')
         .eq('user_id', user.id)
         .order('submitted_at', { ascending: false })
         .limit(1);
       
+      if (refreshError) {
+        console.error('Error refreshing verification data:', refreshError);
+        // We don't throw here to avoid disrupting the success flow
+      }
+      
       if (data && data.length > 0) {
         setExistingVerification(data[0] as KYCVerification);
       }
       
-    } catch (error) {
-      console.error('Error uploading document:', error);
+    } catch (error: any) {
+      console.error('Error in KYC submission process:', error);
       setSubmissionStatus('error');
-      setErrorMessage('There was an error uploading your document. Please try again.');
+      setErrorMessage(error?.message || 'There was an error uploading your document. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -169,8 +190,7 @@ export default function KYCPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <DashboardSidebar />
+    <div className="min-h-screen bg-gray-50">
       <main className="flex-grow px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">KYC Verification</h1>
         

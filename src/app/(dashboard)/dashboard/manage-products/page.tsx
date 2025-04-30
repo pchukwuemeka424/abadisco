@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from 'react';
-import DashboardSidebar from '@/components/DashboardSidebar';
 import { supabase } from '@/supabaseClient';
 import { useAuth } from '@/context/auth-context';
 import { FaEdit, FaTrash, FaPlus, FaSearch } from 'react-icons/fa';
@@ -90,8 +89,7 @@ export default function ManageProductsPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <DashboardSidebar />
+    <div className="min-h-screen bg-gray-50">
       <main className="flex-grow p-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Manage Products</h1>
