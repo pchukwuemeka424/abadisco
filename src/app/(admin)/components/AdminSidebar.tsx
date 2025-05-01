@@ -1,14 +1,14 @@
 "use client";
 
+import { 
+  FaHome, FaUsers, FaBox, FaIdCard, FaChartBar, FaClock,
+  FaCog, FaBell, FaSignOutAlt, FaBars, FaTimes, FaUserSecret, FaChartLine,
+  FaTags, FaStore, FaConciergeBell
+} from 'react-icons/fa';
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { 
-  FaHome, FaUsers, FaBox, FaIdCard, FaChartBar, FaClock,
-  FaCog, FaBell, FaSignOutAlt, FaBars, FaTimes, FaUserSecret, FaChartLine,
-  FaTags, FaStore
-} from 'react-icons/fa';
 import { supabase } from '@/supabaseClient';
 
 const navItems = [
@@ -20,6 +20,7 @@ const navItems = [
   { name: 'Markets', href: '/admin/markets', icon: <FaStore /> },
   { name: 'Categories', href: '/admin/categories', icon: <FaTags /> },
   { name: 'Products', href: '/admin/products', icon: <FaBox /> },
+  { name: 'Services', href: '/admin/services', icon: <FaConciergeBell /> },
   { name: 'KYC Verification', href: '/admin/kyc', icon: <FaIdCard /> },
   { name: 'Activity', href: '/admin/activity', icon: <FaClock /> },
   { name: 'Analytics', href: '/admin/analytics', icon: <FaChartBar /> },

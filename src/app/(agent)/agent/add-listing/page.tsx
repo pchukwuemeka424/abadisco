@@ -13,204 +13,18 @@ const Cropper = dynamic(() => import('react-easy-crop'), {
   loading: () => <div className="w-64 h-64 bg-gray-200 animate-pulse rounded-lg"></div>
 });
 
-const SERVICES = [
-  "Dine-in",
-  "Takeaway",
-  "Delivery",
-  "Outdoor Seating",
-  "Reservations",
-  "Catering"
-];
-const SERVICES_TYPES = [
-  "Restaurant",
-  "Bar",
-  "Cafe",
-  "Bakery",
-  "Market",
-  "Pharmacy",
-  "Salon",
-  "Hotel",
-  "Boutique",
-  "Spa",
-  "Gym",
-  "Laundry",
-  "Auto Repair",
-  "Electronics",
-  "Other"
-];
-
-const SERVICE_CATEGORIES = {
-  Restaurant: [
-    "Local Dishes",
-    "   - Nkwobi",
-    "   - Isiewu",
-    "   - Suya",
-    "   - Restaurant Pepper Soup",  // Qualified with category
-    "   - Egusi Soup",
-    "   - Ogbono Soup",
-    "   - Okra Soup",
-    "   - Afang Soup",
-    "   - Edikaikong",
-    "   - Oha Soup",
-    "   - Banga Soup",
-    "   - Jollof Rice",
-    "   - Native Rice",
-    "   - Ofada Rice & Sauce",
-    "   - Moi Moi",
-    "   - Akara",
-    "   - Tuwo Shinkafa",
-    "   - Amala & Ewedu",
-    "   - Eba & Soup",
-    "   - Fufu & Soup",
-    "   - Pounded Yam",
-    "Continental Dishes",
-    "Chinese Cuisine",
-    "Fast Food",
-    "Grills & BBQ",
-    "Seafood",
-    "Small Chops",
-    "Vegetarian Options",
-    "Desserts",
-    "Beverages",
-    "Catering",
-    "Takeaway",
-    "Delivery",
-    "Dine-in",
-    "Outdoor Seating",
-    "Private Dining",
-    "Event Catering"
-  ],
-  Bar: [
-    "Local Drinks",
-    "   - Palm Wine",
-    "   - Bar Pepper Soup",  // Qualified with category
-    "   - Bar Nkwobi",      // Qualified with category
-    "   - Isi Ewu",
-    "   - Point & Kill (Fresh Fish)",
-    "   - Bar Suya",        // Qualified with category
-    "Beverages",
-    "   - Local Beer",
-    "   - Imported Beer",
-    "   - Wine & Spirits",
-    "   - Cocktails",
-    "   - Soft Drinks",
-    "   - Fresh Juices",
-    "Bar Food",
-    "   - Small Chops",
-    "   - Grilled Fish",
-    "   - Grilled Meat",
-    "   - Shawarma",
-    "Services",
-    "   - Live Music",
-    "   - Sports Screening",
-    "   - Pool Table",
-    "   - Outdoor Seating",
-    "   - Private Events",
-    "   - Weekend Special",
-    "   - Happy Hour"
-  ],
-  Market: [
-    "Clothing & Textiles",
-    "Senator Wears",
-    "Ankara Fabrics",
-    "Aso Oke",
-    "Lace Materials",
-    "   - French Lace",
-    "   - Indian Lace",
-    "   - Swiss Lace",
-    "   - Voile Lace",
-    "   - Tulle Lace",
-    "   - Cord Lace",
-    "Adire (Tie & Dye)",
-    "George Fabrics",
-    "Electronics & Gadgets",
-    "Home Appliances",
-    "Footwear",
-    "Bags & Accessories",
-    "Cosmetics",
-    "Food & Groceries",
-    "Hardware & Tools",
-    "Auto Parts",
-    "Building Materials",
-    "Wholesale",
-    "Retail",
-    "Import/Export"
-  ],
-  Pharmacy: [
-    "Prescription Medications",
-    "Over-the-Counter Drugs",
-    "Health Supplements",
-    "Medical Supplies",
-    "Personal Care Products",
-    "Baby Care",
-    "Health Consultation",
-    "Home Delivery",
-    "24/7 Service"
-  ],
-  Electronics: [
-    "Phones & Accessories",
-    "Computers & Laptops",
-    "Audio Equipment",
-    "TVs & Home Theater",
-    "Gaming Devices",
-    "Electronic Components",
-    "Repair Services",
-    "Custom Builds",
-    "Installation Services"
-  ],
-  Hotel: [
-    "Room Service",
-    "Restaurant",
-    "Bar & Lounge",
-    "Conference Facilities",
-    "Swimming Pool",
-    "Gym",
-    "Spa Services",
-    "Airport Shuttle",
-    "Laundry Service",
-    "24/7 Reception",
-    "Wi-Fi"
-  ],
-  Salon: [
-    "Haircuts & Styling",
-    "Hair Coloring",
-    "Manicure & Pedicure",
-    "Facial Treatments",
-    "Makeup Services",
-    "Waxing",
-    "Braiding",
-    "Hair Extensions",
-    "Wedding Services"
-  ],
-  "Auto Repair": [
-    "General Repairs",
-    "Engine Service",
-    "Electrical Systems",
-    "AC Service",
-    "Brake Service",
-    "Tire Service",
-    "Body Work",
-    "Paint Jobs",
-    "Diagnostics",
-    "Emergency Service"
-  ],
-  default: [
-    "Standard Service",
-    "Premium Service",
-    "Express Service",
-    "Consultation",
-    "Custom Solutions",
-    "Delivery",
-    "Installation",
-    "Maintenance",
-    "Repair"
-  ]
-};
-
+// Replacing hardcoded services with data fetched from the database
 export default function ProfilePage() {
   const { user, loading } = useAuth(); // Use auth context
   const router = useRouter();
   
+  // State for services data fetched from the database
+  const [generalServices, setGeneralServices] = useState<{id: number, name: string}[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<{id: number, name: string}[]>([]);
+  const [serviceCategories, setServiceCategories] = useState<{id: number, name: string, service_type_id: number}[]>([]);
+  const [specificServices, setSpecificServices] = useState<{id: number, name: string, category_id: number}[]>([]);
+  const [categoryMap, setCategoryMap] = useState<Record<number, {id: number, name: string, services: string[]}>>({});
+
   // Updated state variables to match businesses_table schema
   const [businessData, setBusinessData] = useState({
     name: "",
@@ -332,6 +146,92 @@ export default function ProfilePage() {
     };
     
     fetchBusinessCategories();
+  }, []);
+
+  // Fetch service types, general services, and service categories from the database
+  useEffect(() => {
+    const fetchServicesData = async () => {
+      try {
+        // Fetch service types (e.g., Restaurant, Bar, etc.)
+        const { data: types, error: typesError } = await supabase
+          .from('service_types')
+          .select('id, name')
+          .order('name');
+          
+        if (typesError) {
+          console.error('Error fetching service types:', typesError.message);
+        } else if (types) {
+          setServiceTypes(types);
+        }
+        
+        // Fetch general services (e.g., Dine-in, Takeaway, etc.)
+        const { data: services, error: servicesError } = await supabase
+          .from('general_services')
+          .select('id, name')
+          .order('name');
+          
+        if (servicesError) {
+          console.error('Error fetching general services:', servicesError.message);
+        } else if (services) {
+          setGeneralServices(services);
+        }
+        
+        // Fetch service categories
+        const { data: categories, error: categoriesError } = await supabase
+          .from('service_categories')
+          .select('id, name, service_type_id')
+          .order('name');
+          
+        if (categoriesError) {
+          console.error('Error fetching service categories:', categoriesError.message);
+        } else if (categories) {
+          setServiceCategories(categories);
+          
+          // Fetch specific services for each category
+          const { data: services, error: servicesError } = await supabase
+            .from('specific_services')
+            .select('id, name, category_id')
+            .order('name');
+            
+          if (servicesError) {
+            console.error('Error fetching specific services:', servicesError.message);
+          } else if (services) {
+            setSpecificServices(services);
+            
+            // Create a map of service type ID to categories and their services
+            const tempCategoryMap: Record<number, {id: number, name: string, services: string[]}> = {};
+            
+            // Group categories by service type
+            categories.forEach(category => {
+              const serviceTypeId = category.service_type_id;
+              
+              if (!tempCategoryMap[serviceTypeId]) {
+                tempCategoryMap[serviceTypeId] = {
+                  id: serviceTypeId,
+                  name: types?.find(type => type.id === serviceTypeId)?.name || '',
+                  services: []
+                };
+              }
+              
+              // Add category as a service
+              tempCategoryMap[serviceTypeId].services.push(category.name);
+              
+              // Add specific services for this category
+              const categoryServices = services.filter(service => service.category_id === category.id);
+              categoryServices.forEach(service => {
+                tempCategoryMap[serviceTypeId].services.push(`   - ${service.name}`);
+              });
+            });
+            
+            setCategoryMap(tempCategoryMap);
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching services data:', err);
+      }
+    };
+    
+    fetchServicesData();
   }, []);
 
   // Logo handling functions
@@ -922,9 +822,16 @@ export default function ProfilePage() {
   }, [user, loading, authChecked]);
 
   const getServiceOptions = useCallback(() => {
-    if (!businessType) return SERVICE_CATEGORIES.default;
-    return SERVICE_CATEGORIES[businessType as keyof typeof SERVICE_CATEGORIES] || SERVICE_CATEGORIES.default;
-  }, [businessType]);
+    if (!businessType) return [];
+    
+    // Find the service type ID based on the selected business type
+    const serviceTypeId = serviceTypes.find(type => type.name === businessType)?.id;
+    
+    if (!serviceTypeId) return [];
+    
+    // Return the services for this service type from the category map
+    return categoryMap[serviceTypeId]?.services || [];
+  }, [businessType, serviceTypes, categoryMap]);
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -1062,8 +969,8 @@ export default function ProfilePage() {
                     required
                   >
                     <option value="">Select Services</option>
-                    {SERVICES_TYPES.map(type => (
-                      <option key={type} value={type}>{type}</option>
+                    {serviceTypes.map(type => (
+                      <option key={type.id} value={type.name}>{type.name}</option>
                     ))}
                   </select>
                 </div>
