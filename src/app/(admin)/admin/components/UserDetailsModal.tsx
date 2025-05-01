@@ -1,27 +1,23 @@
 import React from 'react';
 import { format } from 'date-fns';
 
-// Define proper types
+// Updated User interface to match simplified users table
 interface User {
   id: string;
   email?: string;
-  full_name?: string;
+  password?: string; // Note: This should never be displayed
   created_at?: string;
-  last_sign_in_at?: string;
-  phone?: string;
-  address?: string;
-  role?: string;
-  is_verified?: boolean;
-  profile_image?: string;
-  [key: string]: unknown;
 }
 
 interface UserDetailsModalProps {
   user: User;
   onClose: () => void;
+  isOpen: boolean;
 }
 
-const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ user, onClose }) => {
+const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ user, onClose, isOpen }) => {
+  if (!isOpen) return null;
+
   // Format date for display
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
@@ -57,48 +53,13 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ user, onClose }) =>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block text-sm text-gray-500">Full Name</label>
-              <div className="font-medium">{user.full_name || 'N/A'}</div>
-            </div>
-            
-            <div>
               <label className="block text-sm text-gray-500">Email</label>
               <div className="font-medium">{user.email || 'N/A'}</div>
             </div>
             
             <div>
-              <label className="block text-sm text-gray-500">Phone</label>
-              <div className="font-medium">{user.phone || 'N/A'}</div>
-            </div>
-            
-            <div>
-              <label className="block text-sm text-gray-500">Role</label>
-              <div className="font-medium capitalize">{user.role || 'User'}</div>
-            </div>
-            
-            <div>
               <label className="block text-sm text-gray-500">Joined Date</label>
               <div className="font-medium">{formatDate(user.created_at)}</div>
-            </div>
-            
-            <div>
-              <label className="block text-sm text-gray-500">Last Sign In</label>
-              <div className="font-medium">{formatDate(user.last_sign_in_at)}</div>
-            </div>
-            
-            <div>
-              <label className="block text-sm text-gray-500">Verification Status</label>
-              <div className="font-medium">
-                {user.is_verified ? (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-green-100 text-green-800">
-                    Verified
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
-                    Not Verified
-                  </span>
-                )}
-              </div>
             </div>
             
             <div>
@@ -108,13 +69,6 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ user, onClose }) =>
               </div>
             </div>
           </div>
-
-          {user.address && (
-            <div className="mb-6">
-              <label className="block text-sm text-gray-500">Address</label>
-              <div className="font-medium">{user.address}</div>
-            </div>
-          )}
 
           <div className="border-t pt-4">
             <p className="text-sm text-gray-500">

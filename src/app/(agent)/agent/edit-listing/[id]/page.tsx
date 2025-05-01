@@ -1,12 +1,11 @@
 "use client";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from 'next/dynamic';
-import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { supabase } from "@/supabaseClient";
 import { useAuth } from "@/context/auth-context";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { useParams } from "next/navigation";
 
 // Dynamic import for Cropper component to avoid SSR issues
 const Cropper = dynamic(() => import('react-easy-crop'), {
@@ -207,11 +206,10 @@ const SERVICE_CATEGORIES = {
   ]
 };
 
-export default function EditListingPage() {
+export default function EditListingPage({ params }: { params: { id: string } }) {
+  const listingId = React.use(params).id;
   const { user, loading } = useAuth();
   const router = useRouter();
-  const params = useParams();
-  const listingId = params.id as string;
   const [phone, setPhone] = useState("");
   const [agentId, setAgentId] = useState("");
   const [email, setEmail] = useState("");
@@ -658,7 +656,6 @@ export default function EditListingPage() {
           .from("users")
           .select("*")
           .eq("id", listingId)
-          .eq("role", "business")
           .single();
 
         if (error) {

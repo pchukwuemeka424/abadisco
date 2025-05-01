@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from '@/context/auth-context';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/supabaseClient';
 import imageCompression from 'browser-image-compression';
 
-export default function UploadProduct() {
+export default function UploadProduct({ params }: { params: { id: string } }) {
+  const businessId = React.use(params).id;
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -17,8 +18,6 @@ export default function UploadProduct() {
   const dropRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const router = useRouter();
-  const params = useParams();
-  const id = params.id as string;
 
   // Handle file drop
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -62,13 +61,13 @@ export default function UploadProduct() {
       let businessName = "Unknown business";
       try {
         const { data: businessData } = await supabase
-          .from("users")
-          .select("business_name")
-          .eq("id", id)
+          .from("businesses")
+          .select("name")
+          .eq("id", businessId)
           .single();
           
-        if (businessData && businessData.business_name) {
-          businessName = businessData.business_name;
+        if (businessData && businessData.name) {
+          businessName = businessData.name;
         }
       } catch (businessError) {
         console.error("Error fetching business data:", businessError);
@@ -92,7 +91,7 @@ export default function UploadProduct() {
           });
         }
         const fileExt = uploadFile.name.split('.').pop();
-        const filePath = `products/${id || user.id}_${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
+        const filePath = `products/${businessId || user.id}_${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
         const { error: storageError } = await supabase.storage
           .from('uploads')
           .upload(filePath, uploadFile, { upsert: true });
@@ -110,7 +109,7 @@ export default function UploadProduct() {
         .from('products')
         .insert({
           image_urls: imageUrls[0],
-          user_id: id || user.id,
+          user_id: businessId || user.id,
         })
         .select()
         .single();
@@ -140,7 +139,7 @@ export default function UploadProduct() {
       const { data, error } = await supabase
         .from('products')
         .select('image_urls')
-        .eq('user_id', id);
+        .eq('user_id', businessId);
       if (error) throw error;
       // Flatten all image_urls (handle string or array)
       const images: string[] = [];
@@ -166,8 +165,8 @@ export default function UploadProduct() {
   };
 
   useEffect(() => {
-    if (id) fetchGallery();
-  }, [id]);
+    if (businessId) fetchGallery();
+  }, [businessId]);
 
   // Delete image from storage and DB
   const handleDeleteImage = async (imgUrl: string) => {
@@ -181,7 +180,7 @@ export default function UploadProduct() {
       const { error: storageError } = await supabase.storage.from('uploads').remove([filePath]);
       if (storageError) throw storageError;
       // Remove from DB: delete product row with this image (if you want to delete only the image, you may need to update the row instead)
-      await supabase.from('products').delete().eq('image_urls', imgUrl).eq('user_id', id);
+      await supabase.from('products').delete().eq('image_urls', imgUrl).eq('user_id', businessId);
       // Refresh gallery
       setGalleryImages(galleryImages.filter((url) => url !== imgUrl));
     } catch (e) {

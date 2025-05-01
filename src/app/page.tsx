@@ -348,14 +348,15 @@ export default function Home() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                           </svg>
                           <span className="text-gray-600 text-sm">{highlight}</span>
+                       
                         </li>
+                        
                       ))}
                     </ul>
-                    <Link href={`/markets/${business.name.toLowerCase().replace(/\s+/g, '-')}`} className="inline-block bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors">
-                      View Details
-                    </Link>
+             
                   </div>
                 </div>
+                
               ))}
             </div>
           )}

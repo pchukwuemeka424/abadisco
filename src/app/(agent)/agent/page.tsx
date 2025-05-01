@@ -15,7 +15,7 @@ export default function AgentDashboard() {
     weeklyTarget: 40, // Default value until we fetch the actual target
   });
   const [loading, setLoading] = useState(true);
-  const [recentUsers, setRecentUsers] = useState([]);
+  const [recentBusinesses, setRecentBusinesses] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,28 +54,28 @@ export default function AgentDashboard() {
         // Get the weekly target from agent data or use default
         const weeklyTarget = agentData?.weekly_target || 40;
         
-        // Fetch stats
-        const { data: totalUsers, error: totalUsersError } = await supabase
-          .from('users')
+        // Fetch stats from businesses table
+        const { data: totalBusinesses, error: totalBusinessesError } = await supabase
+          .from('businesses')
           .select('id', { count: 'exact' })
           .eq('created_by', agentId);
         
-        const { data: weeklyUsers, error: weeklyUsersError } = await supabase
-          .from('users')
+        const { data: weeklyBusinesses, error: weeklyBusinessesError } = await supabase
+          .from('businesses')
           .select('id', { count: 'exact' })
           .eq('created_by', agentId)
           .gte('created_at', startOfWeek.toISOString())
           .lte('created_at', endOfWeek.toISOString());
         
         const { data: totalListings, error: totalListingsError } = await supabase
-          .from('users')
+          .from('businesses')
           .select('id', { count: 'exact' })
           .eq('created_by', agentId)
-          .not('business_name', 'is', null);
+          .not('name', 'is', null);
         
-        // Fetch recent users
+        // Fetch recent businesses
         const { data: recent, error: recentError } = await supabase
-          .from('users')
+          .from('businesses')
           .select('*')
           .eq('created_by', agentId)
           .order('created_at', { ascending: false })
@@ -83,15 +83,15 @@ export default function AgentDashboard() {
         
         if (recentError) throw recentError;
         
-        setRecentUsers(recent || []);
+        setRecentBusinesses(recent || []);
         
         // Calculate weekly progress
-        const weeklyCount = weeklyUsers?.length || 0;
+        const weeklyCount = weeklyBusinesses?.length || 0;
         const progress = Math.min((weeklyCount / weeklyTarget) * 100, 100);
         const targetMet = weeklyCount >= weeklyTarget;
         
         setStats({
-          totalUsers: totalUsers?.length || 0,
+          totalUsers: totalBusinesses?.length || 0,
           weeklyUsers: weeklyCount,
           totalListings: totalListings?.length || 0,
           weeklyProgress: progress,
@@ -121,7 +121,7 @@ export default function AgentDashboard() {
               <FaUsers className="h-6 w-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Total Users</p>
+              <p className="text-sm text-gray-500">Total Businesses</p>
               <h3 className="text-2xl font-bold">{loading ? '...' : stats.totalUsers}</h3>
             </div>
           </div>
@@ -133,7 +133,7 @@ export default function AgentDashboard() {
               <FaUsers className="h-6 w-6 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">This Week's Users</p>
+              <p className="text-sm text-gray-500">This Week's Businesses</p>
               <h3 className="text-2xl font-bold">{loading ? '...' : stats.weeklyUsers}</h3>
             </div>
           </div>
@@ -182,7 +182,7 @@ export default function AgentDashboard() {
             </div>
             <div className="text-right">
               <span className="text-xs font-semibold inline-block text-gray-600">
-                Goal: {stats.weeklyTarget} Users
+                Goal: {stats.weeklyTarget} Businesses
               </span>
             </div>
           </div>
@@ -203,25 +203,25 @@ export default function AgentDashboard() {
             <div className="text-center text-yellow-700 font-semibold mt-4">
               <span role="alert" className="inline-flex items-center">
                 <svg className="w-5 h-5 mr-2 text-yellow-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z" /></svg>
-                Warning: You have not met your weekly target. Please try to register more users this week!
+                Warning: You have not met your weekly target. Please try to register more businesses this week!
               </span>
             </div>
           )}
         </div>
       </div>
       
-      {/* Recent Users */}
+      {/* Recent Businesses */}
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Recent Users</h2>
-          <Link href="/agent/add-user" className="text-blue-600 hover:text-blue-800 flex items-center">
-            <span>Add New User</span>
+          <h2 className="text-xl font-semibold">Recent Businesses</h2>
+          <Link href="/agent/add-business" className="text-blue-600 hover:text-blue-800 flex items-center">
+            <span>Add New Business</span>
           </Link>
         </div>
         
         {loading ? (
           <div className="text-center py-4">Loading...</div>
-        ) : recentUsers.length > 0 ? (
+        ) : recentBusinesses.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white">
               <thead className="bg-gray-50">
@@ -234,14 +234,14 @@ export default function AgentDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {recentUsers.map((user) => (
-                  <tr key={user.id}>
-                    <td className="py-3 px-4 whitespace-nowrap">{user.full_name || 'N/A'}</td>
-                    <td className="py-3 px-4 whitespace-nowrap">{user.email || 'N/A'}</td>
-                    <td className="py-3 px-4 whitespace-nowrap">{user.phone || 'N/A'}</td>
-                    <td className="py-3 px-4 whitespace-nowrap">{user.business_name || 'N/A'}</td>
+                {recentBusinesses.map((business) => (
+                  <tr key={business.id}>
+                    <td className="py-3 px-4 whitespace-nowrap">{business.name || 'N/A'}</td>
+                    <td className="py-3 px-4 whitespace-nowrap">{business.contact_email || 'N/A'}</td>
+                    <td className="py-3 px-4 whitespace-nowrap">{business.contact_phone || 'N/A'}</td>
+                    <td className="py-3 px-4 whitespace-nowrap">{business.business_name || 'N/A'}</td>
                     <td className="py-3 px-4 whitespace-nowrap">
-                      {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+                      {business.created_at ? new Date(business.created_at).toLocaleDateString() : 'N/A'}
                     </td>
                   </tr>
                 ))}
@@ -249,7 +249,7 @@ export default function AgentDashboard() {
             </table>
           </div>
         ) : (
-          <div className="text-center py-4 text-gray-500">No users registered yet.</div>
+          <div className="text-center py-4 text-gray-500">No businesses registered yet.</div>
         )}
       </div>
     </div>

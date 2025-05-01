@@ -161,7 +161,7 @@ export async function isFeatureEnabled(key: string): Promise<boolean> {
 export async function exportUsersToCSV(): Promise<string> {
   const { data, error } = await supabase
     .from('users')
-    .select('*');
+    .select('id, email, created_at');
   
   if (error) {
     console.error('Error exporting users to CSV:', error);
@@ -195,7 +195,7 @@ export async function exportUsersToCSV(): Promise<string> {
 export async function exportUsersToJSON(): Promise<object[]> {
   const { data, error } = await supabase
     .from('users')
-    .select('*');
+    .select('id, email, created_at');
   
   if (error) {
     console.error('Error exporting users to JSON:', error);

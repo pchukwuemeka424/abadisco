@@ -4,21 +4,34 @@ import { supabase } from '../../../supabaseClient';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { FaMapMarkerAlt, FaPhone, FaGlobe, FaCheckCircle, FaStar, FaRegStar } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaPhone, FaGlobe, FaCheckCircle } from 'react-icons/fa';
 import TopNavbar from '@/components/TopNavbar';
 
 // Define proper types for businesses and products
 interface Business {
   id: string;
   name: string;
-  description: string;
-  address: string;
-  phone: string;
-  website?: string;
-  email?: string;
-  logo_url?: string;
-  is_verified: boolean;
+  description: string | null;
+  market_id: string | null;
+  category_id: number | null;
+  owner_id: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  address: string | null;
+  logo_url: string | null;
+  website: string | null;
+  facebook: string | null;
+  instagram: string | null;
+  created_by: string | null;
+  status: string;
   created_at: string;
+  updated_at: string;
+  services: any | null;
+  business_type: string | null;
+  whatsapp: string | null;
+  role: string | null;
+  markets?: { name: string };
+  categories?: { name: string };
   [key: string]: unknown;
 }
 
@@ -33,6 +46,7 @@ interface Product {
 }
 
 export default function BusinessPage({ params }: { params: { id: string } }) {
+  const businessId = params.id;
   const [business, setBusiness] = useState<Business | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,39 +58,59 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
       setLoading(true);
       try {
         // Check if ID is not provided
-        if (!params.id) {
-          return <div className="p-6">No business ID found. Please <Link href="/search">return to search</Link> and try again.</div>;
+        if (!businessId) {
+          console.error('No business ID provided');
+          setLoading(false);
+          return;
         }
 
+        // Fetch business data from businesses table
         const { data: businessData, error: businessError } = await supabase
           .from('businesses')
-          .select('*')
-          .eq('id', params.id)
+          .select(`
+            *,
+            markets:market_id(name),
+            categories:category_id(name)
+          `)
+          .eq('id', businessId)
           .single();
 
-        if (businessError) throw businessError;
+        if (businessError) {
+          console.error('Error fetching business:', businessError.message, businessError.details);
+          throw businessError;
+        }
 
         if (businessData) {
+          console.log('Business data found:', businessData.id);
           setBusiness(businessData);
 
           // Fetch products for this business
           const { data: productsData, error: productsError } = await supabase
             .from('products')
             .select('*')
-            .eq('business_id', params.id);
+            .eq('business_id', businessId);
 
-          if (productsError) throw productsError;
+          if (productsError) {
+            console.error('Error fetching products:', productsError.message, productsError.details);
+          }
+          
           setProducts(productsData || []);
+        } else {
+          console.error('No business data found');
         }
       } catch (error) {
         console.error('Error fetching business details:', error);
+        if (error instanceof Error) {
+          console.error('Error message:', error.message);
+          console.error('Error stack:', error.stack);
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchBusinessDetails();
-  }, [params.id]);
+  }, [businessId]);
 
   if (loading) {
     return (
@@ -139,37 +173,42 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
             <div className="flex-1">
               <div className="flex items-center">
                 <h1 className="text-2xl font-bold">{business.name}</h1>
-                {business.is_verified && (
+                {business.status === 'verified' && (
                   <span className="ml-2 text-blue-500" title="Verified Business">
                     <FaCheckCircle />
                   </span>
                 )}
               </div>
-              <p className="text-gray-600 mb-3">{business.description}</p>
+              <p className="text-gray-600 mb-3">{business.description || 'No description available'}</p>
               <div className="flex flex-wrap gap-y-2 gap-x-4 text-sm">
+                {business.contact_phone && (
+                  <div className="flex items-center text-gray-600">
+                    <span className="mr-1"><FaPhone className="inline" /></span>
+                    <span>{business.contact_phone}</span>
+                  </div>
+                )}
+                {business.contact_email && (
+                  <div className="flex items-center text-gray-600">
+                    <span className="mr-1">📧</span>
+                    <span>{business.contact_email}</span>
+                  </div>
+                )}
                 {business.address && (
                   <div className="flex items-center text-gray-600">
-                    <FaMapMarkerAlt className="mr-1" />
+                    <span className="mr-1"><FaMapMarkerAlt className="inline" /></span>
                     <span>{business.address}</span>
                   </div>
                 )}
-                {business.phone && (
+                {business.markets && (
                   <div className="flex items-center text-gray-600">
-                    <FaPhone className="mr-1" />
-                    <span>{business.phone}</span>
+                    <span className="mr-1">🏪</span>
+                    <span>{business.markets.name}</span>
                   </div>
                 )}
-                {business.website && (
+                {business.business_type && (
                   <div className="flex items-center text-gray-600">
-                    <FaGlobe className="mr-1" />
-                    <Link 
-                      href={business.website.startsWith('http') ? business.website : `https://${business.website}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
-                    >
-                      Visit Website
-                    </Link>
+                    <span className="mr-1">📋</span>
+                    <span>{business.business_type}</span>
                   </div>
                 )}
               </div>
@@ -191,16 +230,6 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
               }`}
             >
               Products & Services
-            </button>
-            <button
-              onClick={() => setActiveTab('gallery')}
-              className={`pb-4 px-1 ${
-                activeTab === 'gallery'
-                  ? 'border-b-2 border-blue-500 text-blue-600 font-medium'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Gallery
             </button>
             <button
               onClick={() => setActiveTab('about')}
@@ -260,64 +289,131 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Gallery Tab Content */}
-        {activeTab === 'gallery' && (
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Business Gallery</h2>
-            <div className="bg-white p-6 rounded-lg shadow text-center">
-              <p className="text-gray-600">Gallery photos will be available soon.</p>
-            </div>
-          </div>
-        )}
-
         {/* About Tab Content */}
         {activeTab === 'about' && (
           <div>
-            <h2 className="text-xl font-semibold mb-4">About this Business</h2>
+            <h2 className="text-xl font-semibold mb-4">About {business.name}</h2>
             <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="font-semibold mb-2">Business Description</h3>
-              <p className="text-gray-600 mb-4">{business.description}</p>
-              
-              <h3 className="font-semibold mb-2">Contact Information</h3>
-              <ul className="text-gray-600 space-y-2">
-                {business.address && (
+              <h3 className="font-semibold mb-4">Contact Information</h3>
+              <ul className="text-gray-600 space-y-3">
+                {business.contact_phone && (
                   <li className="flex items-start">
-                    <FaMapMarkerAlt className="mr-2 mt-1 text-gray-500" />
-                    <span>{business.address}</span>
+                    <span className="mr-2"><FaPhone /></span>
+                    <span>{business.contact_phone}</span>
                   </li>
                 )}
-                {business.phone && (
-                  <li className="flex items-start">
-                    <FaPhone className="mr-2 mt-1 text-gray-500" />
-                    <span>{business.phone}</span>
-                  </li>
-                )}
-                {business.email && (
+                {business.contact_email && (
                   <li className="flex items-start">
                     <span className="mr-2">📧</span>
-                    <span>{business.email}</span>
+                    <span>{business.contact_email}</span>
                   </li>
                 )}
-                {business.website && (
+                {business.whatsapp && (
                   <li className="flex items-start">
-                    <FaGlobe className="mr-2 mt-1 text-gray-500" />
-                    <Link 
-                      href={business.website.startsWith('http') ? business.website : `https://${business.website}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
-                    >
-                      {business.website}
-                    </Link>
+                    <span className="mr-2">📱</span>
+                    <span>WhatsApp: {business.whatsapp}</span>
+                  </li>
+                )}
+                {business.address && (
+                  <li className="flex items-start">
+                    <span className="mr-2"><FaMapMarkerAlt /></span>
+                    <span>{business.address}</span>
                   </li>
                 )}
               </ul>
               
-              {business.created_at && (
-                <div className="mt-6 pt-4 border-t text-sm text-gray-500">
-                  <p>Business registered on {new Date(business.created_at).toLocaleDateString()}</p>
+              {(business.website || business.facebook || business.instagram) && (
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-4">Online Presence</h3>
+                  <ul className="text-gray-600 space-y-3">
+                    {business.website && (
+                      <li className="flex items-start">
+                        <span className="mr-2"><FaGlobe /></span>
+                        <a href={business.website.startsWith('http') ? business.website : `https://${business.website}`} 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           className="text-blue-500 hover:underline">
+                          {business.website}
+                        </a>
+                      </li>
+                    )}
+                    {business.facebook && (
+                      <li className="flex items-start">
+                        <span className="mr-2">📘</span>
+                        <a href={business.facebook.startsWith('http') ? business.facebook : `https://facebook.com/${business.facebook}`} 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           className="text-blue-500 hover:underline">
+                          Facebook
+                        </a>
+                      </li>
+                    )}
+                    {business.instagram && (
+                      <li className="flex items-start">
+                        <span className="mr-2">📸</span>
+                        <a href={business.instagram.startsWith('http') ? business.instagram : `https://instagram.com/${business.instagram}`} 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           className="text-blue-500 hover:underline">
+                          Instagram
+                        </a>
+                      </li>
+                    )}
+                  </ul>
                 </div>
               )}
+              
+              {business.markets && (
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-4">Location & Category</h3>
+                  <ul className="text-gray-600 space-y-3">
+                    <li className="flex items-start">
+                      <span className="mr-2">🏪</span>
+                      <span>Market: {business.markets.name}</span>
+                    </li>
+                    {business.categories && (
+                      <li className="flex items-start">
+                        <span className="mr-2">🏷️</span>
+                        <span>Category: {business.categories.name}</span>
+                      </li>
+                    )}
+                    {business.business_type && (
+                      <li className="flex items-start">
+                        <span className="mr-2">📋</span>
+                        <span>Business Type: {business.business_type}</span>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+              
+              {business.services && (
+                <div className="mt-6">
+                  <h3 className="font-semibold mb-4">Services Offered</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.isArray(business.services) ? (
+                      business.services.map((service, index) => (
+                        <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                          {typeof service === 'string' ? service : JSON.stringify(service)}
+                        </span>
+                      ))
+                    ) : typeof business.services === 'object' ? (
+                      Object.entries(business.services).map(([key, value], index) => (
+                        <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                          {key}: {typeof value === 'string' ? value : JSON.stringify(value)}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-600">No structured services information available</span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-6 pt-4 border-t text-sm text-gray-500">
+                <p>Business registered on {new Date(business.created_at).toLocaleDateString()}</p>
+                <p>Status: {business.status}</p>
+              </div>
             </div>
           </div>
         )}

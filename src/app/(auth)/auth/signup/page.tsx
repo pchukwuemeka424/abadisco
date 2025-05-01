@@ -120,12 +120,12 @@ export default function SignUpPage() {
         if (!existingUser) {
           await supabase.from('users').insert({
             id: user.id,
-            email: user.email,
-            full_name: user.user_metadata?.full_name || null,
+            email: user.email
+            // No other fields needed with the simplified schema
           });
+          
           // Insert into kyc_verifications
           await supabase.from('kyc_verifications').insert({ user_id: user.id });
-          
         }
       }
     }

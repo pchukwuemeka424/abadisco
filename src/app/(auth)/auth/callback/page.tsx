@@ -34,12 +34,11 @@ function AuthCallbackContent() {
             .single();
 
           if (!existingUser) {
-            // Create the user record if it doesn't exist
+            // Create the user record if it doesn't exist - only use fields from the simplified schema
             await supabase.from('users').insert({
               id: user.id,
-              email: user.email,
-              full_name: user.user_metadata?.full_name || '',
-              avatar_url: user.user_metadata?.avatar_url || null,
+              email: user.email
+              // Note: No password is set here since OAuth doesn't provide one
             });
           }
 

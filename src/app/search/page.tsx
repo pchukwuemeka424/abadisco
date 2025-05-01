@@ -62,9 +62,7 @@ function SearchPageContent() {
     let supabaseQuery = supabase.from('users').select('*').range((reset ? 0 : (page - 1) * PAGE_SIZE), (reset ? PAGE_SIZE - 1 : page * PAGE_SIZE - 1));
     
     if (query) {
-      supabaseQuery = supabaseQuery.or(`business_type.ilike.%${query}%,description.ilike.%${query}%,services.ilike.%${query}%,category.ilike.%${query}%`);
-    } else if (category && category !== 'all') {
-      supabaseQuery = supabaseQuery.ilike('categories', `%${category}%`);
+      supabaseQuery = supabaseQuery.ilike('email', `%${query}%`);
     }
     
     const { data, error } = await supabaseQuery;

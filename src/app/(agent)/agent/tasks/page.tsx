@@ -72,9 +72,9 @@ export default function AgentTasks() {
         weekEndDate.setDate(weekStartDate.getDate() + 6);
         weekEndDate.setHours(23, 59, 59, 999);
         
-        // Fetch user count for this week
-        const { data: weekUsers, error } = await supabase
-          .from('users')
+        // Fetch business count for this week
+        const { data: weekBusinesses, error } = await supabase
+          .from('businesses')
           .select('id', { count: 'exact' })
           .eq('created_by', agentId)
           .gte('created_at', weekStartDate.toISOString())
@@ -82,7 +82,7 @@ export default function AgentTasks() {
         
         if (error) throw error;
         
-        const registeredCount = weekUsers?.length || 0;
+        const registeredCount = weekBusinesses?.length || 0;
         const targetMet = registeredCount >= target;
         
         weekData.push({
@@ -143,7 +143,7 @@ export default function AgentTasks() {
             {last4Weeks.length > 0 ? `${last4Weeks[last4Weeks.length-1].startDate} to ${last4Weeks[0].endDate}` : ''}
           </span>
           <span className="text-sm font-medium">
-            {monthlyRegistered} of {monthlyTarget} users
+            {monthlyRegistered} of {monthlyTarget} businesses
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3">
@@ -155,12 +155,12 @@ export default function AgentTasks() {
         {monthlyCompleted ? (
           <div className="mt-4 p-3 bg-green-100 text-green-700 rounded-md flex items-center">
             <FaCheck className="mr-2" />
-            <span>Monthly target achieved! You've registered {monthlyRegistered} users in the last 4 weeks.</span>
+            <span>Monthly target achieved! You've registered {monthlyRegistered} businesses in the last 4 weeks.</span>
           </div>
         ) : (
           <div className="mt-4 flex justify-between">
             <span className="text-sm text-gray-600">
-              {monthlyTarget - monthlyRegistered} more users needed to reach monthly target
+              {monthlyTarget - monthlyRegistered} more businesses needed to reach monthly target
             </span>
             <span className="text-sm font-medium">
               {monthlyProgress.toFixed(0)}% complete
@@ -187,7 +187,7 @@ export default function AgentTasks() {
               </span>
             </div>
             <div className="text-sm font-medium">
-              {currentWeekStats.registered} of {currentWeekStats.target} users
+              {currentWeekStats.registered} of {currentWeekStats.target} businesses
             </div>
           </div>
           
@@ -203,12 +203,12 @@ export default function AgentTasks() {
           {currentWeekStats.completed ? (
             <div className="mt-4 p-3 bg-green-100 text-green-700 rounded-md flex items-center">
               <FaCheck className="mr-2" />
-              <span>Target achieved! You've registered {currentWeekStats.registered} users this week.</span>
+              <span>Target achieved! You've registered {currentWeekStats.registered} businesses this week.</span>
             </div>
           ) : (
             <div className="mt-4 flex justify-between">
               <span className="text-sm text-gray-600">
-                {currentWeekStats.target - currentWeekStats.registered} more users needed to reach target
+                {currentWeekStats.target - currentWeekStats.registered} more businesses needed to reach target
               </span>
               <span className="text-sm font-medium">
                 {progressPercentage.toFixed(0)}% complete
@@ -238,7 +238,7 @@ export default function AgentTasks() {
                     Date Range
                   </th>
                   <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Users Registered
+                    Businesses Registered
                   </th>
                   <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Target

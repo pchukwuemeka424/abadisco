@@ -2,20 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/supabaseClient';
-import { FaEye, FaTrash, FaEdit, FaCheckCircle, FaTimesCircle, FaExclamationCircle, FaUsers } from 'react-icons/fa';
+import { FaEye, FaTrash, FaEdit, FaUsers } from 'react-icons/fa';
 import UserDetailsModal from './UserDetailsModal';
 
+// Updated User type to match simplified users table
 type User = {
   id: string;
-  full_name: string;
-  business_name: string;
   email: string;
-  phone: string;
-  market: string;
-  category: string;
-  status: string;
   created_at: string;
-  logo_url: string;
 };
 
 export default function UsersTable() {
@@ -32,7 +26,7 @@ export default function UsersTable() {
         
         const { data, error } = await supabase
           .from('users')
-          .select('*')
+          .select('id, email, created_at')
           .order('created_at', { ascending: false });
         
         if (error) throw error;
@@ -70,37 +64,11 @@ export default function UsersTable() {
     }
   };
   
+  // Updated filtering to only search by email
   const filteredUsers = users.filter(user => {
     const searchLower = searchTerm.toLowerCase();
-    return (
-      user.full_name?.toLowerCase().includes(searchLower) ||
-      user.business_name?.toLowerCase().includes(searchLower) ||
-      user.email?.toLowerCase().includes(searchLower) ||
-      user.market?.toLowerCase().includes(searchLower) ||
-      user.category?.toLowerCase().includes(searchLower)
-    );
+    return user.email?.toLowerCase().includes(searchLower);
   });
-  
-  const getStatusIcon = (status: string) => {
-    if (status === 'Now Open') {
-      return <FaCheckCircle className="text-green-600" />;
-    } else if (status === 'Closed') {
-      return <FaTimesCircle className="text-red-600" />;
-    } else {
-      return <FaExclamationCircle className="text-yellow-600" />;
-    }
-  };
-
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case 'Now Open':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'Closed':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    }
-  };
   
   if (loading) {
     return (
@@ -144,16 +112,10 @@ export default function UsersTable() {
           <thead className="bg-gray-50">
             <tr>
               <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Business
+                Email
               </th>
               <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Contact
-              </th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Location
-              </th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
+                Created At
               </th>
               <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
@@ -164,37 +126,12 @@ export default function UsersTable() {
             {filteredUsers.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10">
-                      <img 
-                        className="h-10 w-10 rounded-full object-cover border border-gray-200" 
-                        src={user.logo_url || '/images/logo.png'} 
-                        alt={user.business_name || 'Business logo'} 
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = '/images/logo.png';
-                        }}
-                      />
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">{user.business_name || 'N/A'}</div>
-                      <div className="text-sm text-gray-500">{user.full_name || 'N/A'}</div>
-                    </div>
+                  <div className="text-sm font-medium text-gray-900">{user.email || 'N/A'}</div>
+                </td>
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {new Date(user.created_at).toLocaleString() || 'N/A'}
                   </div>
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{user.email || 'N/A'}</div>
-                  <div className="text-sm text-gray-500">{user.phone || 'N/A'}</div>
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{user.market || 'N/A'}</div>
-                  <div className="text-sm text-gray-500">{user.category || 'N/A'}</div>
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusClass(user.status)}`}>
-                    {getStatusIcon(user.status)}
-                    <span className="ml-1">{user.status || 'Unknown'}</span>
-                  </span>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-center text-sm font-medium">
                   <div className="flex justify-center space-x-2">

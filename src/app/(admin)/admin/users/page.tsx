@@ -1,10 +1,10 @@
 import { Metadata } from 'next';
-import { FaSearch, FaFilter, FaUserPlus } from 'react-icons/fa';
+import { FaSearch, FaUserPlus } from 'react-icons/fa';
 import UsersTable from '../components/UsersTable';
 
 export const metadata: Metadata = {
   title: 'Users Management | Admin',
-  description: 'Manage users and business profiles',
+  description: 'Manage users accounts',
 };
 
 export default function UsersManagement() {
@@ -14,7 +14,7 @@ export default function UsersManagement() {
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Users Management</h1>
-          <p className="text-gray-600 mt-1">View and manage all user accounts and business profiles.</p>
+          <p className="text-gray-600 mt-1">View and manage all user accounts.</p>
         </div>
         
         <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full md:w-auto justify-center">
@@ -25,8 +25,8 @@ export default function UsersManagement() {
       
       {/* Filter and search bar */}
       <div className="bg-white rounded-xl shadow-md p-5 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="col-span-2">
+        <div className="grid grid-cols-1 gap-4">
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -34,25 +34,9 @@ export default function UsersManagement() {
               </div>
               <input
                 type="text"
-                placeholder="Search by name, business, email, market..."
+                placeholder="Search by email..."
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Filter By</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaFilter className="text-gray-400" />
-              </div>
-              <select className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 appearance-none">
-                <option value="">All Markets</option>
-                <option value="ariaria">Ariaria Market</option>
-                <option value="ahia-ohuru">Ahia Ohuru Market</option>
-                <option value="cemetery">Cemetery Market</option>
-                <option value="eziukwu">Eziukwu Market</option>
-              </select>
             </div>
           </div>
         </div>

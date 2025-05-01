@@ -65,23 +65,23 @@ export default function AgentAnalytics() {
       
       console.log('Fetching data for agent ID:', agentId);
       
-      // Fetch total users registered by this agent
-      const { data: totalUsers, error: totalError } = await supabase
-        .from('users')
+      // Fetch total registrations by this agent
+      const { data: totalRegistrations, error: totalError } = await supabase
+        .from('businesses')
         .select('id', { count: 'exact' })
         .eq('created_by', agentId);
       
       if (totalError) {
-        console.error('Error fetching total users:', totalError);
+        console.error('Error fetching total registrations:', totalError);
         throw totalError;
       }
       
-      // Fetch total businesses (users with business_name)
+      // Fetch total completed businesses
       const { data: totalBusinesses, error: businessError } = await supabase
-        .from('users')
+        .from('businesses')
         .select('id', { count: 'exact' })
         .eq('created_by', agentId)
-        .not('business_name', 'is', null);
+        .not('name', 'is', null);
       
       if (businessError) {
         console.error('Error fetching total businesses:', businessError);
@@ -89,13 +89,13 @@ export default function AgentAnalytics() {
       }
       
       // Calculate the business conversion rate
-      const totalUsersCount = totalUsers?.length || 0;
+      const totalUsersCount = totalRegistrations?.length || 0;
       const totalBusinessesCount = totalBusinesses?.length || 0;
       const businessConversionRate = totalUsersCount > 0 
         ? (totalBusinessesCount / totalUsersCount * 100).toFixed(1) 
         : "0";
       
-      // Get users by month for the last 6 months
+      // Get registrations by month for the last 6 months
       const monthlyData: MonthlyData[] = [];
       const now = new Date();
       
@@ -105,8 +105,8 @@ export default function AgentAnalytics() {
         const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
         const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0, 23, 59, 59);
         
-        const { data: monthUsers, error: monthError } = await supabase
-          .from('users')
+        const { data: monthRegistrations, error: monthError } = await supabase
+          .from('businesses')
           .select('id', { count: 'exact' })
           .eq('created_by', agentId)
           .gte('created_at', monthStart.toISOString())
@@ -120,30 +120,30 @@ export default function AgentAnalytics() {
         const monthName = monthStart.toLocaleString('default', { month: 'short' });
         monthlyData.push({
           month: `${monthName} ${monthStart.getFullYear()}`,
-          count: monthUsers?.length || 0
+          count: monthRegistrations?.length || 0
         });
       }
       
       // Use a different approach for market and category data
-      // Since grouping directly isn't working properly, we'll collect all market data and group it in JavaScript
       try {
-        // Fetch all users with market data
-        const { data: usersWithMarket, error: marketError } = await supabase
-          .from('users')
-          .select('market')
+        // Fetch all businesses with market data
+        const { data: businessesWithMarket, error: marketError } = await supabase
+          .from('businesses')
+          .select('market_id, markets(name)')
           .eq('created_by', agentId)
-          .not('market', 'is', null);
+          .not('market_id', 'is', null);
         
         if (marketError) {
-          console.error('Error fetching users with market:', marketError);
+          console.error('Error fetching businesses with market:', marketError);
           throw marketError;
         }
         
         // Group market data in JavaScript
         const marketCounts: Record<string, number> = {};
-        usersWithMarket?.forEach(user => {
-          if (user.market) {
-            marketCounts[user.market] = (marketCounts[user.market] || 0) + 1;
+        businessesWithMarket?.forEach(business => {
+          if (business.markets && business.markets.name) {
+            const marketName = business.markets.name;
+            marketCounts[marketName] = (marketCounts[marketName] || 0) + 1;
           }
         });
         
@@ -152,23 +152,24 @@ export default function AgentAnalytics() {
           count
         })).sort((a, b) => b.count - a.count);
         
-        // Fetch all users with category data
-        const { data: usersWithCategory, error: categoryError } = await supabase
-          .from('users')
-          .select('category')
+        // Fetch all businesses with category data - Fixed query to use the correct relationship and field names
+        const { data: businessesWithCategory, error: categoryError } = await supabase
+          .from('businesses')
+          .select('category_id, business_categories(title)')
           .eq('created_by', agentId)
-          .not('category', 'is', null);
+          .not('category_id', 'is', null);
         
         if (categoryError) {
-          console.error('Error fetching users with category:', categoryError);
+          console.error('Error fetching businesses with category:', categoryError.message);
           throw categoryError;
         }
         
-        // Group category data in JavaScript
+        // Group category data in JavaScript - Updated to use the correct field name (title instead of name)
         const categoryCounts: Record<string, number> = {};
-        usersWithCategory?.forEach(user => {
-          if (user.category) {
-            categoryCounts[user.category] = (categoryCounts[user.category] || 0) + 1;
+        businessesWithCategory?.forEach(business => {
+          if (business.business_categories && business.business_categories.title) {
+            const categoryName = business.business_categories.title;
+            categoryCounts[categoryName] = (categoryCounts[categoryName] || 0) + 1;
           }
         });
         
