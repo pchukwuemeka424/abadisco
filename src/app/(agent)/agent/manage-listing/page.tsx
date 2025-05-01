@@ -7,13 +7,14 @@ import Image from "next/image";
 
 interface BusinessListing {
   id: string;
-  business_name: string;
+  name: string; // Changed from business_name
   business_type: string;
   description: string;
   status: string;
   created_at: string;
   logo_url: string | null;
-  market: string | null;
+  market_id: string | null; // Changed from market
+  category_id: number | null;
 }
 
 export default function ManageListingPage() {
@@ -28,6 +29,7 @@ export default function ManageListingPage() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [imageCounts, setImageCounts] = useState<{ [listingId: string]: number }>({});
+  const [marketNames, setMarketNames] = useState<{ [marketId: string]: string }>({});
 
   useEffect(() => {
     if (!loading && user) {
@@ -70,10 +72,9 @@ export default function ManageListingPage() {
   const fetchListings = async (agentId: string) => {
     try {
       const { data, error } = await supabase
-        .from("users")
+        .from("businesses") // Changed from "users"
         .select("*")
-        .eq("created_by", user?.id)
-        .eq("role", "business");
+        .eq("created_by", user?.id);
 
       if (error) {
         throw error;
@@ -107,6 +108,42 @@ export default function ManageListingPage() {
     fetchImageCounts();
   }, [listings]);
 
+  // Fetch market names for all listings
+  useEffect(() => {
+    async function fetchMarketNames() {
+      if (!listings.length) return;
+      
+      // Get unique market IDs from listings
+      const marketIds = [...new Set(listings.filter(l => l.market_id).map(l => l.market_id))];
+      
+      if (marketIds.length === 0) return;
+      
+      try {
+        const { data: markets, error } = await supabase
+          .from('markets')
+          .select('id, name')
+          .in('id', marketIds as string[]);
+          
+        if (error) {
+          console.error("Error fetching market names:", error);
+          return;
+        }
+        
+        if (markets) {
+          const marketNameMap: { [marketId: string]: string } = {};
+          markets.forEach(market => {
+            marketNameMap[market.id] = market.name;
+          });
+          setMarketNames(marketNameMap);
+        }
+      } catch (err) {
+        console.error("Error in fetchMarketNames:", err);
+      }
+    }
+    
+    fetchMarketNames();
+  }, [listings]);
+
   const filteredListings = listings.filter(listing => {
     const matchesStatus = statusFilter === "all" || listing.status === statusFilter;
     const matchesType = businessTypeFilter === "all" || listing.business_type === businessTypeFilter;
@@ -134,8 +171,8 @@ export default function ManageListingPage() {
       
       // First, get the business name before deletion for activity logging
       const { data: businessData, error: businessError } = await supabase
-        .from("users")
-        .select("business_name")
+        .from("businesses")  // Changed from "users"
+        .select("name")  // Changed from "business_name"
         .eq("id", id)
         .single();
       
@@ -144,7 +181,7 @@ export default function ManageListingPage() {
         throw new Error(businessError.message || "Failed to fetch business data");
       }
       
-      const businessName = businessData?.business_name || 'Unknown business';
+      const businessName = businessData?.name || 'Unknown business';
       
       // First, delete all products associated with this listing to avoid foreign key constraint violation
       const { error: productsError } = await supabase
@@ -159,7 +196,7 @@ export default function ManageListingPage() {
       
       // Now we can safely delete the business listing
       const { error } = await supabase
-        .from("users")
+        .from("businesses")  // Changed from "users"
         .delete()
         .eq("id", id);
 
@@ -346,7 +383,7 @@ export default function ManageListingPage() {
                           {listing.logo_url ? (
                             <Image 
                               src={listing.logo_url} 
-                              alt={listing.business_name}
+                              alt={listing.name}
                               width={64}
                               height={64}
                               className="h-full w-full object-cover"
@@ -359,7 +396,7 @@ export default function ManageListingPage() {
                         </div>
                         <div>
                           <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                            {listing.business_name}
+                            {listing.name}
                             {registrationStatus}
                           </h3>
                           <div className="flex flex-wrap gap-2 mt-1">
@@ -375,9 +412,9 @@ export default function ManageListingPage() {
                             }`}>
                               {listing.status}
                             </span>
-                            {listing.market && (
+                            {listing.market_id && (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                {listing.market}
+                                {marketNames[listing.market_id] || listing.market_id}
                               </span>
                             )}
                           </div>
@@ -401,7 +438,7 @@ export default function ManageListingPage() {
                           className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                         >
                           <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2z"></path>
                           </svg>
                           Images
                         </button>
