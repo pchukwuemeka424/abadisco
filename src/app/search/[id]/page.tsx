@@ -72,7 +72,7 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
             markets:market_id(name),
             categories:category_id(name)
           `)
-          .eq('id', businessId)
+          .eq('created_by', businessId)
           .single();
 
         if (businessError) {

@@ -1,11 +1,11 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from 'next/dynamic';
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { supabase } from "@/supabaseClient";
 import { useAuth } from "@/context/auth-context";
 import axios from "axios";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 // Dynamic import for Cropper component to avoid SSR issues
 const Cropper = dynamic(() => import('react-easy-crop'), {
@@ -21,7 +21,7 @@ const SERVICES = [
   "Reservations",
   "Catering"
 ];
-const BUSINESS_TYPES = [
+const SERVICES_TYPES = [
   "Restaurant",
   "Bar",
   "Cafe",
@@ -51,6 +51,7 @@ const SERVICE_CATEGORIES = {
     "   - Okra Soup",
     "   - Afang Soup",
     "   - Edikaikong",
+    "   - Oha Soup",
     "   - Banga Soup",
     "   - Jollof Rice",
     "   - Native Rice",
@@ -206,53 +207,84 @@ const SERVICE_CATEGORIES = {
   ]
 };
 
-export default function EditListingPage({ params }: { params: { id: string } }) {
-  const listingId = React.use(params).id;
-  const { user, loading } = useAuth();
+export default function ProfilePage() {
+  const { user, loading } = useAuth(); // Use auth context
   const router = useRouter();
-  const [phone, setPhone] = useState("");
+  const params = useParams();
+  const businessId = params?.id as string;
+  const [isEditing, setIsEditing] = useState(!!businessId);
+  
+  // Updated state variables to match businesses_table schema
+  const [businessData, setBusinessData] = useState({
+    name: "",
+    description: "",
+    market_id: "",
+    category_id: null as number | null,
+    owner_id: "",
+    contact_phone: "",
+    contact_email: "",
+    address: "",
+    logo_url: "",
+    website: "",
+    facebook: "",
+    instagram: "",
+    created_by: "",
+    status: "active",
+    business_type: "", // Added field from schema
+    whatsapp: "", // Added field from schema
+    role: null as string | null, // Added field from schema
+  });
+  
+  // Additional form fields that aren't directly in businesses_table
   const [agentId, setAgentId] = useState("");
-  const [email, setEmail] = useState("");
-  const [website, setWebsite] = useState("");
-  const [location, setLocation] = useState("");
-  const [market, setMarket] = useState(""); // Market state
-  const [marketLocations, setMarketLocations] = useState<{id: string, name: string}[]>([]); // Add state for market locations
+  const [marketName, setMarketName] = useState(""); // For display purposes
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [businessName, setBusinessName] = useState("");
-  const [businessType, setBusinessType] = useState("");
+  const [businessType, setBusinessType] = useState(""); // For category lookup
   const [registrationNumber, setRegistrationNumber] = useState("");
-  const [description, setDescription] = useState("");
-  const [logo, setLogo] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string>("");
+  const [whatsapp, setWhatsapp] = useState("");
+  
+  // Add missing state setters to fix the setWebsite reference error
+  const [website, setWebsite] = useState("");
   const [facebook, setFacebook] = useState("");
   const [instagram, setInstagram] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
+  
+  // UI related state
+  const [marketLocations, setMarketLocations] = useState<{id: string, name: string}[]>([]); 
+  const [businessCategories, setBusinessCategories] = useState<{id: number, title: string}[]>([]);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
   const [customService, setCustomService] = useState("");
+  const [logo, setLogo] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
   const [showCrop, setShowCrop] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ width: number; height: number; x: number; y: number } | null>(null);
   const [croppingImage, setCroppingImage] = useState<string>("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   const dropRef = useRef<HTMLDivElement>(null);
+  
+  // Helper function to update business data fields
+  const updateBusinessData = (field: string, value: any) => {
+    setBusinessData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   // Add state to track authentication status 
-  const [authChecked, setAuthChecked] = useState(false);
-  
-  // Check authentication status at the beginning
   useEffect(() => {
     if (!loading) {
       setAuthChecked(true);
       // Pre-fill email from user auth if available
-      if (user?.email && !email) {
-        setEmail(user.email);
+      if (user?.email && !businessData.contact_email) {
+        updateBusinessData('contact_email', user.email);
       }
     }
-  }, [user, loading, email]);
+  }, [user, loading, businessData.contact_email]); // These dependencies are consistent
 
   // Add useEffect to fetch market locations from the database
   useEffect(() => {
@@ -279,6 +311,123 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
     
     fetchMarketLocations();
   }, []);
+
+  // Add useEffect to fetch business categories
+  useEffect(() => {
+    const fetchBusinessCategories = async () => {
+      try {
+        const { data: categories, error } = await supabase
+          .from('business_categories')
+          .select('id, title')
+          .order('title');
+          
+        if (error) {
+          console.error('Error fetching business categories:', error.message);
+          return;
+        }
+        
+        if (categories) {
+          setBusinessCategories(categories);
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching business categories:', err);
+      }
+    };
+    
+    fetchBusinessCategories();
+  }, []);
+
+  // Add useEffect to fetch business data by ID
+  useEffect(() => {
+    const fetchBusinessById = async () => {
+      if (!businessId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('businesses')
+          .select('*')
+          .eq('id', businessId)
+          .single();
+          
+        if (error) {
+          console.error("Error fetching business data:", error);
+          setError(`Failed to load business data: ${error.message}`);
+          return;
+        }
+        
+        if (data) {
+          console.log("Fetched business data by ID:", data);
+          
+          // Populate form with the fetched data
+          updateBusinessData('name', data.name || "");
+          updateBusinessData('description', data.description || "");
+          updateBusinessData('market_id', data.market_id || "");
+          updateBusinessData('category_id', data.category_id || null);
+          updateBusinessData('contact_phone', data.contact_phone || "");
+          updateBusinessData('contact_email', data.contact_email || "");
+          updateBusinessData('address', data.address || "");
+          updateBusinessData('logo_url', data.logo_url || "");
+          updateBusinessData('website', data.website || "");
+          updateBusinessData('facebook', data.facebook || "");
+          updateBusinessData('instagram', data.instagram || "");
+          updateBusinessData('status', data.status || "active");
+          updateBusinessData('whatsapp', data.whatsapp || "");
+          
+          // If there's a market ID, find the corresponding market name
+          if (data.market_id) {
+            const { data: marketData } = await supabase
+              .from('markets')
+              .select('name')
+              .eq('id', data.market_id)
+              .single();
+              
+            if (marketData) {
+              setMarketName(marketData.name);
+            }
+          }
+          
+          // If there's a category ID, find the corresponding type
+          if (data.category_id) {
+            const { data: categoryData } = await supabase
+              .from('business_categories')
+              .select('title')
+              .eq('id', data.category_id)
+              .single();
+              
+            if (categoryData) {
+              setBusinessType(categoryData.title);
+            }
+          }
+          
+          if (data.logo_url) {
+            setLogoPreview(data.logo_url);
+          }
+          
+          // Load services from the business data if available
+          if (data.services) {
+            try {
+              const servicesData = typeof data.services === 'string' 
+                ? JSON.parse(data.services) 
+                : data.services;
+                
+              if (servicesData.service_list && Array.isArray(servicesData.service_list)) {
+                setSelectedServices(servicesData.service_list);
+              }
+            } catch (err) {
+              console.error("Error parsing services data:", err);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error in fetchBusinessById:", err);
+        setError("Failed to load business data");
+      }
+    };
+    
+    if (businessId) {
+      fetchBusinessById();
+    }
+  }, [businessId]);
 
   // Logo handling functions
   const handleLogoDrop = (e: React.DragEvent) => {
@@ -319,7 +468,7 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
       const croppedBlob = await getCroppedImgBlob(croppingImage, croppedAreaPixels);
       
       // Upload to Supabase Storage
-      const fileName = `avatar_${user.id}_${Date.now()}.jpg`;
+      const fileName = `logo_${Date.now()}_${Math.random().toString(36).substring(2, 15)}.jpg`;
       const { data, error: uploadError } = await supabase.storage
         .from('uploads')
         .upload(fileName, croppedBlob, {
@@ -341,12 +490,8 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
       const publicUrl = publicUrlData?.publicUrl;
       if (publicUrl) {
         setLogoPreview(publicUrl);
-        // Update users table with new logo URL
-        await supabase
-          .from('users')
-          .update({ logo_url: publicUrl })
-          .eq('id', user.id);
-        
+        // Update business data with logo URL
+        updateBusinessData('logo_url', publicUrl);
         setSuccess('Logo uploaded successfully!');
       }
     } catch (err) {
@@ -390,11 +535,11 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
     }
 
     if (!user) {
-      setError("You must be logged in to edit a listing");
+      setError("You must be logged in to add a listing");
       return;
     }
 
-    if (!businessName) {
+    if (!businessData.name) {
       setError("Business name is required");
       return;
     }
@@ -433,137 +578,155 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
         setAgentId(currentAgentId);
       }
 
-      // Verify that this agent has permission to edit this listing
-      const { data: listingVerify, error: verifyError } = await supabase
-        .from("users")
-        .select("created_by")
-        .eq("id", listingId)
-        .single();
-        
-      if (verifyError) {
-        throw new Error("Failed to verify listing ownership");
-      }
-      
-      if (listingVerify && listingVerify.created_by !== user.id) {
-        setError("You don't have permission to edit this business listing");
-        return;
-      }
-
-      // Process selected services to match the users table schema
-      const servicesText = selectedServices.length > 0 ? selectedServices.join(", ") : null;
-      const customServicesArray = selectedServices.length > 0 ? selectedServices : null;
-      
-      // Prepare the data based on the actual users table schema
-      const userData = {
-        business_name: businessName,
-        business_type: businessType,
-        registration_number: registrationNumber || null,
-        description: description || null,
-        phone: phone || null,
-        email: email || null,
-        website: website || null,
-        address: location || null,
-        logo_url: logoPreview || null,
-        facebook: facebook || null,
-        instagram: instagram || null,
-        whatsapp: whatsapp || null,
-        custom_services: customServicesArray,
-        full_name: businessName,
-        status: 'Now Open',
-        services: servicesText,
-        market: market || null,
-        updated_at: new Date().toISOString()
-      };
-
-      console.log("Updating business data:", userData);
-      
-      // Update the specific listing using the ID from params
-      const { data: updateData, error: updateError } = await supabase
-        .from('users')
-        .update(userData)
-        .eq('id', listingId)
-        .select()
-        .single();
-        
-      if (updateError) {
-        console.error("Error updating business:", updateError);
-        throw new Error(`Failed to update business: ${updateError.message}`);
-      }
-
-      // Now handle updating the businesses table if market is selected
-      if (market) {
-        // Find the market ID based on the selected market name
-        let marketId: string | null = null;
-        const selectedMarketObj = marketLocations.find(m => m.name === market);
-        
+      // Find the market ID based on the selected market name
+      let marketId: string | null = null;
+      if (marketName) {
+        const selectedMarketObj = marketLocations.find(m => m.name === marketName);
         if (selectedMarketObj) {
           marketId = selectedMarketObj.id;
-          
-          // First check if a record already exists in the businesses table for this user
-          const { data: existingBusiness, error: existingError } = await supabase
-            .from('businesses')
-            .select('id')
-            .eq('owner_id', listingId)
-            .maybeSingle();
-            
-          if (existingError) {
-            console.error("Error checking existing business record:", existingError);
-          }
-          
-          // Prepare data for businesses table
-          const businessData = {
-            name: businessName,
-            description: description || null,
-            market_id: marketId,
-            owner_id: listingId,
-            contact_phone: phone || null,
-            contact_email: email || null,
-            address: location || null,
-            logo_url: logoPreview || null,
-            status: 'active',
-            updated_at: new Date().toISOString()
-          };
-          
-          if (existingBusiness) {
-            // Update existing record
-            console.log("Updating existing business record in businesses table...");
-            const { data: businessUpdateData, error: businessUpdateError } = await supabase
-              .from('businesses')
-              .update(businessData)
-              .eq('id', existingBusiness.id)
-              .select()
-              .single();
-              
-            if (businessUpdateError) {
-              console.error("Error updating businesses table:", businessUpdateError);
-            } else {
-              console.log("Business record updated successfully:", businessUpdateData);
-            }
-          } else {
-            // Insert new record
-            console.log("Inserting new business record into businesses table...");
-            const { data: businessInsertData, error: businessInsertError } = await supabase
-              .from('businesses')
-              .insert(businessData)
-              .select()
-              .single();
-              
-            if (businessInsertError) {
-              console.error("Error inserting into businesses table:", businessInsertError);
-            } else {
-              console.log("Business record created successfully:", businessInsertData);
-            }
-          }
         } else {
-          console.warn("Selected market not found in marketLocations array:", market);
+          console.warn("Selected market not found in marketLocations array:", marketName);
         }
       }
 
-      console.log("Business updated successfully:", updateData);
-      setSuccess("Business listing updated successfully!");
+      // Find category ID based on business type
+      let categoryId: number | null = null;
+      if (businessType) {
+        try {
+          // First try to use the selected category from the dropdown if one was chosen
+          if (businessData.category_id !== null) {
+            categoryId = businessData.category_id;
+            console.log("Using selected category ID:", categoryId);
+          } else {
+            // Otherwise look up the category by business type
+            const { data: categoryData, error: categoryError } = await supabase
+              .from('business_categories')
+              .select('id, title')
+              .ilike('title', businessType)
+              .single();
+              
+            if (categoryError) {
+              console.error("Error fetching category:", categoryError.message);
+              // Continue with null category ID instead of stopping execution
+            } else if (categoryData) {
+              categoryId = categoryData.id;
+              console.log("Found category ID:", categoryId, "for business type:", businessType);
+            } else {
+              console.warn("Category not found for business type:", businessType);
+            }
+          }
+        } catch (err) {
+          console.error("Exception when finding category:", err);
+        }
+      }
+
+      // Format selected services as a JSON structure
+      // We organize services by category and add metadata
+      const servicesJson = {
+        category: businessType,
+        service_list: selectedServices,
+        last_updated: new Date().toISOString(),
+        count: selectedServices.length
+      };
+
+      console.log("Services JSON to be stored:", servicesJson);
+      
+      // Prepare the business data object for database operation
+      const businessDataForDb = {
+        name: businessData.name,
+        description: businessData.description || null,
+        market_id: marketId,
+        category_id: categoryId,
+        owner_id: user.id, // Set the agent as the owner directly
+        contact_phone: businessData.contact_phone || null,
+        contact_email: businessData.contact_email || null,
+        address: businessData.address || null,
+        logo_url: logoPreview || null,
+        website: businessData.website || null,
+        facebook: businessData.facebook || null,
+        instagram: businessData.instagram || null,
+        created_by: user.id, // The agent creates the business
+        status: 'active',
+        services: servicesJson, // Add services as JSONB data
+        updated_at: new Date().toISOString() // Always update the timestamp
+      };
+      
+      let resultData;
+      
+      if (isEditing && businessId) {
+        // Update existing business
+        console.log("Updating existing business with ID:", businessId);
+        const { data: updatedBusiness, error: updateError } = await supabase
+          .from('businesses')
+          .update(businessDataForDb)
+          .eq('id', businessId)
+          .select()
+          .single();
+          
+        if (updateError) {
+          console.error("Error updating business:", updateError);
+          throw new Error(`Failed to update business: ${updateError.message}`);
+        }
+        
+        console.log("Business updated successfully:", updatedBusiness);
+        resultData = updatedBusiness;
+        setSuccess("Business listing updated successfully!");
+      } else {
+        // Insert new business
+        console.log("Inserting new business");
+        const { data: newBusiness, error: insertError } = await supabase
+          .from('businesses')
+          .insert(businessDataForDb)
+          .select()
+          .single();
+          
+        if (insertError) {
+          console.error("Error creating business:", insertError);
+          throw new Error(`Failed to create business: ${insertError.message}`);
+        }
+        
+        console.log("Business created successfully:", newBusiness);
+        resultData = newBusiness;
+        
+        // 4. Update the agent's registration statistics
+        const { data: agentData, error: agentError } = await supabase
+          .from('agents')
+          .select('total_registrations, current_week_registrations')
+          .eq('id', currentAgentId)
+          .single();
+
+        if (agentError) {
+          console.error('Error fetching agent data:', agentError);
+          // Continue execution even if this fails
+        } else {
+          // Then, increment the values
+          const newTotal = (agentData.total_registrations || 0) + 1;
+          const newWeekly = (agentData.current_week_registrations || 0) + 1;
+
+          // Now, update the database with the new incremented values
+          const { data: agentUpdateData, error: agentUpdateError } = await supabase
+            .from('agents')
+            .update({
+              total_registrations: newTotal,
+              current_week_registrations: newWeekly
+            })
+            .eq('id', currentAgentId)
+            .select()
+            .single();
+
+          if (agentUpdateError) {
+            console.error('Error updating agent data:', agentUpdateError);
+          } else {
+            console.log('Agent data updated:', agentUpdateData);
+          }
+        }
+        
+        setSuccess("Business listing added successfully!");
+      }
+
       setShowSuccessModal(true);
       setTimeout(() => {
-        router.push('/agent/manage-listing');
+        router.push('/agent');
       }, 2000);
       
     } catch (err: any) {
@@ -613,13 +776,13 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
     setGenerating(true);
     setError("");
     try {
-      console.log("Calling /api/generate-description with prompt:", description);
+      console.log("Calling /api/generate-description with prompt:", businessData.description);
       const response = await axios.post("/api/generate-description", {
-        prompt: description
+        prompt: businessData.description
       });
       console.log("API response:", response.data);
       if (response.data.generatedText) {
-        setDescription(response.data.generatedText);
+        updateBusinessData('description', response.data.generatedText);
       } else if (response.data.error) {
         setError(response.data.error);
       } else {
@@ -634,15 +797,15 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
   };
 
   const handleAutoFillDescription = () => {
-    const name = businessName.trim();
+    const name = businessData.name.trim();
     const type = businessType.trim();
     const services = selectedServices.length > 0 ? selectedServices.join(", ") : "various services";
     if (name && type) {
-      setDescription(`${name} is a ${type.toLowerCase()} offering ${services}.`);
+      updateBusinessData('description', `${name} is a ${type.toLowerCase()} offering ${services}.`);
     } else if (name) {
-      setDescription(`${name} offers ${services}.`);
+      updateBusinessData('description', `${name} offers ${services}.`);
     } else {
-      setDescription(`We offer ${services}.`);
+      updateBusinessData('description', `We offer ${services}.`);
     }
   };
 
@@ -651,71 +814,134 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
       if (!user) return;
 
       try {
-        // Load the specific listing by ID instead of the user profile
-        const { data: listing, error } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", listingId)
+        // First check if this user already has businesses in the businesses table
+        const { data: businessesData, error: businessesError } = await supabase
+          .from('businesses')
+          .select('*')
+          .eq('owner_id', user.id)
           .single();
 
-        if (error) {
-          console.error("Error loading listing:", error);
-          setError("Failed to load business listing details");
-          return;
-        }
+        if (businessesData) {
+          // If business data exists, use it as the primary data source
+          console.log("Found existing business record:", businessesData);
+          
+          updateBusinessData('name', businessesData.name || "");
+          updateBusinessData('description', businessesData.description || "");
+          updateBusinessData('market_id', businessesData.market_id || "");
+          updateBusinessData('category_id', businessesData.category_id || null);
+          updateBusinessData('contact_phone', businessesData.contact_phone || "");
+          updateBusinessData('contact_email', businessesData.contact_email || "");
+          updateBusinessData('address', businessesData.address || "");
+          updateBusinessData('logo_url', businessesData.logo_url || "");
+          updateBusinessData('status', businessesData.status || "active");
+          
+          // If there's a market ID, find the corresponding market name
+          if (businessesData.market_id) {
+            const { data: marketData } = await supabase
+              .from('markets')
+              .select('name')
+              .eq('id', businessesData.market_id)
+              .single();
+              
+            if (marketData) {
+              setMarketName(marketData.name);
+            }
+          }
+          
+          // If there's a category ID, find the corresponding type
+          if (businessesData.category_id) {
+            const { data: categoryData } = await supabase
+              .from('business_categories')
+              .select('name')
+              .eq('id', businessesData.category_id)
+              .single();
+              
+            if (categoryData) {
+              setBusinessType(categoryData.name);
+            }
+          }
+          
+          if (businessesData.logo_url) {
+            setLogoPreview(businessesData.logo_url);
+          }
+          
+          // Try to get additional info from users table
+          const { data: userData } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', businessesData.owner_id)
+            .single();
+            
+          if (userData) {
+            // Load supplementary data from users table
+            setWebsite(userData.website || "");
+            setFacebook(userData.facebook || "");
+            setInstagram(userData.instagram || "");
+            setWhatsapp(userData.whatsapp || "");
+            setRegistrationNumber(userData.registration_number || "");
+            
+            // Load services
+            let servicesArr = [];
+            if (Array.isArray(userData.services)) {
+              servicesArr = userData.services;
+            } else if (typeof userData.services === 'string') {
+              try {
+                const parsed = JSON.parse(userData.services);
+                servicesArr = Array.isArray(parsed) ? parsed : [parsed];
+              } catch {
+                servicesArr = userData.services.split(',').map((s: string) => s.trim()).filter(Boolean);
+              }
+            }
+            setSelectedServices(servicesArr);
+          }
+        } else {
+          // No businesses data, try loading from users table for backward compatibility
+          const { data: profile } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", user.id)
+            .single();
 
-        if (!listing) {
-          setError("Business listing not found");
-          return;
-        }
-
-        // Check if agent has permission to edit this listing
-        if (listing.created_by !== user.id) {
-          setError("You don't have permission to edit this listing");
-          return;
-        }
-
-        // Populate form with listing data
-        setPhone(listing.phone ?? "");
-        setEmail(listing.email ?? "");
-        setWebsite(listing.website ?? "");
-        setLocation(listing.address ?? "");
-        setMarket(listing.market ?? "");
-        
-        // Handle services data
-        let servicesArr = [];
-        if (Array.isArray(listing.services)) {
-          servicesArr = listing.services.map((service: any) => 
-            typeof service === 'string' ? service : JSON.stringify(service)
-          ).filter(Boolean);
-        } else if (typeof listing.services === 'string') {
-          try {
-            const parsed = JSON.parse(listing.services);
-            servicesArr = Array.isArray(parsed) ? parsed : [parsed];
-          } catch {
-            servicesArr = listing.services.split(',').map((s: string) => s.trim()).filter(Boolean);
+          if (profile) {
+            updateBusinessData('name', profile.business_name || "");
+            updateBusinessData('description', profile.description || "");
+            updateBusinessData('contact_phone', profile.phone || "");
+            updateBusinessData('contact_email', profile.email || "");
+            updateBusinessData('address', profile.address || "");
+            updateBusinessData('logo_url', profile.logo_url || "");
+            setWebsite(profile.website || "");
+            setMarketName(profile.market || "");
+            
+            // Clean up services array when loading from database
+            let servicesArr = [];
+            if (Array.isArray(profile.services)) {
+              servicesArr = profile.services.map((service: any) => 
+                typeof service === 'string' ? service : JSON.stringify(service)
+              ).filter(Boolean);
+            } else if (typeof profile.services === 'string') {
+              try {
+                const parsed = JSON.parse(profile.services);
+                servicesArr = Array.isArray(parsed) ? parsed : [parsed];
+              } catch {
+                servicesArr = profile.services.split(',').map((s: string) => s.trim()).filter(Boolean);
+              }
+            }
+            setSelectedServices(servicesArr);
+            setBusinessType(profile.business_type || "");
+            setRegistrationNumber(profile.registration_number || "");
+            setFacebook(profile.facebook || "");
+            setInstagram(profile.instagram || "");
+            setWhatsapp(profile.whatsapp || "");
+            if (profile.logo_url) setLogoPreview(profile.logo_url);
           }
         }
-        
-        setSelectedServices(servicesArr);
-        setBusinessName(listing.business_name ?? "");
-        setBusinessType(listing.business_type ?? "");
-        setRegistrationNumber(listing.registration_number ?? "");
-        setDescription(listing.description ?? "");
-        setFacebook(listing.facebook ?? "");
-        setInstagram(listing.instagram ?? "");
-        setWhatsapp(listing.whatsapp ?? "");
-        if (listing.logo_url) setLogoPreview(listing.logo_url);
-      } catch (err) {
-        console.error("Error in loadProfile:", err);
-        setError("An error occurred while loading the business details");
+      } catch (error) {
+        console.error("Error loading profile data:", error);
       }
     };
     
-    if (!loading && user) {
-      loadProfile();
-    }
-  }, [user, loading, listingId]); // Added listingId to dependencies
+    loadProfile();
+  }, [user, loading, authChecked]);
 
   // Add a useEffect to fetch the agent data when the component mounts
   useEffect(() => {
@@ -845,7 +1071,7 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
       )}
       <main className="flex-1 flex items-center justify-center">
         <div className="bg-white rounded-xl shadow p-4 sm:p-8 max-w-2xl w-full">
-          <h1 className="text-2xl font-bold mb-6 text-rose-600 flex items-center gap-2"><span>🏬</span> Edit Business Listing</h1>
+          <h1 className="text-2xl font-bold mb-6 text-rose-600 flex items-center gap-2"><span>🏬</span> Add New Business Listing</h1>
           
           {/* Authentication status indicator */}
           <div className={`mb-4 p-2 rounded-lg ${loading ? 'bg-yellow-50 border border-yellow-300' : user ? 'bg-green-50 border border-green-300' : 'bg-red-50 border border-red-300'}`}>
@@ -939,22 +1165,47 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
                   <input 
                     type="text" 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={businessName} 
-                    onChange={e => setBusinessName(e.target.value)} 
+                    value={businessData.name} 
+                    onChange={e => updateBusinessData('name', e.target.value)} 
+                    required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Type</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Services Offering</label>
                   <select 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
                     value={businessType} 
                     onChange={e => setBusinessType(e.target.value)}
+                    required
                   >
-                    <option value="">Select business type</option>
-                    {BUSINESS_TYPES.map(type => (
+                    <option value="">Select Services</option>
+                    {SERVICES_TYPES.map(type => (
                       <option key={type} value={type}>{type}</option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Category</label>
+                  <select 
+                    className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
+                    value={businessData.category_id !== null ? businessData.category_id.toString() : ""}
+                    onChange={(e) => {
+                      const categoryId = e.target.value ? parseInt(e.target.value) : null;
+                      updateBusinessData('category_id', categoryId);
+                    }}
+                  >
+                    <option value="">Select a category</option>
+                    {businessCategories.length > 0 ? (
+                      businessCategories.map((category) => (
+                        <option key={category.id} value={category.id}>{category.title}</option>
+                      ))
+                    ) : (
+                      <option value="" disabled>Loading categories...</option>
+                    )}
+                  </select>
+                  {businessCategories.length === 0 && (
+                    <p className="text-xs text-orange-600 mt-1">Loading categories from database...</p>
+                  )}
                 </div>
               </div>
               {businessType === "Market" && (
@@ -962,8 +1213,16 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
                   <label className="block text-sm font-medium text-gray-700 mb-1">Market Location</label>
                   <select 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={market}
-                    onChange={(e) => setMarket(e.target.value)}
+                    value={marketName}
+                    onChange={(e) => {
+                      const selectedMarket = e.target.value;
+                      setMarketName(selectedMarket);
+                      // Find the corresponding market ID
+                      const marketObj = marketLocations.find(m => m.name === selectedMarket);
+                      if (marketObj) {
+                        updateBusinessData('market_id', marketObj.id);
+                      }
+                    }}
                   >
                     <option value="">Select market location</option>
                     {marketLocations.length > 0 ? (
@@ -1061,8 +1320,8 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
                   <textarea
                     className="w-full p-3 border border-gray-300 rounded-lg shadow-sm resize-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900"
                     rows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    value={businessData.description}
+                    onChange={(e) => updateBusinessData('description', e.target.value)}
                     placeholder="Tell customers about your business..."
                   />
                   <div className="flex gap-2 flex-wrap">
@@ -1099,8 +1358,8 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
                   <input 
                     type="text" 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={phone} 
-                    onChange={e => setPhone(e.target.value)} 
+                    value={businessData.contact_phone} 
+                    onChange={e => updateBusinessData('contact_phone', e.target.value)} 
                   />
                 </div>
                 <div>
@@ -1108,8 +1367,8 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
                   <input 
                     type="email" 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={email} 
-                    onChange={e => setEmail(e.target.value)} 
+                    value={businessData.contact_email} 
+                    onChange={e => updateBusinessData('contact_email', e.target.value)} 
                   />
                 </div>
                 <div>
@@ -1117,8 +1376,9 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
                   <input 
                     type="text" 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={website} 
-                    onChange={e => setWebsite(e.target.value)} 
+                    value={businessData.website} 
+                    onChange={e => updateBusinessData('website', e.target.value)} 
+                    placeholder="https://your-website.com" 
                   />
                 </div>
                 <div>
@@ -1126,8 +1386,8 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
                   <input 
                     type="text" 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={location} 
-                    onChange={e => setLocation(e.target.value)} 
+                    value={businessData.address} 
+                    onChange={e => updateBusinessData('address', e.target.value)} 
                   />
                 </div>
               </div>
@@ -1141,8 +1401,8 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
                   <input 
                     type="text" 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={facebook} 
-                    onChange={e => setFacebook(e.target.value)} 
+                    value={businessData.facebook} 
+                    onChange={e => updateBusinessData('facebook', e.target.value)} 
                     placeholder="Facebook URL or username" 
                   />
                 </div>
@@ -1151,8 +1411,8 @@ export default function EditListingPage({ params }: { params: { id: string } }) 
                   <input 
                     type="text" 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={instagram} 
-                    onChange={e => setInstagram(e.target.value)} 
+                    value={businessData.instagram} 
+                    onChange={e => updateBusinessData('instagram', e.target.value)} 
                     placeholder="Instagram URL or username" 
                   />
                 </div>
