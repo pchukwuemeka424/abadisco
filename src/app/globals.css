@@ -5,13 +5,6 @@
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -113,6 +106,11 @@ body {
 
 /* Responsive improvements */
 @media (max-width: 640px) {
+  /* ensure all body text is pure black on small screens for better readability */
+  body {
+    color: #000000;
+  }
+
   .mobile-text-center {
     text-align: center;
   }
