@@ -343,9 +343,14 @@ export default function ProfilePage() {
       if (!businessId) return;
       
       try {
+        // Fetch the business with all related data in a more comprehensive query
         const { data, error } = await supabase
           .from('businesses')
-          .select('*')
+          .select(`
+            *,
+            markets:market_id (name),
+            categories:category_id (title)
+          `)
           .eq('id', businessId)
           .single();
           
@@ -372,31 +377,26 @@ export default function ProfilePage() {
           updateBusinessData('instagram', data.instagram || "");
           updateBusinessData('status', data.status || "active");
           updateBusinessData('whatsapp', data.whatsapp || "");
+          updateBusinessData('business_type', data.business_type || "");
+          updateBusinessData('role', data.role || null);
           
-          // If there's a market ID, find the corresponding market name
-          if (data.market_id) {
-            const { data: marketData } = await supabase
-              .from('markets')
-              .select('name')
-              .eq('id', data.market_id)
-              .single();
-              
-            if (marketData) {
-              setMarketName(marketData.name);
-            }
+          // Set the individual state variables too for the form fields
+          setWebsite(data.website || "");
+          setFacebook(data.facebook || "");
+          setInstagram(data.instagram || "");
+          setWhatsapp(data.whatsapp || "");
+          
+          // If there's market data from the join, use it
+          if (data.markets) {
+            setMarketName(data.markets.name);
           }
           
-          // If there's a category ID, find the corresponding type
-          if (data.category_id) {
-            const { data: categoryData } = await supabase
-              .from('business_categories')
-              .select('title')
-              .eq('id', data.category_id)
-              .single();
-              
-            if (categoryData) {
-              setBusinessType(categoryData.title);
-            }
+          // If there's category data from the join, use it
+          if (data.categories) {
+            setBusinessType(data.categories.title);
+          } else if (data.business_type) {
+            // Fallback to business_type field if categories join didn't work
+            setBusinessType(data.business_type);
           }
           
           if (data.logo_url) {

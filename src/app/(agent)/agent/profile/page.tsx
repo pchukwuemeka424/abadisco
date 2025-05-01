@@ -53,6 +53,7 @@ export default function AgentProfile() {
   
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', content: '' });
   
@@ -99,6 +100,9 @@ export default function AgentProfile() {
           Bank_acno: data.Bank_acno || '',
           created_at: data.created_at
         });
+        
+        // After setting the initial profile, fetch real-time stats
+        fetchPerformanceStats(data.id, user.id);
       } else {
         // If no profile in agents table, use auth user data with defaults
         setProfile({
@@ -129,6 +133,93 @@ export default function AgentProfile() {
       });
     } finally {
       setLoading(false);
+    }
+  }
+  
+  async function fetchPerformanceStats(agentId, userId) {
+    try {
+      setStatsLoading(true);
+      
+      // Get current week start and end dates
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - dayOfWeek);
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const endOfWeek = new Date(now);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+      
+      // Fetch weekly registrations
+      const { count: weeklyCount, error: weeklyError } = await supabase
+        .from('businesses')
+        .select('id', { count: 'exact', head: true })
+        .eq('created_by', userId)
+        .gte('created_at', startOfWeek.toISOString())
+        .lte('created_at', endOfWeek.toISOString());
+      
+      if (weeklyError) {
+        console.error('Error fetching weekly registrations:', weeklyError);
+        throw weeklyError;
+      }
+      
+      // Fetch total registrations
+      const { count: totalRegistrations, error: totalError } = await supabase
+        .from('businesses')
+        .select('id', { count: 'exact', head: true })
+        .eq('created_by', userId);
+      
+      if (totalError) {
+        console.error('Error fetching total registrations:', totalError);
+        throw totalError;
+      }
+      
+      // Fetch total completed businesses
+      const { count: totalCompletedBusinesses, error: businessError } = await supabase
+        .from('businesses')
+        .select('id', { count: 'exact', head: true })
+        .eq('created_by', userId)
+        .not('name', 'is', null);
+      
+      if (businessError) {
+        console.error('Error fetching total businesses:', businessError);
+        throw businessError;
+      }
+      
+      // Calculate if weekly target has been met
+      const weeklyTargetMet = weeklyCount >= profile.weekly_target;
+      
+      // Update profile with real stats
+      setProfile(prev => ({
+        ...prev,
+        weekly_target_met: weeklyTargetMet,
+        current_week_registrations: weeklyCount || 0,
+        total_registrations: totalRegistrations || 0,
+        total_businesses: totalCompletedBusinesses || 0
+      }));
+      
+      // Also update the database with the latest stats
+      if (agentId) {
+        const { error: updateError } = await supabase
+          .from('agents')
+          .update({
+            weekly_target_met: weeklyTargetMet,
+            current_week_registrations: weeklyCount || 0,
+            total_registrations: totalRegistrations || 0,
+            total_businesses: totalCompletedBusinesses || 0
+          })
+          .eq('id', agentId);
+          
+        if (updateError) {
+          console.error('Error updating agent stats:', updateError);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error fetching performance stats:', error);
+    } finally {
+      setStatsLoading(false);
     }
   }
   
@@ -166,6 +257,9 @@ export default function AgentProfile() {
         ...profile,
         ...data
       });
+      
+      // After profile update, refresh performance stats
+      fetchPerformanceStats(data.id, user.id);
       
       setMessage({
         type: 'success',
@@ -331,24 +425,31 @@ export default function AgentProfile() {
               
               <div className="border-t border-gray-200 pt-4 mt-6">
                 <h3 className="text-lg font-medium mb-4">Performance Statistics</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <p className="text-sm text-blue-700">Weekly Target</p>
-                    <p className="text-2xl font-bold">{profile.weekly_target}</p>
+                {statsLoading ? (
+                  <div className="text-center py-4">Loading performance statistics...</div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <p className="text-sm text-blue-700">Weekly Target</p>
+                      <p className="text-2xl font-bold">{profile.weekly_target}</p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <p className="text-sm text-green-700">This Week</p>
+                      <p className="text-2xl font-bold">{profile.current_week_registrations}</p>
+                      {profile.weekly_target_met && (
+                        <p className="text-xs text-green-600 mt-1">Target reached! 🎉</p>
+                      )}
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <p className="text-sm text-purple-700">Total Registrations</p>
+                      <p className="text-2xl font-bold">{profile.total_registrations}</p>
+                    </div>
+                    <div className="bg-amber-50 p-4 rounded-lg">
+                      <p className="text-sm text-amber-700">Total Businesses</p>
+                      <p className="text-2xl font-bold">{profile.total_businesses}</p>
+                    </div>
                   </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <p className="text-sm text-green-700">This Week</p>
-                    <p className="text-2xl font-bold">{profile.current_week_registrations}</p>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <p className="text-sm text-purple-700">Total Registrations</p>
-                    <p className="text-2xl font-bold">{profile.total_registrations}</p>
-                  </div>
-                  <div className="bg-amber-50 p-4 rounded-lg">
-                    <p className="text-sm text-amber-700">Total Businesses</p>
-                    <p className="text-2xl font-bold">{profile.total_businesses}</p>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
             
