@@ -4,7 +4,7 @@ import { supabase } from '../../../supabaseClient';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { FaMapMarkerAlt, FaPhone, FaGlobe, FaCheckCircle, FaWhatsapp, FaFacebook, FaInstagram } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaPhone, FaGlobe, FaCheckCircle, FaWhatsapp, FaFacebook, FaInstagram, FaTv, FaGamepad, FaLaptop, FaMicrochip, FaTools, FaHeadphones } from 'react-icons/fa';
 import TopNavbar from '@/components/TopNavbar';
 
 // Define proper types for businesses and products
@@ -414,27 +414,44 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
             )}
 
             {/* Services section if services data is available */}
-            {business.services && Object.keys(business.services).length > 0 && (
+            {business.services && (
               <div className="mt-10">
                 <h3 className="text-lg font-semibold mb-4">Services Offered</h3>
                 <div className="bg-white p-6 rounded-lg shadow-md">
-                  <div className="flex flex-wrap gap-2">
-                    {Array.isArray(business.services) ? (
-                      business.services.map((service, index) => (
-                        <span key={index} className="px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-sm">
-                          {typeof service === 'string' ? service : JSON.stringify(service)}
-                        </span>
-                      ))
-                    ) : typeof business.services === 'object' ? (
-                      Object.entries(business.services).map(([key, value], index) => (
-                        <span key={index} className="px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-sm">
-                          {key}: {typeof value === 'string' ? value : JSON.stringify(value)}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-gray-600">No structured services information available</span>
-                    )}
-                  </div>
+                  {business.services.service_list && Array.isArray(business.services.service_list) ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {business.services.service_list.map((service, index) => {
+                        // Assign appropriate icons based on service type
+                        let Icon = FaTools; // Default icon
+                        if (service.includes('TV') || service.includes('Home Theater')) {
+                          Icon = FaTv;
+                        } else if (service.includes('Gaming')) {
+                          Icon = FaGamepad;
+                        } else if (service.includes('Computer') || service.includes('Laptop')) {
+                          Icon = FaLaptop;
+                        } else if (service.includes('Electronic') || service.includes('Component')) {
+                          Icon = FaMicrochip;
+                        } else if (service.includes('Repair')) {
+                          Icon = FaTools;
+                        } else if (service.includes('Audio')) {
+                          Icon = FaHeadphones;
+                        }
+                        
+                        return (
+                          <div key={index} className="flex items-center p-3 bg-rose-50 rounded-lg">
+                            <div className="flex-shrink-0 mr-3">
+                              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-rose-100 text-rose-600">
+                                <Icon className="h-5 w-5" />
+                              </div>
+                            </div>
+                            <span className="text-gray-800 font-medium">{service}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-gray-600">No services information available</p>
+                  )}
                 </div>
               </div>
             )}
