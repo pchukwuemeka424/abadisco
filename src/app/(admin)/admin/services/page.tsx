@@ -16,6 +16,11 @@ export default function ServicesManagement() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   
+  // Modal states for editing
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editModalType, setEditModalType] = useState<"type" | "general" | "category" | "specific">("type");
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  
   // Form state for adding new items
   const [newServiceType, setNewServiceType] = useState({ name: "", description: "", icon: "" });
   const [newGeneralService, setNewGeneralService] = useState({ name: "", description: "", icon: "" });
@@ -301,6 +306,178 @@ export default function ServicesManagement() {
     }
   };
 
+  // Handlers for editing items
+  const handleOpenEditModal = (type: "type" | "general" | "category" | "specific", item: any) => {
+    setEditModalType(type);
+    setSelectedItem(item);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedItem(null);
+  };
+  
+  const handleUpdateServiceType = async (updatedItem: any) => {
+    setError("");
+    setSuccess("");
+    
+    try {
+      const { error } = await supabase
+        .from('service_types')
+        .update({
+          name: updatedItem.name,
+          description: updatedItem.description || null,
+          icon: updatedItem.icon || null
+        })
+        .eq('id', updatedItem.id);
+        
+      if (error) throw new Error(`Error updating service type: ${error.message}`);
+      
+      // Update state
+      setServiceTypes(
+        serviceTypes.map(item => item.id === updatedItem.id ? updatedItem : item)
+      );
+      
+      setSuccess("Service type updated successfully!");
+      handleCloseEditModal();
+      
+      // Refresh the data
+      router.refresh();
+      
+    } catch (err: any) {
+      console.error("Error updating service type:", err);
+      setError(err.message || "Failed to update service type");
+    }
+  };
+  
+  const handleUpdateGeneralService = async (updatedItem: any) => {
+    setError("");
+    setSuccess("");
+    
+    try {
+      const { error } = await supabase
+        .from('general_services')
+        .update({
+          name: updatedItem.name,
+          description: updatedItem.description || null,
+          icon: updatedItem.icon || null
+        })
+        .eq('id', updatedItem.id);
+        
+      if (error) throw new Error(`Error updating general service: ${error.message}`);
+      
+      // Update state
+      setGeneralServices(
+        generalServices.map(item => item.id === updatedItem.id ? updatedItem : item)
+      );
+      
+      setSuccess("General service updated successfully!");
+      handleCloseEditModal();
+      
+      // Refresh the data
+      router.refresh();
+      
+    } catch (err: any) {
+      console.error("Error updating general service:", err);
+      setError(err.message || "Failed to update general service");
+    }
+  };
+  
+  const handleUpdateServiceCategory = async (updatedItem: any) => {
+    setError("");
+    setSuccess("");
+    
+    try {
+      const { error } = await supabase
+        .from('service_categories')
+        .update({
+          name: updatedItem.name,
+          service_type_id: updatedItem.service_type_id || null,
+          description: updatedItem.description || null,
+          is_subcategory: updatedItem.is_subcategory,
+          parent_category_id: updatedItem.is_subcategory ? updatedItem.parent_category_id : null
+        })
+        .eq('id', updatedItem.id);
+        
+      if (error) throw new Error(`Error updating service category: ${error.message}`);
+      
+      // Refresh the updated category with relationships
+      const { data: updatedCategory, error: fetchError } = await supabase
+        .from('service_categories')
+        .select(`
+          *,
+          service_types:service_type_id (name),
+          parent_category:parent_category_id (name)
+        `)
+        .eq('id', updatedItem.id)
+        .single();
+        
+      if (fetchError) throw new Error(`Error fetching updated category: ${fetchError.message}`);
+      
+      // Update state with the refreshed data
+      setServiceCategories(
+        serviceCategories.map(item => item.id === updatedItem.id ? updatedCategory : item)
+      );
+      
+      setSuccess("Service category updated successfully!");
+      handleCloseEditModal();
+      
+      // Refresh the data
+      router.refresh();
+      
+    } catch (err: any) {
+      console.error("Error updating service category:", err);
+      setError(err.message || "Failed to update service category");
+    }
+  };
+  
+  const handleUpdateSpecificService = async (updatedItem: any) => {
+    setError("");
+    setSuccess("");
+    
+    try {
+      const { error } = await supabase
+        .from('specific_services')
+        .update({
+          name: updatedItem.name,
+          category_id: updatedItem.category_id || null,
+          description: updatedItem.description || null,
+          is_active: updatedItem.is_active
+        })
+        .eq('id', updatedItem.id);
+        
+      if (error) throw new Error(`Error updating specific service: ${error.message}`);
+      
+      // Refresh the updated service with relationships
+      const { data: updatedService, error: fetchError } = await supabase
+        .from('specific_services')
+        .select(`
+          *,
+          service_categories:category_id (name, service_type_id, service_types:service_type_id(name))
+        `)
+        .eq('id', updatedItem.id)
+        .single();
+        
+      if (fetchError) throw new Error(`Error fetching updated service: ${fetchError.message}`);
+      
+      // Update state with the refreshed data
+      setSpecificServices(
+        specificServices.map(item => item.id === updatedItem.id ? updatedService : item)
+      );
+      
+      setSuccess("Specific service updated successfully!");
+      handleCloseEditModal();
+      
+      // Refresh the data
+      router.refresh();
+      
+    } catch (err: any) {
+      console.error("Error updating specific service:", err);
+      setError(err.message || "Failed to update specific service");
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Services Management</h1>
@@ -447,6 +624,12 @@ export default function ServicesManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
+                        onClick={() => handleOpenEditModal('type', type)}
+                        className="text-blue-600 hover:text-blue-900 mr-4"
+                      >
+                        Edit
+                      </button>
+                      <button
                         onClick={() => handleDelete('service_types', type.id)}
                         className="text-red-600 hover:text-red-900"
                       >
@@ -543,6 +726,12 @@ export default function ServicesManagement() {
                       {new Date(service.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => handleOpenEditModal('general', service)}
+                        className="text-blue-600 hover:text-blue-900 mr-4"
+                      >
+                        Edit
+                      </button>
                       <button
                         onClick={() => handleDelete('general_services', service.id)}
                         className="text-red-600 hover:text-red-900"
@@ -686,6 +875,12 @@ export default function ServicesManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
+                        onClick={() => handleOpenEditModal('category', category)}
+                        className="text-blue-600 hover:text-blue-900 mr-4"
+                      >
+                        Edit
+                      </button>
+                      <button
                         onClick={() => handleDelete('service_categories', category.id)}
                         className="text-red-600 hover:text-red-900"
                       >
@@ -810,6 +1005,12 @@ export default function ServicesManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
+                        onClick={() => handleOpenEditModal('specific', service)}
+                        className="text-blue-600 hover:text-blue-900 mr-4"
+                      >
+                        Edit
+                      </button>
+                      <button
                         onClick={() => handleDelete('specific_services', service.id)}
                         className="text-red-600 hover:text-red-900"
                       >
@@ -827,6 +1028,325 @@ export default function ServicesManagement() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modals */}
+      {isEditModalOpen && selectedItem && (
+        <div className="fixed inset-0 overflow-y-auto z-50">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+            {/* Background overlay */}
+            <div 
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+              onClick={handleCloseEditModal}
+              aria-hidden="true"
+            ></div>
+            
+            {/* Modal content */}
+            <div 
+              className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6"
+              onClick={(e) => e.stopPropagation()} // Prevent clicks on the modal from closing it
+            >
+              {/* Close button */}
+              <button
+                type="button"
+                onClick={handleCloseEditModal}
+                className="absolute top-3 right-3 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <span className="sr-only">Close</span>
+                <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              
+              <div className="sm:flex sm:items-start">
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    {editModalType === 'type' && 'Edit Service Type'}
+                    {editModalType === 'general' && 'Edit General Service'}
+                    {editModalType === 'category' && 'Edit Service Category'}
+                    {editModalType === 'specific' && 'Edit Specific Service'}
+                  </h3>
+                  
+                  <div className="mt-4">
+                    {/* Edit Service Type Form */}
+                    {editModalType === 'type' && (
+                      <form onSubmit={(e) => {
+                        e.preventDefault();
+                        handleUpdateServiceType(selectedItem);
+                      }}>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <input
+                              type="text"
+                              value={selectedItem.name}
+                              onChange={(e) => setSelectedItem({...selectedItem, name: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <input
+                              type="text"
+                              value={selectedItem.description || ""}
+                              onChange={(e) => setSelectedItem({...selectedItem, description: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Icon URL</label>
+                            <input
+                              type="text"
+                              value={selectedItem.icon || ""}
+                              onChange={(e) => setSelectedItem({...selectedItem, icon: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                        </div>
+                        <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                          <button
+                            type="submit"
+                            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                          >
+                            Save Changes
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCloseEditModal}
+                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                    
+                    {/* Edit General Service Form */}
+                    {editModalType === 'general' && (
+                      <form onSubmit={(e) => {
+                        e.preventDefault();
+                        handleUpdateGeneralService(selectedItem);
+                      }}>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <input
+                              type="text"
+                              value={selectedItem.name}
+                              onChange={(e) => setSelectedItem({...selectedItem, name: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <input
+                              type="text"
+                              value={selectedItem.description || ""}
+                              onChange={(e) => setSelectedItem({...selectedItem, description: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Icon URL</label>
+                            <input
+                              type="text"
+                              value={selectedItem.icon || ""}
+                              onChange={(e) => setSelectedItem({...selectedItem, icon: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                        </div>
+                        <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                          <button
+                            type="submit"
+                            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                          >
+                            Save Changes
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCloseEditModal}
+                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                    
+                    {/* Edit Service Category Form */}
+                    {editModalType === 'category' && (
+                      <form onSubmit={(e) => {
+                        e.preventDefault();
+                        handleUpdateServiceCategory(selectedItem);
+                      }}>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <input
+                              type="text"
+                              value={selectedItem.name}
+                              onChange={(e) => setSelectedItem({...selectedItem, name: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
+                            <select
+                              value={selectedItem.service_type_id || ""}
+                              onChange={(e) => setSelectedItem({...selectedItem, service_type_id: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                              required
+                            >
+                              <option value="">Select a Service Type</option>
+                              {serviceTypes.map((type) => (
+                                <option key={type.id} value={type.id}>{type.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <input
+                              type="text"
+                              value={selectedItem.description || ""}
+                              onChange={(e) => setSelectedItem({...selectedItem, description: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="edit_is_subcategory"
+                              checked={selectedItem.is_subcategory}
+                              onChange={(e) => setSelectedItem({...selectedItem, is_subcategory: e.target.checked})}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="edit_is_subcategory" className="ml-2 block text-sm text-gray-900">
+                              Is Subcategory
+                            </label>
+                          </div>
+                          {selectedItem.is_subcategory && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Parent Category</label>
+                              <select
+                                value={selectedItem.parent_category_id || ""}
+                                onChange={(e) => setSelectedItem({
+                                  ...selectedItem, 
+                                  parent_category_id: e.target.value ? parseInt(e.target.value) : null
+                                })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                required={selectedItem.is_subcategory}
+                              >
+                                <option value="">Select a Parent Category</option>
+                                {serviceCategories
+                                  .filter(cat => !cat.is_subcategory && cat.service_type_id === parseInt(selectedItem.service_type_id) && cat.id !== selectedItem.id)
+                                  .map((category) => (
+                                    <option key={category.id} value={category.id}>{category.name}</option>
+                                  ))
+                                }
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                          <button
+                            type="submit"
+                            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                          >
+                            Save Changes
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCloseEditModal}
+                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                    
+                    {/* Edit Specific Service Form */}
+                    {editModalType === 'specific' && (
+                      <form onSubmit={(e) => {
+                        e.preventDefault();
+                        handleUpdateSpecificService(selectedItem);
+                      }}>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <input
+                              type="text"
+                              value={selectedItem.name}
+                              onChange={(e) => setSelectedItem({...selectedItem, name: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                            <select
+                              value={selectedItem.category_id || ""}
+                              onChange={(e) => setSelectedItem({...selectedItem, category_id: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                              required
+                            >
+                              <option value="">Select a Category</option>
+                              {serviceCategories.map((category) => (
+                                <option key={category.id} value={category.id}>
+                                  {category.name} {category.service_types ? `(${category.service_types.name})` : ""}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <input
+                              type="text"
+                              value={selectedItem.description || ""}
+                              onChange={(e) => setSelectedItem({...selectedItem, description: e.target.value})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="edit_is_active"
+                              checked={selectedItem.is_active}
+                              onChange={(e) => setSelectedItem({...selectedItem, is_active: e.target.checked})}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="edit_is_active" className="ml-2 block text-sm text-gray-900">
+                              Is Active
+                            </label>
+                          </div>
+                        </div>
+                        <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                          <button
+                            type="submit"
+                            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                          >
+                            Save Changes
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCloseEditModal}
+                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
