@@ -9,14 +9,13 @@ import Image from 'next/image';
 // Define proper types
 interface Product {
   id: string;
-  name: string;
-  description?: string;
-  price: number;
-  image_url?: string;
-  created_at: string;
-  category?: string;
-  business_id?: string;
   user_id?: string;
+  created_at: string;
+  image_urls?: string; // Note: This is plural in the database
+  title?: string;      // Adding these fields in case they exist in the actual DB
+  description?: string;
+  price?: number;
+  category?: string;
 }
 
 export default function ManageProductsPage() {
@@ -28,17 +27,42 @@ export default function ManageProductsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const fetchProducts = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user found in auth context');
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     try {
+      // Detailed logging to debug the issue
+      console.log('Current user:', JSON.stringify(user, null, 2));
+      console.log('Fetching products for user ID:', user.id);
+      
+      // First check if the products table has any records at all
+      const { data: allProducts, error: countError } = await supabase
+        .from('products')
+        .select('id, user_id, title, description');
+      
+      console.log('All products in database:', allProducts);
+      
+      // Then try to fetch products for this specific user
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching products:', error.message, error.details);
+        throw error;
+      }
+      
+      console.log(`Found ${data?.length || 0} products for user ${user.id}`);
+      if (data && data.length > 0) {
+        console.log('First product:', data[0]);
+      }
+      
       setProducts(data || []);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -58,7 +82,7 @@ export default function ManageProductsPage() {
   };
 
   const filteredProducts = products.filter(product => 
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (product.title && product.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (product.category && product.category.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -122,10 +146,10 @@ export default function ManageProductsPage() {
             {filteredProducts.map(product => (
               <div key={product.id} className="bg-white rounded-lg shadow overflow-hidden">
                 <div className="relative h-48">
-                  {product.image_url ? (
+                  {product.image_urls ? (
                     <Image
-                      src={product.image_url}
-                      alt={product.name}
+                      src={product.image_urls}
+                      alt={product.title || 'Product image'}
                       fill
                       style={{ objectFit: 'cover' }}
                       className="w-full h-full object-cover"
@@ -137,9 +161,13 @@ export default function ManageProductsPage() {
                   )}
                 </div>
                 <div className="p-4">
-                  <h3 className="font-medium text-lg mb-1">{product.name}</h3>
-                  <p className="text-green-600 font-medium mb-2">₦{product.price.toLocaleString()}</p>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
+                  <h3 className="font-medium text-lg mb-1">{product.title || 'Untitled Product'}</h3>
+                  {product.price !== undefined ? (
+                    <p className="text-green-600 font-medium mb-2">₦{product.price.toLocaleString()}</p>
+                  ) : null}
+                  {product.description && (
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
+                  )}
                   <div className="flex justify-between">
                     <Link href={`/dashboard/edit-product/${product.id}`} className="px-3 py-1.5 text-blue-600 border border-blue-600 rounded hover:bg-blue-50 flex items-center">
                       <FaEdit className="mr-1" /> Edit

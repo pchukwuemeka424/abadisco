@@ -1,11 +1,11 @@
 "use client";
 import dynamic from 'next/dynamic';
-import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { supabase } from "@/supabaseClient";
 import { useAuth } from "@/context/auth-context";
 import axios from "axios";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 // Dynamic import for Cropper component to avoid SSR issues
 const Cropper = dynamic(() => import('react-easy-crop'), {
@@ -13,239 +13,470 @@ const Cropper = dynamic(() => import('react-easy-crop'), {
   loading: () => <div className="w-64 h-64 bg-gray-200 animate-pulse rounded-lg"></div>
 });
 
-const SERVICES = [
-  "Dine-in",
-  "Takeaway",
-  "Delivery",
-  "Outdoor Seating",
-  "Reservations",
-  "Catering"
-];
-const BUSINESS_TYPES = [
-  "Restaurant",
-  "Bar",
-  "Cafe",
-  "Bakery",
-  "Market",
-  "Pharmacy",
-  "Salon",
-  "Hotel",
-  "Boutique",
-  "Spa",
-  "Gym",
-  "Laundry",
-  "Auto Repair",
-  "Electronics",
-  "Other"
-];
-
-const MARKET_LOCATIONS = [
-  "Ariaria Market",
-  "Ahia Ohuru (New Market)",
-  "Cemetery Market",
-  "Eziukwu Market",
-  "Uratta Market",
-  "Railway Market"
-];
-
-const SERVICE_CATEGORIES = {
-  Restaurant: [
-    "Local Dishes",
-    "   - Nkwobi",
-    "   - Isiewu",
-    "   - Suya",
-    "   - Restaurant Pepper Soup",  // Qualified with category
-    "   - Egusi Soup",
-    "   - Ogbono Soup",
-    "   - Okra Soup",
-    "   - Afang Soup",
-    "   - Edikaikong",
-    "   - Oha Soup",
-    "   - Banga Soup",
-    "   - Jollof Rice",
-    "   - Native Rice",
-    "   - Ofada Rice & Sauce",
-    "   - Moi Moi",
-    "   - Akara",
-    "   - Tuwo Shinkafa",
-    "   - Amala & Ewedu",
-    "   - Eba & Soup",
-    "   - Fufu & Soup",
-    "   - Pounded Yam",
-    "Continental Dishes",
-    "Chinese Cuisine",
-    "Fast Food",
-    "Grills & BBQ",
-    "Seafood",
-    "Small Chops",
-    "Vegetarian Options",
-    "Desserts",
-    "Beverages",
-    "Catering",
-    "Takeaway",
-    "Delivery",
-    "Dine-in",
-    "Outdoor Seating",
-    "Private Dining",
-    "Event Catering"
-  ],
-  Bar: [
-    "Local Drinks",
-    "   - Palm Wine",
-    "   - Bar Pepper Soup",  // Qualified with category
-    "   - Bar Nkwobi",      // Qualified with category
-    "   - Isi Ewu",
-    "   - Point & Kill (Fresh Fish)",
-    "   - Bar Suya",        // Qualified with category
-    "Beverages",
-    "   - Local Beer",
-    "   - Imported Beer",
-    "   - Wine & Spirits",
-    "   - Cocktails",
-    "   - Soft Drinks",
-    "   - Fresh Juices",
-    "Bar Food",
-    "   - Small Chops",
-    "   - Grilled Fish",
-    "   - Grilled Meat",
-    "   - Shawarma",
-    "Services",
-    "   - Live Music",
-    "   - Sports Screening",
-    "   - Pool Table",
-    "   - Outdoor Seating",
-    "   - Private Events",
-    "   - Weekend Special",
-    "   - Happy Hour"
-  ],
-  Market: [
-    "Clothing & Textiles",
-    "Senator Wears",
-    "Ankara Fabrics",
-    "Aso Oke",
-    "Lace Materials",
-    "   - French Lace",
-    "   - Indian Lace",
-    "   - Swiss Lace",
-    "   - Voile Lace",
-    "   - Tulle Lace",
-    "   - Cord Lace",
-    "Adire (Tie & Dye)",
-    "George Fabrics",
-    "Electronics & Gadgets",
-    "Home Appliances",
-    "Footwear",
-    "Bags & Accessories",
-    "Cosmetics",
-    "Food & Groceries",
-    "Hardware & Tools",
-    "Auto Parts",
-    "Building Materials",
-    "Wholesale",
-    "Retail",
-    "Import/Export"
-  ],
-  Pharmacy: [
-    "Prescription Medications",
-    "Over-the-Counter Drugs",
-    "Health Supplements",
-    "Medical Supplies",
-    "Personal Care Products",
-    "Baby Care",
-    "Health Consultation",
-    "Home Delivery",
-    "24/7 Service"
-  ],
-  Electronics: [
-    "Phones & Accessories",
-    "Computers & Laptops",
-    "Audio Equipment",
-    "TVs & Home Theater",
-    "Gaming Devices",
-    "Electronic Components",
-    "Repair Services",
-    "Custom Builds",
-    "Installation Services"
-  ],
-  Hotel: [
-    "Room Service",
-    "Restaurant",
-    "Bar & Lounge",
-    "Conference Facilities",
-    "Swimming Pool",
-    "Gym",
-    "Spa Services",
-    "Airport Shuttle",
-    "Laundry Service",
-    "24/7 Reception",
-    "Wi-Fi"
-  ],
-  Salon: [
-    "Haircuts & Styling",
-    "Hair Coloring",
-    "Manicure & Pedicure",
-    "Facial Treatments",
-    "Makeup Services",
-    "Waxing",
-    "Braiding",
-    "Hair Extensions",
-    "Wedding Services"
-  ],
-  "Auto Repair": [
-    "General Repairs",
-    "Engine Service",
-    "Electrical Systems",
-    "AC Service",
-    "Brake Service",
-    "Tire Service",
-    "Body Work",
-    "Paint Jobs",
-    "Diagnostics",
-    "Emergency Service"
-  ],
-  default: [
-    "Standard Service",
-    "Premium Service",
-    "Express Service",
-    "Consultation",
-    "Custom Solutions",
-    "Delivery",
-    "Installation",
-    "Maintenance",
-    "Repair"
-  ]
-};
-
+// Replacing hardcoded services with data fetched from the database
 export default function ProfilePage() {
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuth(); // Use auth context
   const router = useRouter();
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [website, setWebsite] = useState("");
-  const [location, setLocation] = useState("");
-  const [market, setMarket] = useState(""); // Add market state
+  const params = useParams();
+  const businessId = params.id as string;
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUpdatingBusiness, setIsUpdatingBusiness] = useState(false);
+  
+  // State for services data fetched from the database
+  const [serviceCategories, setServiceCategories] = useState<{id: number, name: string, description: string}[]>([]);
+  const [subServiceCategories, setSubServiceCategories] = useState<{id: number, parent_id: number, name: string, description: string}[]>([]);
+  const [specificServices, setSpecificServices] = useState<{id: number, name: string, category_id: number}[]>([]);
+  const [categoryMap, setCategoryMap] = useState<Record<number, {id: number, name: string, services: string[]}>>({});
+
+  // Function to fetch business data by owner_id
+  const fetchBusinessByOwnerId = async (ownerId: string) => {
+    try {
+      if (!ownerId) return null;
+      
+      console.log("Fetching business data for owner ID:", ownerId);
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('owner_id', ownerId)
+        .maybeSingle(); // This returns null if no business found
+        
+      if (error) {
+        console.error("Error fetching business by owner_id:", error.message);
+        return null;
+      }
+      
+      console.log("Business data for owner:", data);
+      return data;
+    } catch (err) {
+      console.error("Unexpected error in fetchBusinessByOwnerId:", err);
+      return null;
+    }
+  };
+
+  // Updated state variables to match businesses_table schema
+  const [businessData, setBusinessData] = useState({
+    name: "",
+    description: "",
+    market_id: "",
+    category_id: null as number | null,
+    owner_id: "",
+    contact_phone: "",
+    contact_email: "",
+    address: "",
+    logo_url: "",
+    website: "",
+    facebook: "",
+    instagram: "",
+    created_by: "",
+    status: "active",
+    business_type: "", // Added field from schema
+    whatsapp: "", // Added field from schema
+    role: null as string | null, // Added field from schema
+  });
+  
+  // Additional form fields that aren't directly in businesses_table
+  const [agentId, setAgentId] = useState("");
+  const [marketName, setMarketName] = useState(""); // For display purposes
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [businessName, setBusinessName] = useState("");
-  const [businessType, setBusinessType] = useState("");
+  const [businessType, setBusinessType] = useState(""); // For category lookup
   const [registrationNumber, setRegistrationNumber] = useState("");
-  const [description, setDescription] = useState("");
-  const [logo, setLogo] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string>("");
+  const [whatsapp, setWhatsapp] = useState("");
+  
+  // Add missing state setters to fix the setWebsite reference error
+  const [website, setWebsite] = useState("");
   const [facebook, setFacebook] = useState("");
   const [instagram, setInstagram] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
+  
+  // UI related state
+  const [marketLocations, setMarketLocations] = useState<{id: string, name: string}[]>([]); 
+  const [businessCategories, setBusinessCategories] = useState<{id: number, title: string}[]>([]);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
   const [customService, setCustomService] = useState("");
+  const [logo, setLogo] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
   const [showCrop, setShowCrop] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ width: number; height: number; x: number; y: number } | null>(null);
   const [croppingImage, setCroppingImage] = useState<string>("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   const dropRef = useRef<HTMLDivElement>(null);
+  
+  // Helper function to update business data fields
+  const updateBusinessData = (field: string, value: any) => {
+    setBusinessData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Function to directly update the logo URL for a specific business in the database
+  const updateLogoInDatabase = async (logoUrl: string) => {
+    try {
+      if (!user) {
+        console.error("Cannot update logo: User not authenticated");
+        setError("You must be logged in to update a logo");
+        return false;
+      }
+      
+      // First try to use businessId from URL if it exists
+      if (businessId) {
+        console.log(`Directly updating logo_url for business ID ${businessId} to: ${logoUrl}`);
+        
+        const { data, error } = await supabase
+          .from('businesses')
+          .update({ logo_url: logoUrl })
+          .eq('id', businessId)
+          .select('logo_url')
+          .single();
+          
+        if (error) {
+          console.error("Failed to update logo_url in database:", error);
+          setError(`Logo update failed: ${error.message}`);
+          return false;
+        }
+        
+        console.log("Logo updated successfully in database:", data);
+        setSuccess("Logo updated successfully");
+        return true;
+      } 
+      // If no businessId in URL, use owner_id instead
+      else {
+        console.log(`Updating logo_url for business owned by user ${user.id} to: ${logoUrl}`);
+        
+        // Get the business ID for the current user's business
+        const { data: businessData, error: findError } = await supabase
+          .from('businesses')
+          .select('id')
+          .eq('owner_id', user.id)
+          .maybeSingle();
+          
+        if (findError) {
+          console.error("Failed to find business by owner_id:", findError);
+          setError(`Logo update failed: ${findError.message}`);
+          return false;
+        }
+        
+        if (!businessData) {
+          console.log("No existing business found, will create one in the form submission");
+          // Just update the local state, actual database update will happen on form submit
+          return true;
+        }
+        
+        // Now update the business with the found ID
+        const { data, error } = await supabase
+          .from('businesses')
+          .update({ logo_url: logoUrl })
+          .eq('id', businessData.id)
+          .select('logo_url')
+          .single();
+        
+        if (error) {
+          console.error("Failed to update logo_url in database:", error);
+          setError(`Logo update failed: ${error.message}`);
+          return false;
+        }
+        
+        console.log("Logo updated successfully in database:", data);
+        setSuccess("Logo updated successfully");
+        return true;
+      }
+    } catch (err) {
+      console.error("Exception during logo update:", err);
+      setError("An unexpected error occurred updating the logo");
+      return false;
+    }
+  };
+
+  // Add state to track authentication status 
+  useEffect(() => {
+    if (!loading) {
+      setAuthChecked(true);
+      // Pre-fill email from user auth if available
+      if (user?.email && !businessData.contact_email) {
+        updateBusinessData('contact_email', user.email);
+      }
+    }
+  }, [user, loading, businessData.contact_email]); // These dependencies are consistent
+
+  // Add useEffect to fetch market locations from the database
+  useEffect(() => {
+    const fetchMarketLocations = async () => {
+      try {
+        const { data: markets, error } = await supabase
+          .from('markets')
+          .select('id, name')
+          .eq('is_active', true)
+          .order('name');
+          
+        if (error) {
+          console.error('Error fetching markets:', error.message);
+          return;
+        }
+        
+        if (markets) {
+          setMarketLocations(markets);
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching markets:', err);
+      }
+    };
+    
+    fetchMarketLocations();
+  }, []);
+
+  // Add useEffect to fetch business categories
+  useEffect(() => {
+    const fetchBusinessCategories = async () => {
+      try {
+        const { data: categories, error } = await supabase
+          .from('business_categories')
+          .select('id, title')
+          .order('title');
+          
+        if (error) {
+          console.error('Error fetching business categories:', error.message);
+          return;
+        }
+        
+        if (categories) {
+          setBusinessCategories(categories);
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching business categories:', err);
+      }
+    };
+    
+    fetchBusinessCategories();
+  }, []);
+
+  // Fetch service categories and sub-service categories from the database
+  useEffect(() => {
+    const fetchServicesData = async () => {
+      try {
+        // Fetch main service categories
+        const { data: categories, error: categoriesError } = await supabase
+          .from('service_categories')
+          .select('id, name, description')
+          .order('name');
+          
+        if (categoriesError) {
+          console.error('Error fetching service categories:', categoriesError.message);
+        } else if (categories) {
+          setServiceCategories(categories);
+          
+          // Fetch sub-service categories
+          const { data: subCategories, error: subCategoriesError } = await supabase
+            .from('sub_service_categories')
+            .select('id, parent_id, name, description')
+            .order('name');
+            
+          if (subCategoriesError) {
+            console.error('Error fetching sub-service categories:', subCategoriesError.message);
+          } else if (subCategories) {
+            setSubServiceCategories(subCategories);
+            
+            // Create a map of service category ID to their sub-categories
+            const tempCategoryMap: Record<number, {id: number, name: string, services: string[]}> = {};
+            
+            // Initialize with all categories
+            categories.forEach(category => {
+              tempCategoryMap[category.id] = {
+                id: category.id,
+                name: category.name,
+                services: []
+              };
+            });
+            
+            // Group sub-categories by parent category
+            subCategories.forEach(subCategory => {
+              const parentId = subCategory.parent_id;
+              
+              if (tempCategoryMap[parentId]) {
+                // Add sub-category as a service
+                tempCategoryMap[parentId].services.push(subCategory.name);
+              }
+            });
+            
+            setCategoryMap(tempCategoryMap);
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching services data:', err);
+      }
+    };
+    
+    fetchServicesData();
+  }, []);
+
+  // Add useEffect to fetch business data by ID when component mounts
+  useEffect(() => {
+    const fetchBusinessData = async () => {
+      if (!businessId || !user) return;
+      
+      setIsLoading(true);
+      setError("");
+      
+      try {
+        console.log("Fetching business data for ID:", businessId);
+        const { data, error } = await supabase
+          .from('businesses')
+          .select('*')
+          .eq('id', businessId)
+          .single();
+          
+        if (error) {
+          console.error("Error fetching business data:", error.message);
+          setError(`Failed to fetch business information: ${error.message}`);
+          setIsLoading(false);
+          return;
+        }
+        
+        if (!data) {
+          setError("Business listing not found. It may have been deleted.");
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log("Business data loaded:", data);
+        
+        // Set all business data
+        setBusinessData({
+          name: data.name || "",
+          description: data.description || "",
+          market_id: data.market_id || "",
+          category_id: data.category_id || null,
+          owner_id: data.owner_id || "",
+          contact_phone: data.contact_phone || "",
+          contact_email: data.contact_email || "",
+          address: data.address || "",
+          logo_url: data.logo_url || "",
+          website: data.website || "",
+          facebook: data.facebook || "",
+          instagram: data.instagram || "",
+          created_by: data.created_by || "",
+          status: data.status || "active",
+          business_type: data.business_type || "",
+          whatsapp: data.whatsapp || "",
+          role: data.role || null,
+        });
+        
+        // Set logo preview if exists
+        if (data.logo_url) {
+          setLogoPreview(data.logo_url);
+        }
+        
+        // Look up market name from market_id
+        if (data.market_id) {
+          const marketObj = marketLocations.find(m => m.id === data.market_id);
+          if (marketObj) {
+            setMarketName(marketObj.name);
+          }
+        }
+        
+        // Set business type from services data if available
+        if (data.services && data.services.category) {
+          setBusinessType(data.services.category);
+        }
+        
+        // Set selected services if available
+        if (data.services && Array.isArray(data.services.service_list)) {
+          setSelectedServices(data.services.service_list);
+        }
+        
+        setIsLoading(false);
+      } catch (err: any) {
+        console.error("Unexpected error fetching business data:", err);
+        setError(`An unexpected error occurred: ${err?.message || "Unknown error"}`);
+        setIsLoading(false);
+      }
+    };
+    
+    // Only fetch business data once markets are loaded
+    if (marketLocations.length > 0) {
+      fetchBusinessData();
+    }
+  }, [businessId, user, marketLocations]);
+
+  // Add useEffect to use the fetchBusinessByOwnerId function when component mounts
+  useEffect(() => {
+    const loadBusinessData = async () => {
+      if (!user || loading) return;
+      
+      try {
+        // If we're not viewing a specific business, check if the user has their own business
+        if (!businessId) {
+          const businessData = await fetchBusinessByOwnerId(user.id);
+          
+          if (businessData) {
+            console.log("Found business owned by user:", businessData);
+            
+            // Set all business data from the found business
+            setBusinessData({
+              name: businessData.name || "",
+              description: businessData.description || "",
+              market_id: businessData.market_id || "",
+              category_id: businessData.category_id || null,
+              owner_id: businessData.owner_id || "",
+              contact_phone: businessData.contact_phone || "",
+              contact_email: businessData.contact_email || "",
+              address: businessData.address || "",
+              logo_url: businessData.logo_url || "",
+              website: businessData.website || "",
+              facebook: businessData.facebook || "",
+              instagram: businessData.instagram || "",
+              created_by: businessData.created_by || "",
+              status: businessData.status || "active",
+              business_type: businessData.business_type || "",
+              whatsapp: businessData.whatsapp || "",
+              role: businessData.role || null,
+            });
+            
+            // Set logo preview if exists
+            if (businessData.logo_url) {
+              setLogoPreview(businessData.logo_url);
+            }
+            
+            // Look up market name from market_id
+            if (businessData.market_id && marketLocations.length > 0) {
+              const marketObj = marketLocations.find(m => m.id === businessData.market_id);
+              if (marketObj) {
+                setMarketName(marketObj.name);
+              }
+            }
+            
+            // Set business type from services data if available
+            if (businessData.services && businessData.services.category) {
+              setBusinessType(businessData.services.category);
+            }
+            
+            // Set selected services if available
+            if (businessData.services && Array.isArray(businessData.services.service_list)) {
+              setSelectedServices(businessData.services.service_list);
+            }
+            
+            // Set whatsapp if available
+            if (businessData.whatsapp) {
+              setWhatsapp(businessData.whatsapp);
+            }
+          } else {
+            console.log("No business found for user ID:", user.id);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading business data by owner:", err);
+      }
+    };
+    
+    // Only load business data once markets are loaded
+    if (marketLocations.length > 0) {
+      loadBusinessData();
+    }
+  }, [user, loading, businessId, marketLocations]);
 
   // Logo handling functions
   const handleLogoDrop = (e: React.DragEvent) => {
@@ -274,9 +505,14 @@ export default function ProfilePage() {
     if (file) handleLogoFile(file);
   };
 
-  const handleRemoveLogo = () => {
+  const handleRemoveLogo = async () => {
     setLogoPreview("");
     setLogo(null);
+    // Also update the business data to ensure the logo is removed in the database
+    updateBusinessData('logo_url', "");
+    
+    // Directly update the logo in the database
+    await updateLogoInDatabase("");
   };
 
   const handleCropConfirm = async () => {
@@ -286,7 +522,7 @@ export default function ProfilePage() {
       const croppedBlob = await getCroppedImgBlob(croppingImage, croppedAreaPixels);
       
       // Upload to Supabase Storage
-      const fileName = `avatar_${user.id}_${Date.now()}.jpg`;
+      const fileName = `logo_${Date.now()}_${Math.random().toString(36).substring(2, 15)}.jpg`;
       const { data, error: uploadError } = await supabase.storage
         .from('uploads')
         .upload(fileName, croppedBlob, {
@@ -308,13 +544,11 @@ export default function ProfilePage() {
       const publicUrl = publicUrlData?.publicUrl;
       if (publicUrl) {
         setLogoPreview(publicUrl);
-        // Update users table with new logo URL
-        await supabase
-          .from('users')
-          .update({ logo_url: publicUrl })
-          .eq('id', user.id);
-        
+        // Update business data with logo URL
+        updateBusinessData('logo_url', publicUrl);
         setSuccess('Logo uploaded successfully!');
+        // Directly update the logo URL in the database
+        await updateLogoInDatabase(publicUrl);
       }
     } catch (err) {
       setError('Failed to process image');
@@ -347,35 +581,212 @@ export default function ProfilePage() {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setIsUpdatingBusiness(true);
 
-    const { error: updateError } = await supabase
-      .from("users")
-      .update({
-        phone,
-        email,
-        website,
-        address: location,
-        market, // Add market to update
-        services: selectedServices,
-        business_name: businessName,
-        business_type: businessType,
-        registration_number: registrationNumber,
-        description,
-        facebook,
-        instagram,
-        whatsapp,
-        logo_url: logoPreview || null
-      })
-      .eq("id", user.id);
+    // Show auth status for debugging
+    console.log("Auth state:", { user, loading, authChecked });
+    
+    if (loading) {
+      setError("Authentication is still loading. Please try again in a moment.");
+      setIsUpdatingBusiness(false);
+      return;
+    }
 
-    if (updateError) {
-      setError("Failed to update profile");
-    } else {
-      setSuccess("Profile updated successfully!");
+    if (!user) {
+      setError("You must be logged in to update a listing");
+      setIsUpdatingBusiness(false);
+      return;
+    }
+
+    if (!businessData.name) {
+      setError("Business name is required");
+      setIsUpdatingBusiness(false);
+      return;
+    }
+
+    if (!businessType) {
+      setError("Business type is required");
+      setIsUpdatingBusiness(false);
+      return;
+    }
+
+    try {
+      // Get the agent ID if we don't have it already
+      let currentAgentId = agentId;
+      
+      if (!currentAgentId) {
+        console.log("Fetching agent ID for user:", user.id);
+        const { data: agentData, error: agentError } = await supabase
+          .from('agents')
+          .select('id, user_id')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (agentError) {
+          console.error("Error fetching agent data:", agentError);
+          setError("Could not find your agent profile. Please make sure you're registered as an agent.");
+          setIsUpdatingBusiness(false);
+          return;
+        }
+        
+        if (!agentData) {
+          setError("Your agent profile was not found. Please contact support.");
+          setIsUpdatingBusiness(false);
+          return;
+        }
+        
+        console.log("Retrieved agent data:", agentData);
+        // Store the agent's ID for reference
+        currentAgentId = agentData.id;
+        setAgentId(currentAgentId);
+      }
+
+      // Find the market ID based on the selected market name
+      let marketId: string | null = null;
+      if (marketName) {
+        const selectedMarketObj = marketLocations.find(m => m.name === marketName);
+        if (selectedMarketObj) {
+          marketId = selectedMarketObj.id;
+        } else {
+          console.warn("Selected market not found in marketLocations array:", marketName);
+        }
+      }
+
+      // Find category ID based on business type
+      let categoryId: number | null = null;
+      if (businessType) {
+        try {
+          // First try to use the selected category from the dropdown if one was chosen
+          if (businessData.category_id !== null) {
+            categoryId = businessData.category_id;
+            console.log("Using selected category ID:", categoryId);
+          } else {
+            // Otherwise look up the category by business type
+            const { data: categoryData, error: categoryError } = await supabase
+              .from('business_categories')
+              .select('id, title')
+              .ilike('title', `%${businessType}%`)
+              .limit(1); // Limit to 1 result instead of using single()
+              
+            if (categoryError) {
+              console.error("Error fetching category:", categoryError.message);
+              // Continue with null category ID instead of stopping execution
+            } else if (categoryData && categoryData.length > 0) {
+              categoryId = categoryData[0].id;
+              console.log("Found category ID:", categoryId, "for business type:", businessType);
+            } else {
+              console.warn("Category not found for business type:", businessType);
+            }
+          }
+        } catch (err) {
+          console.error("Exception when finding category:", err);
+        }
+      }
+
+      // Format selected services as a JSON structure
+      // We organize services by category and add metadata
+      const servicesJson = {
+        category: businessType,
+        service_list: selectedServices,
+        last_updated: new Date().toISOString(),
+        count: selectedServices.length
+      };
+
+      console.log("Services JSON to be stored:", servicesJson);
+      
+      console.log("Logo data before update:", {
+        logoPreview,
+        businessDataLogoUrl: businessData.logo_url,
+        finalLogoUrl: logoPreview || businessData.logo_url || null
+      });
+      
+      // Prepare common data for insert or update
+      const businessDataToSave = {
+        name: businessData.name,
+        description: businessData.description || null,
+        market_id: marketId,
+        category_id: categoryId,
+        contact_phone: businessData.contact_phone || null,
+        contact_email: businessData.contact_email || null,
+        address: businessData.address || null,
+        logo_url: businessData.logo_url, // Use directly from businessData which is now synchronized
+        website: businessData.website || null,
+        facebook: businessData.facebook || null,
+        instagram: businessData.instagram || null,
+        services: servicesJson, // Update services as JSONB data
+        updated_at: new Date().toISOString(),
+        whatsapp: whatsapp || null,
+        owner_id: user.id
+      };
+      
+      // First, check if this user already has a business in the database
+      const { data: existingBusiness, error: checkError } = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle(); // Use maybeSingle() instead of single() to get null if no rows are found
+      
+      if (checkError) {
+        console.error("Error checking for existing business:", checkError);
+        throw new Error(`Failed to check for existing business: ${checkError.message}`);
+      }
+      
+      // If user already has a business, update it
+      if (existingBusiness) {
+        console.log("Updating existing business with ID:", existingBusiness.id);
+        
+        const { data: updatedBusiness, error: updateError } = await supabase
+          .from('businesses')
+          .update(businessDataToSave)
+          .eq('id', existingBusiness.id)
+          .select()
+          .single();
+          
+        if (updateError) {
+          console.error("Error updating business:", updateError);
+          throw new Error(`Failed to update business: ${updateError.message}`);
+        }
+        
+        console.log("Business updated successfully:", updatedBusiness);
+        setSuccess("Business listing updated successfully!");
+      } 
+      // If user doesn't have a business yet, create a new one
+      else {
+        console.log("Creating new business for user:", user.id);
+        
+        // Add created_by and created_at for new records
+        const newBusinessData = {
+          ...businessDataToSave,
+          created_by: user.id,
+          created_at: new Date().toISOString(),
+          status: 'active'
+        };
+        
+        const { data: newBusiness, error: insertError } = await supabase
+          .from('businesses')
+          .insert(newBusinessData)
+          .select()
+          .single();
+          
+        if (insertError) {
+          console.error("Error creating business:", insertError);
+          throw new Error(`Failed to create business: ${insertError.message}`);
+        }
+        
+        console.log("Business created successfully:", newBusiness);
+        setSuccess("Business listing created successfully!");
+      }
+      
       setShowSuccessModal(true);
       setTimeout(() => {
         router.push('/dashboard');
       }, 2000);
+      
+    } catch (err: any) {
+      console.error("Error in handleSubmit:", err);
+      setError(err.message || "An unexpected error occurred");
+    } finally {
+      setIsUpdatingBusiness(false);
     }
   };
 
@@ -420,13 +831,13 @@ export default function ProfilePage() {
     setGenerating(true);
     setError("");
     try {
-      console.log("Calling /api/generate-description with prompt:", description);
+      console.log("Calling /api/generate-description with prompt:", businessData.description);
       const response = await axios.post("/api/generate-description", {
-        prompt: description
+        prompt: businessData.description
       });
       console.log("API response:", response.data);
       if (response.data.generatedText) {
-        setDescription(response.data.generatedText);
+        updateBusinessData('description', response.data.generatedText);
       } else if (response.data.error) {
         setError(response.data.error);
       } else {
@@ -441,15 +852,15 @@ export default function ProfilePage() {
   };
 
   const handleAutoFillDescription = () => {
-    const name = businessName.trim();
+    const name = businessData.name.trim();
     const type = businessType.trim();
     const services = selectedServices.length > 0 ? selectedServices.join(", ") : "various services";
     if (name && type) {
-      setDescription(`${name} is a ${type.toLowerCase()} offering ${services}.`);
+      updateBusinessData('description', `${name} is a ${type.toLowerCase()} offering ${services}.`);
     } else if (name) {
-      setDescription(`${name} offers ${services}.`);
+      updateBusinessData('description', `${name} offers ${services}.`);
     } else {
-      setDescription(`We offer ${services}.`);
+      updateBusinessData('description', `We offer ${services}.`);
     }
   };
 
@@ -457,50 +868,129 @@ export default function ProfilePage() {
     const loadProfile = async () => {
       if (!user) return;
 
-      const { data: profile, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (profile) {
-        setPhone(profile.phone ?? "");
-        setEmail(profile.email ?? "");
-        setWebsite(profile.website ?? "");
-        setLocation(profile.address ?? "");
-        setMarket(profile.market ?? ""); // Load market from profile
-        // Clean up services array when loading from database
-        let servicesArr = [];
-        if (Array.isArray(profile.services)) {
-          servicesArr = profile.services.map((service: any) => 
-            typeof service === 'string' ? service : JSON.stringify(service)
-          ).filter(Boolean);
-        } else if (typeof profile.services === 'string') {
-          try {
-            const parsed = JSON.parse(profile.services);
-            servicesArr = Array.isArray(parsed) ? parsed : [parsed];
-          } catch {
-            servicesArr = profile.services.split(',').map((s: string) => s.trim()).filter(Boolean);
-          }
-        }
-        setSelectedServices(servicesArr);
-        setBusinessName(profile.business_name ?? "");
-        setBusinessType(profile.business_type ?? "");
-        setRegistrationNumber(profile.registration_number ?? "");
-        setDescription(profile.description ?? "");
-        setFacebook(profile.facebook ?? "");
-        setInstagram(profile.instagram ?? "");
-        setWhatsapp(profile.whatsapp ?? "");
-        if (profile.logo_url) setLogoPreview(profile.logo_url);
+      // This is a new listing page, no need to fetch existing business data      
+      // Pre-fill basic data from user if available
+      if (user?.email && !businessData.contact_email) {
+        updateBusinessData('contact_email', user.email);
       }
     };
+    
     loadProfile();
-  }, [user, loading]);
+  }, [user, loading, authChecked, businessData.contact_email]);
+
+  // Add a useEffect to fetch the agent data when the component mounts
+  useEffect(() => {
+    const fetchAgentData = async () => {
+      if (!user) {
+        console.log("No user available, skipping agent data fetch");
+        return;
+      }
+      
+      console.log("Fetching agent data for user ID:", user.id);
+      
+      try {
+        // First, check if the agents table exists and if the user has an agent record
+        const { count, error: checkError } = await supabase
+          .from('agents')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+        
+        if (checkError) {
+          console.error("Error checking agents table:", checkError.message);
+          setError(`Failed to access agents table: ${checkError.message}. Please ensure you have proper permissions.`);
+          return;
+        }
+        
+        if (count === 0) {
+          console.warn(`No agent record found for user ID: ${user.id}`);
+          
+          // Try to create a new agent record if one doesn't exist
+          try {
+            const { data: userData } = await supabase.auth.getUser();
+            if (userData?.user) {
+              const { data: newAgent, error: createError } = await supabase
+                .from('agents')
+                .insert({
+                  id: crypto.randomUUID(),
+                  user_id: user.id,
+                  email: userData.user.email,
+                  full_name: userData.user.user_metadata?.full_name || 'Unknown',
+                  phone: '',
+                  status: 'active'
+                })
+                .select('id')
+                .single();
+                
+              if (createError) {
+                console.error("Error creating agent record:", createError);
+                setError(`Failed to create agent profile: ${createError.message}`);
+                return;
+              }
+              
+              if (newAgent) {
+                console.log("Created new agent profile:", newAgent);
+                setAgentId(newAgent.id);
+                return;
+              }
+            }
+          } catch (createErr) {
+            console.error("Error in agent creation:", createErr);
+          }
+          
+          setError("No agent profile found for your account. Please register as an agent first.");
+          return;
+        }
+        
+        // Get the agent ID from the agents table
+        const { data: agentData, error } = await supabase
+          .from('agents')
+          .select('id, full_name, email')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching agent data:", error.message);
+          setError(`Failed to fetch agent data: ${error.message}`);
+          return;
+        }
+        
+        if (!agentData) {
+          console.error("No agent data returned despite count check");
+          setError("Your agent profile was not found. Please contact support.");
+          return;
+        }
+        
+        console.log("Successfully retrieved agent data:", agentData);
+        setAgentId(agentData.id);
+      } catch (err: any) {
+        console.error("Unexpected error in fetchAgentData:", err);
+        setError(`An unexpected error occurred: ${err?.message || "Unknown error"}`);
+      }
+    };
+    
+    if (user && !loading) {
+      fetchAgentData();
+    }
+  }, [user, loading, authChecked]);
 
   const getServiceOptions = useCallback(() => {
-    if (!businessType) return SERVICE_CATEGORIES.default;
-    return SERVICE_CATEGORIES[businessType as keyof typeof SERVICE_CATEGORIES] || SERVICE_CATEGORIES.default;
-  }, [businessType]);
+    if (!businessType) return [];
+    
+    // Find the service category ID based on the selected business type
+    const serviceCategoryId = serviceCategories.find(category => category.name === businessType)?.id;
+    
+    if (!serviceCategoryId) return [];
+    
+    // Return the sub-services for this category from the category map
+    return categoryMap[serviceCategoryId]?.services || [];
+  }, [businessType, serviceCategories, categoryMap]);
+
+  // Directly update business data when setting logoPreview
+  useEffect(() => {
+    // Ensure logo_url in businessData stays synchronized with logoPreview
+    updateBusinessData('logo_url', logoPreview);
+    console.log("Logo state synchronized:", { logoPreview, businessDataLogoUrl: businessData.logo_url });
+  }, [logoPreview]);
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -513,8 +1003,8 @@ export default function ProfilePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Profile Updated!</h3>
-              <p className="text-gray-600 mb-6">Your profile has been successfully updated. Redirecting to dashboard...</p>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Business Updated!</h3>
+              <p className="text-gray-600 mb-6">Your business listing has been successfully updated. Redirecting to listings page...</p>
               <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
                 <div className="bg-green-500 h-2 rounded-full w-full animate-pulse"></div>
               </div>
@@ -530,7 +1020,42 @@ export default function ProfilePage() {
       )}
       <main className="flex-1 flex items-center justify-center">
         <div className="bg-white rounded-xl shadow p-4 sm:p-8 max-w-2xl w-full">
-          <h1 className="text-2xl font-bold mb-6 text-rose-600 flex items-center gap-2"><span>👤</span> Profile</h1>
+          <h1 className="text-2xl font-bold mb-6 text-rose-600 flex items-center gap-2"><span>🏬</span> Profile </h1>
+          
+          {/* Authentication status indicator */}
+          <div className={`mb-4 p-2 rounded-lg ${loading ? 'bg-yellow-50 border border-yellow-300' : user ? 'bg-green-50 border border-green-300' : 'bg-red-50 border border-red-300'}`}>
+            <div className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${loading ? 'bg-yellow-500 animate-pulse' : user ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <p className="text-sm font-medium">
+                {loading ? 'Authentication in progress...' : 
+                 user ? `Authenticated as ${user.email}` : 
+                 'Not authenticated - please log in'}
+              </p>
+            </div>
+          </div>
+          
+          {/* User ID display */}
+          {user && (
+            <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700">User ID:</span>
+                <span className="text-sm font-mono bg-gray-100 px-2 py-0.5 rounded">{user.id}</span>
+                <button 
+                  onClick={() => {navigator.clipboard.writeText(user.id)}}
+                  title="Copy to clipboard"
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+          
           <form className="space-y-8" onSubmit={handleSubmit}>
             {/* Logo upload section */}
             <div>
@@ -552,7 +1077,13 @@ export default function ProfilePage() {
                 )}
                 {logoPreview && (
                   <div className="relative group w-24 h-24">
-                    <img src={logoPreview} alt="Logo Preview" className="w-24 h-24 object-cover rounded border shadow-sm" />
+                    <Image 
+                      src={logoPreview} 
+                      alt="Logo Preview" 
+                      width={96}
+                      height={96}
+                      className="w-24 h-24 object-cover rounded border shadow-sm" 
+                    />
                     <button type="button" onClick={handleRemoveLogo} className="absolute top-1 right-1 bg-white/80 hover:bg-rose-500 hover:text-white text-rose-600 rounded-full p-1 shadow transition-opacity opacity-80 group-hover:opacity-100" title="Remove">
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
@@ -605,37 +1136,88 @@ export default function ProfilePage() {
                   <input 
                     type="text" 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={businessName} 
-                    onChange={e => setBusinessName(e.target.value)} 
+                    value={businessData.name} 
+                    onChange={e => updateBusinessData('name', e.target.value)} 
+                    required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Type</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Services Offering</label>
                   <select 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
                     value={businessType} 
                     onChange={e => setBusinessType(e.target.value)}
+                    required
                   >
-                    <option value="">Select business type</option>
-                    {BUSINESS_TYPES.map(type => (
-                      <option key={type} value={type}>{type}</option>
+                    <option value="">Select Services</option>
+                    {serviceCategories.map(category => (
+                      <option key={category.id} value={category.name}>{category.name}</option>
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Category</label>
+                  <select 
+                    className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
+                    value={businessData.category_id !== null ? businessData.category_id.toString() : ""}
+                    onChange={(e) => {
+                      const categoryId = e.target.value ? parseInt(e.target.value) : null;
+                      updateBusinessData('category_id', categoryId);
+                      
+                      // If Markets is selected, find the corresponding category title
+                      if (categoryId) {
+                        const selectedCategory = businessCategories.find(cat => cat.id === categoryId);
+                        if (selectedCategory && selectedCategory.title === "Markets") {
+                          // Auto-select "Market" as the businessType if Markets category is selected
+                          setBusinessType("Market");
+                        }
+                      }
+                    }}
+                  >
+                    <option value="">Select a category</option>
+                    {businessCategories.length > 0 ? (
+                      businessCategories.map((category) => (
+                        <option key={category.id} value={category.id}>{category.title}</option>
+                      ))
+                    ) : (
+                      <option value="" disabled>Loading categories...</option>
+                    )}
+                  </select>
+                  {businessCategories.length === 0 && (
+                    <p className="text-xs text-orange-600 mt-1">Loading categories from database...</p>
+                  )}
+                </div>
               </div>
-              {businessType === "Market" && (
+              {/* Show market locations dropdown when Markets category is selected or businessType is Market */}
+              {(businessType === "Market" || businessCategories.find(cat => cat.id === (businessData.category_id || 0))?.title === "Markets") && (
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Market Location</label>
                   <select 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={market}
-                    onChange={(e) => setMarket(e.target.value)}
+                    value={marketName}
+                    onChange={(e) => {
+                      const selectedMarket = e.target.value;
+                      setMarketName(selectedMarket);
+                      // Find the corresponding market ID
+                      const marketObj = marketLocations.find(m => m.name === selectedMarket);
+                      if (marketObj) {
+                        updateBusinessData('market_id', marketObj.id);
+                      }
+                    }}
+                    required={businessType === "Market" || businessCategories.find(cat => cat.id === (businessData.category_id || 0))?.title === "Markets"}
                   >
                     <option value="">Select market location</option>
-                    {MARKET_LOCATIONS.map((marketName) => (
-                      <option key={marketName} value={marketName}>{marketName}</option>
-                    ))}
+                    {marketLocations.length > 0 ? (
+                      marketLocations.map((marketLocation) => (
+                        <option key={marketLocation.id} value={marketLocation.name}>{marketLocation.name}</option>
+                      ))
+                    ) : (
+                      <option value="" disabled>Loading market locations...</option>
+                    )}
                   </select>
+                  {marketLocations.length === 0 && (
+                    <p className="text-xs text-orange-600 mt-1">Loading market locations from database...</p>
+                  )}
                 </div>
               )}
               <div className="md:col-span-2 my-6">
@@ -646,22 +1228,33 @@ export default function ProfilePage() {
                   </p>
                 </div>
                 <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    {getServiceOptions().map((service) => (
-                      <button
-                        key={service}
-                        type="button"
-                        onClick={() => handleServiceChange(service)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                          selectedServices.includes(service)
-                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200'
-                        }`}
+                  {/* Dropdown for sub-service selection */}
+                  {businessType && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Service Options</label>
+                      <select
+                        className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900"
+                        value=""
+                        onChange={(e) => {
+                          const selectedService = e.target.value;
+                          if (selectedService && !selectedServices.includes(selectedService)) {
+                            setSelectedServices([...selectedServices, selectedService]);
+                          }
+                        }}
                       >
-                        {service}
-                      </button>
-                    ))}
-                  </div>
+                        <option value="">Select a service to add</option>
+                        {getServiceOptions().map((service) => (
+                          <option 
+                            key={service} 
+                            value={service}
+                            disabled={selectedServices.includes(service)}
+                          >
+                            {service} {selectedServices.includes(service) ? '(Added)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-2">
                     <input
@@ -720,8 +1313,8 @@ export default function ProfilePage() {
                   <textarea
                     className="w-full p-3 border border-gray-300 rounded-lg shadow-sm resize-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900"
                     rows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    value={businessData.description}
+                    onChange={(e) => updateBusinessData('description', e.target.value)}
                     placeholder="Tell customers about your business..."
                   />
                   <div className="flex gap-2 flex-wrap">
@@ -758,8 +1351,8 @@ export default function ProfilePage() {
                   <input 
                     type="text" 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={phone} 
-                    onChange={e => setPhone(e.target.value)} 
+                    value={businessData.contact_phone} 
+                    onChange={e => updateBusinessData('contact_phone', e.target.value)} 
                   />
                 </div>
                 <div>
@@ -767,8 +1360,8 @@ export default function ProfilePage() {
                   <input 
                     type="email" 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={email} 
-                    onChange={e => setEmail(e.target.value)} 
+                    value={businessData.contact_email} 
+                    onChange={e => updateBusinessData('contact_email', e.target.value)} 
                   />
                 </div>
                 <div>
@@ -776,8 +1369,9 @@ export default function ProfilePage() {
                   <input 
                     type="text" 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={website} 
-                    onChange={e => setWebsite(e.target.value)} 
+                    value={businessData.website} 
+                    onChange={e => updateBusinessData('website', e.target.value)} 
+                    placeholder="https://your-website.com" 
                   />
                 </div>
                 <div>
@@ -785,8 +1379,8 @@ export default function ProfilePage() {
                   <input 
                     type="text" 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={location} 
-                    onChange={e => setLocation(e.target.value)} 
+                    value={businessData.address} 
+                    onChange={e => updateBusinessData('address', e.target.value)} 
                   />
                 </div>
               </div>
@@ -800,8 +1394,8 @@ export default function ProfilePage() {
                   <input 
                     type="text" 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={facebook} 
-                    onChange={e => setFacebook(e.target.value)} 
+                    value={businessData.facebook} 
+                    onChange={e => updateBusinessData('facebook', e.target.value)} 
                     placeholder="Facebook URL or username" 
                   />
                 </div>
@@ -810,8 +1404,8 @@ export default function ProfilePage() {
                   <input 
                     type="text" 
                     className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900" 
-                    value={instagram} 
-                    onChange={e => setInstagram(e.target.value)} 
+                    value={businessData.instagram} 
+                    onChange={e => updateBusinessData('instagram', e.target.value)} 
                     placeholder="Instagram URL or username" 
                   />
                 </div>
@@ -852,7 +1446,7 @@ export default function ProfilePage() {
               type="submit" 
               className="bg-rose-600 hover:bg-rose-700 text-white px-6 py-3 rounded-md shadow transition-colors font-medium text-base focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500"
             >
-              Save Profile
+              Save Changes
             </button>
           </form>
         </div>

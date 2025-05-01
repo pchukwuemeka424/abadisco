@@ -17,10 +17,10 @@ interface DashboardData {
   }>;
   popularProducts: Array<{
     id: string;
-    name: string;
-    views: number;
-    price?: number;
+    image_urls: string;
+    created_at: string;
   }>;
+  error?: string; // Add error field to display error messages
 }
 
 export default function Dashboard() {
@@ -38,13 +38,18 @@ export default function Dashboard() {
     
     setLoading(true);
     try {
+      console.log("Fetching dashboard data for user:", user.id);
+      
       // Fetch total products for this user
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select('id')
         .eq('user_id', user.id);
       
-      if (productsError) throw productsError;
+      if (productsError) {
+        console.error("Error fetching products:", productsError.message, productsError.details);
+        throw new Error(`Failed to fetch products: ${productsError.message}`);
+      }
       
       // Fetch pending KYC verifications
       const { data: kycData, error: kycError } = await supabase
@@ -53,7 +58,10 @@ export default function Dashboard() {
         .eq('user_id', user.id)
         .eq('status', 'pending');
       
-      if (kycError) throw kycError;
+      if (kycError) {
+        console.error("Error fetching KYC verifications:", kycError.message, kycError.details);
+        throw new Error(`Failed to fetch KYC verifications: ${kycError.message}`);
+      }
       
       // Fetch recent activity
       const { data: activityData, error: activityError } = await supabase
@@ -63,17 +71,25 @@ export default function Dashboard() {
         .order('created_at', { ascending: false })
         .limit(5);
       
-      if (activityError) throw activityError;
+      if (activityError) {
+        console.error("Error fetching activity data:", activityError.message, activityError.details);
+        throw new Error(`Failed to fetch activities: ${activityError.message}`);
+      }
       
       // Fetch popular products (most viewed)
       const { data: popularProductsData, error: popularError } = await supabase
         .from('products')
-        .select('id, name, views, price')
+        .select('id, image_urls, created_at')
         .eq('user_id', user.id)
-        .order('views', { ascending: false })
+        .order('created_at', { ascending: false }) // Changed to order by creation date instead of views
         .limit(5);
       
-      if (popularError) throw popularError;
+      if (popularError) {
+        console.error("Error fetching popular products:", popularError.message, popularError.details);
+        throw new Error(`Failed to fetch popular products: ${popularError.message}`);
+      }
+      
+      console.log("Dashboard data fetched successfully");
       
       setDashboardData({
         totalProducts: productsData ? productsData.length : 0,
@@ -83,7 +99,19 @@ export default function Dashboard() {
       });
       
     } catch (error) {
+      // Enhanced error handling
       console.error('Error fetching dashboard data:', error);
+      
+      // Check if it's an instance of Error
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Unknown error occurred. Please try refreshing the page.';
+      
+      // Update state with error message
+      setDashboardData(prev => ({
+        ...prev,
+        error: errorMessage
+      }));
     } finally {
       setLoading(false);
     }
@@ -187,15 +215,27 @@ export default function Dashboard() {
                   <ul className="divide-y divide-gray-200">
                     {dashboardData.popularProducts.map((product) => (
                       <li key={product.id} className="py-3 px-4 flex justify-between items-center">
-                        <div>
-                          <h3 className="font-medium">{product.name}</h3>
-                          <p className="text-sm text-gray-500">{product.views} views</p>
-                        </div>
-                        <div>
-                          {product.price && (
-                            <span className="font-medium text-green-600">₦{product.price.toLocaleString()}</span>
+                        <div className="flex items-center">
+                          {product.image_urls && (
+                            <div className="w-12 h-12 mr-3 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                              <img 
+                                src={product.image_urls.split(',')[0]} 
+                                alt="Product" 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = '/images/logo.png'; // Fallback image
+                                }}
+                              />
+                            </div>
                           )}
+                          <div>
+                            <h3 className="font-medium">Product {product.id.substring(0, 8)}...</h3>
+                            <p className="text-sm text-gray-500">Added {formatDate(product.created_at)}</p>
+                          </div>
                         </div>
+                        <Link href={`/dashboard/manage-products?id=${product.id}`} className="text-blue-500 text-sm hover:underline">
+                          View
+                        </Link>
                       </li>
                     ))}
                   </ul>
@@ -204,6 +244,13 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
+
+            {/* Error Message */}
+            {dashboardData.error && (
+              <div className="bg-red-100 text-red-600 p-4 rounded-lg shadow mt-4">
+                <p>Error: {dashboardData.error}</p>
+              </div>
+            )}
           </>
         )}
       </main>
