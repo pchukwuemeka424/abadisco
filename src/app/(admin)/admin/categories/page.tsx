@@ -59,18 +59,75 @@ export default function CategoriesPage() {
   };
 
   const updateCategoryCounts = async () => {
+    setIsLoading(true);
     try {
-      const { error } = await supabase.rpc('update_business_category_counts');
+      // First, get all categories
+      const { data: categories, error: categoriesError } = await supabase
+        .from('business_categories')
+        .select('id, title');
       
-      if (error) {
-        throw new Error(error.message);
+      if (categoriesError) throw new Error(categoriesError.message);
+      
+      // For each category, count the businesses
+      for (const category of categories) {
+        // Count businesses in this category
+        const { count, error: countError } = await supabase
+          .from('businesses')
+          .select('id', { count: 'exact', head: true })
+          .eq('category_id', category.id);
+        
+        if (countError) throw new Error(countError.message);
+        
+        // Update the count in the category table
+        const { error: updateError } = await supabase
+          .from('business_categories')
+          .update({ count: count || 0 })
+          .eq('id', category.id);
+        
+        if (updateError) throw new Error(updateError.message);
+        
+        // Check if we have a stats record, if not create one
+        const { data: statsData, error: statsError } = await supabase
+          .from('business_categories_stats')
+          .select('*')
+          .eq('category_id', category.id);
+        
+        if (statsError) throw new Error(statsError.message);
+        
+        if (!statsData || statsData.length === 0) {
+          // Create stats record
+          const { error: insertError } = await supabase
+            .from('business_categories_stats')
+            .insert({
+              category_id: category.id,
+              total_businesses: count || 0,
+              total_views: 0,
+              total_clicks: 0,
+              last_updated: new Date().toISOString()
+            });
+          
+          if (insertError) throw new Error(insertError.message);
+        } else {
+          // Update existing stats record
+          const { error: updateStatsError } = await supabase
+            .from('business_categories_stats')
+            .update({
+              total_businesses: count || 0,
+              last_updated: new Date().toISOString()
+            })
+            .eq('category_id', category.id);
+          
+          if (updateStatsError) throw new Error(updateStatsError.message);
+        }
       }
       
-      // Refresh categories after updating counts
+      // Refresh categories to show updated counts
       await fetchCategories();
     } catch (err) {
       console.error('Error updating category counts:', err);
-      alert('Failed to update category counts. Please try again.');
+      setError('Failed to update category counts. Please try again later.');
+    } finally {
+      setIsLoading(false);
     }
   };
 

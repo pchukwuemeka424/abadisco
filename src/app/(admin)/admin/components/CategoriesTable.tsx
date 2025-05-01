@@ -147,10 +147,10 @@ export default function CategoriesTable({
                     )}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {category.count}
+                    {category.total_businesses || category.count || 0}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {category.total_views}
+                    {category.total_views || 0}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                     {category.created_at ? format(new Date(category.created_at), 'MMM dd, yyyy') : 'N/A'}

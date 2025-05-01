@@ -15,6 +15,7 @@ const navItems = [
   { name: 'Dashboard', href: '/admin', icon: <FaHome /> },
   { name: 'Users', href: '/admin/users', icon: <FaUsers /> },
   { name: 'Agents', href: '/admin/agents', icon: <FaUserSecret /> },
+  { name: 'Agent Performance', href: '/admin/agents/performance', icon: <FaChartBar /> },
   { name: 'Agent Analytics', href: '/admin/agents/analytics', icon: <FaChartLine /> },
   { name: 'Markets', href: '/admin/markets', icon: <FaStore /> },
   { name: 'Categories', href: '/admin/categories', icon: <FaTags /> },
