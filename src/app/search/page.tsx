@@ -7,14 +7,44 @@ import BusinessCard from '@/components/BusinessCard';
 import { supabase } from '@/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+// Types for our data
+interface BusinessCategory {
+  id: number;
+  title: string;
+  description: string;
+  image_path: string;
+  icon_type: string;
+  count: number | null;
+  link_path: string;
+}
+
+interface Business {
+  id: number;
+  name: string;
+  description?: string;
+  address?: string;
+  logo_url?: string;
+  cover_image?: string;
+  category_id?: number;
+  category_name?: string;
+  rating?: string;
+  price_range?: string;
+  features?: string[];
+  phone?: string;
+  website?: string;
+  email?: string;
+}
+
 // Loading fallback component
 const LoadingFallback = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center p-4">
+  <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-rose-50 to-white">
     <div className="text-center">
-      <h1 className="text-2xl font-bold mb-4">Loading search results...</h1>
-      <div className="flex justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-500"></div>
+      <div className="w-24 h-24 mx-auto mb-6 relative">
+        <div className="absolute inset-0 rounded-full border-t-4 border-rose-500 animate-spin"></div>
+        <div className="absolute inset-3 rounded-full border-2 border-gray-100"></div>
       </div>
+      <h1 className="text-2xl font-bold text-gray-800 mb-2">Discovering Aba's Finest</h1>
+      <p className="text-gray-500">Loading search results for you...</p>
     </div>
   </div>
 );
@@ -25,20 +55,47 @@ function SearchPageContent() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [minRating, setMinRating] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [businesses, setBusinesses] = useState<any[]>([]);
-  const [filteredBusinesses, setFilteredBusinesses] = useState<any[]>([]);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
+  const [categories, setCategories] = useState<BusinessCategory[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [priceFilter, setPriceFilter] = useState<string[]>([]);
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
   
   const PAGE_SIZE = 8;
+
+  // Fetch business categories from database
+  const fetchCategories = async () => {
+    const { data, error } = await supabase
+      .from('business_categories')
+      .select('*')
+      .order('title');
+    
+    if (error) {
+      console.error('Error fetching categories:', error);
+      return;
+    }
+    
+    // Add "All Categories" option
+    const allOption: BusinessCategory = {
+      id: 0,
+      title: 'All Categories',
+      description: 'View all businesses',
+      image_path: '/images/logo.png',
+      icon_type: 'view-grid',
+      count: null,
+      link_path: '/search'
+    };
+    
+    setCategories([allOption, ...(data || [])]);
+  };
 
   // Fetch businesses with pagination
   const fetchBusinesses = async (reset = false) => {
@@ -59,15 +116,36 @@ function SearchPageContent() {
       setSelectedCategory(category);
     }
     
-    let supabaseQuery = supabase.from('businesses').select('*').range((reset ? 0 : (page - 1) * PAGE_SIZE), (reset ? PAGE_SIZE - 1 : page * PAGE_SIZE - 1));
+    // Base query for fetching businesses
+    let supabaseQuery = supabase
+      .from('businesses')
+      .select(`
+        *,
+        business_categories!inner (
+          id,
+          title
+        )
+      `)
+      .range((reset ? 0 : (page - 1) * PAGE_SIZE), (reset ? PAGE_SIZE - 1 : page * PAGE_SIZE - 1));
     
+    // Apply search query filter if provided
     if (query) {
       supabaseQuery = supabaseQuery.or(`name.ilike.%${query}%, description.ilike.%${query}%, address.ilike.%${query}%`);
     }
     
+    // Apply category filter if selected
     if (category && category !== 'all') {
-      // Join with business_categories to filter by category
-      supabaseQuery = supabaseQuery.eq('category_id', category);
+      supabaseQuery = supabaseQuery.eq('business_categories.id', category);
+    }
+    
+    // Apply rating filter
+    if (minRating > 0) {
+      supabaseQuery = supabaseQuery.gte('rating', minRating);
+    }
+    
+    // Apply price filter
+    if (priceFilter.length > 0) {
+      supabaseQuery = supabaseQuery.in('price_range', priceFilter);
     }
     
     const { data, error } = await supabaseQuery;
@@ -76,12 +154,17 @@ function SearchPageContent() {
       console.error('Error fetching businesses:', error);
     }
     
+    const processedData = data ? data.map(item => ({
+      ...item,
+      category_name: item.business_categories?.title || 'Uncategorized'
+    })) : [];
+    
     if (reset) {
-      setBusinesses(data || []);
-      setFilteredBusinesses(data || []);
+      setBusinesses(processedData);
+      setFilteredBusinesses(processedData);
     } else {
-      setBusinesses((prev) => [...prev, ...(data || [])]);
-      setFilteredBusinesses((prev) => [...prev, ...(data || [])]);
+      setBusinesses((prev) => [...prev, ...processedData]);
+      setFilteredBusinesses((prev) => [...prev, ...processedData]);
     }
     
     // Set hasMore based on returned data length
@@ -91,6 +174,11 @@ function SearchPageContent() {
     if (reset) setIsLoading(false);
     else setIsLoadingMore(false);
   };
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   // Initial fetch and on searchParams change
   useEffect(() => {
@@ -102,7 +190,7 @@ function SearchPageContent() {
   // Infinite scroll handler
   useEffect(() => {
     const handleScroll = () => {
-      if (!mainRef.current || isLoadingMore || isLoading || !hasMore || viewMode === 'map') return;
+      if (!mainRef.current || isLoadingMore || isLoading || !hasMore) return;
       const { bottom } = mainRef.current.getBoundingClientRect();
       if (bottom <= window.innerHeight + 200) {
         setPage((prev) => prev + 1);
@@ -110,7 +198,7 @@ function SearchPageContent() {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [isLoadingMore, isLoading, hasMore, viewMode]);
+  }, [isLoadingMore, isLoading, hasMore]);
 
   // Fetch more when page increases
   useEffect(() => {
@@ -120,24 +208,13 @@ function SearchPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  const categories = [
-    { id: 'all', name: 'All Categories' },
-    { id: 'food-dining', name: 'Food & Dining' },
-    { id: 'shopping', name: 'Shopping' },
-    { id: 'health-beauty', name: 'Health & Beauty' },
-    { id: 'services', name: 'Services' },
-    { id: 'entertainment', name: 'Entertainment' },
-    { id: 'education', name: 'Education' },
-    { id: 'automotive', name: 'Automotive' },
-  ];
-
   const features = [
-    'Air Condition',
-    'Wifi',
+    'Air Conditioning',
+    'WiFi',
     'Parking',
     'Delivery',
     'Outdoor Seating',
-    'Accessible',
+    'Wheelchair Accessible',
     'Pet Friendly',
     'Card Payment'
   ];
@@ -189,6 +266,7 @@ function SearchPageContent() {
     
     setFilteredBusinesses(filtered);
     setFiltersOpen(false);
+    setIsMobileFilterOpen(false);
     
     // Update URL query parameters
     const params = new URLSearchParams();
@@ -212,14 +290,14 @@ function SearchPageContent() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full py-3 pl-12 pr-4 border-0 rounded-xl focus:ring-2 focus:ring-rose-500 shadow-sm bg-white"
+            className="w-full py-3 pl-12 pr-4 border-0 rounded-xl focus:ring-2 focus:ring-rose-500 shadow-sm bg-white text-gray-800"
             placeholder="Search businesses, services, categories..."
           />
         </div>
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => setFiltersOpen(!filtersOpen)}
+            onClick={() => setIsMobileFilterOpen(true)}
             className="px-4 py-3 bg-white hover:bg-gray-50 rounded-xl flex items-center gap-2 shadow-sm transition-all duration-200 flex-grow"
             aria-label="Open filters"
           >
@@ -244,54 +322,79 @@ function SearchPageContent() {
             Search
           </button>
         </div>
-        <div className="shadow-sm bg-white rounded-xl overflow-hidden flex">
-          <button
-            type="button"
-            onClick={() => setViewMode('grid')}
-            className={`p-3 flex-1 ${viewMode === 'grid' ? 'bg-rose-50 text-rose-600' : 'bg-white text-gray-700 hover:bg-gray-50'} transition-colors duration-200`}
-            aria-label="Grid view"
-          >
-            <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-            <span className="text-xs mt-1 block">Grid</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('map')}
-            className={`p-3 flex-1 ${viewMode === 'map' ? 'bg-rose-50 text-rose-600' : 'bg-white text-gray-700 hover:bg-gray-50'} transition-colors duration-200`}
-            aria-label="Map view"
-          >
-            <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
-            <span className="text-xs mt-1 block">Map</span>
-          </button>
-        </div>
       </form>
     );
   };
 
-  // Render filter panel
-  const renderFilterPanel = () => {
+  // Render Categories as Visual Filter
+  const renderCategoryVisualFilter = () => {
+    if (categories.length === 0) return null;
+
+    return (
+      <div className="mt-6 overflow-x-auto hide-scrollbar pb-2">
+        <div className="flex space-x-4">
+          {categories.map((category) => (
+            <div 
+              key={category.id}
+              onClick={() => {
+                setSelectedCategory(category.id === 0 ? 'all' : String(category.id));
+                const params = new URLSearchParams(searchParams.toString());
+                if (category.id === 0) {
+                  params.delete('category');
+                } else {
+                  params.set('category', String(category.id));
+                }
+                router.push(`/search?${params.toString()}`);
+              }}
+              className={`flex-shrink-0 cursor-pointer transition-all duration-300 transform ${
+                selectedCategory === (category.id === 0 ? 'all' : String(category.id)) 
+                  ? 'scale-105 ring-2 ring-rose-500' 
+                  : 'hover:scale-105'
+              }`}
+            >
+              <div className="relative w-28 h-28 rounded-xl overflow-hidden group">
+                <Image
+                  src={category.image_path}
+                  alt={category.title}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-2">
+                  <h3 className="text-white text-sm font-medium">{category.title}</h3>
+                  {category.count !== null && (
+                    <p className="text-gray-300 text-xs">{category.count} businesses</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Render mobile filter panel
+  const renderMobileFilterPanel = () => {
     return (
       <>
         <div 
-          className={`fixed inset-0 z-20 bg-black bg-opacity-40 backdrop-blur-sm transition-opacity duration-300 ${filtersOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-          onClick={() => setFiltersOpen(false)}
+          className={`fixed inset-0 z-40 bg-black bg-opacity-40 backdrop-blur-sm transition-opacity duration-300 ${
+            isMobileFilterOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          onClick={() => setIsMobileFilterOpen(false)}
           aria-hidden="true"
         />
         <div 
-          className={`fixed right-0 top-0 z-40 h-full w-full sm:w-96 bg-white shadow-xl transform transition-transform duration-300 overflow-y-auto ${
-            filtersOpen ? 'translate-x-0' : 'translate-x-full'
+          className={`fixed right-0 top-0 z-50 h-full w-full max-w-md bg-white shadow-xl transform transition-transform duration-300 overflow-y-auto ${
+            isMobileFilterOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
           aria-labelledby="filter-heading"
         >
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 id="filter-heading" className="text-xl font-semibold text-gray-900">Filters</h2>
+              <h2 id="filter-heading" className="text-xl font-semibold text-gray-900">Filter & Sort</h2>
               <button 
-                onClick={() => setFiltersOpen(false)}
+                onClick={() => setIsMobileFilterOpen(false)}
                 className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors duration-200"
                 aria-label="Close filters"
               >
@@ -311,14 +414,22 @@ function SearchPageContent() {
                   {categories.map((category) => (
                     <div
                       key={category.id}
-                      onClick={() => setSelectedCategory(category.id)}
-                      className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-medium transition-all duration-200 ${
-                        selectedCategory === category.id
+                      onClick={() => setSelectedCategory(category.id === 0 ? 'all' : String(category.id))}
+                      className={`px-3 py-2 rounded-lg cursor-pointer text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                        selectedCategory === (category.id === 0 ? 'all' : String(category.id))
                           ? 'bg-rose-100 text-rose-800 border border-rose-200'
                           : 'bg-gray-50 hover:bg-gray-100 border border-gray-100'
                       }`}
                     >
-                      {category.name}
+                      <div className="w-6 h-6 relative flex-shrink-0">
+                        <Image
+                          src={category.image_path}
+                          alt={category.title}
+                          fill
+                          className="object-cover rounded-md"
+                        />
+                      </div>
+                      <span className="truncate">{category.title}</span>
                     </div>
                   ))}
                 </div>
@@ -404,6 +515,36 @@ function SearchPageContent() {
                 </div>
               </div>
               
+              {/* Sort Options */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Sort By</label>
+                <div className="space-y-2">
+                  {[
+                    { id: 'relevance', label: 'Relevance' },
+                    { id: 'rating', label: 'Highest Rated' },
+                    { id: 'newest', label: 'Newest' },
+                    { id: 'price-low', label: 'Price: Low to High' },
+                    { id: 'price-high', label: 'Price: High to Low' }
+                  ].map((sortOption) => (
+                    <div
+                      key={sortOption.id}
+                      className="flex items-center space-x-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-50"
+                    >
+                      <input
+                        type="radio"
+                        id={`sort-${sortOption.id}`}
+                        name="sort"
+                        className="h-4 w-4 text-rose-600 focus:ring-rose-500"
+                        defaultChecked={sortOption.id === 'relevance'}
+                      />
+                      <label htmlFor={`sort-${sortOption.id}`} className="block text-sm font-medium text-gray-700">
+                        {sortOption.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
               <div className="pt-4 space-y-3">
                 <button
                   type="button"
@@ -442,11 +583,16 @@ function SearchPageContent() {
       <div className="flex flex-wrap gap-2 mt-3">
         {selectedCategory !== 'all' && (
           <span className="px-4 py-2 bg-rose-50 text-rose-700 rounded-full text-sm font-medium flex items-center gap-1 shadow-sm">
-            {categories.find(c => c.id === selectedCategory)?.name}
+            {categories.find(c => c.id.toString() === selectedCategory)?.title || 'Category'}
             <button 
-              onClick={() => setSelectedCategory('all')}
+              onClick={() => {
+                setSelectedCategory('all');
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete('category');
+                router.push(`/search?${params.toString()}`);
+              }}
               className="ml-1 hover:text-rose-500 transition-colors"
-              aria-label={`Remove ${categories.find(c => c.id === selectedCategory)?.name} filter`}
+              aria-label={`Remove ${categories.find(c => c.id.toString() === selectedCategory)?.title || 'Category'} filter`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -514,11 +660,11 @@ function SearchPageContent() {
     );
   };
 
-  // Render grid view of businesses
-  const renderBusinessGrid = () => {
+  // Render businesses listing
+  const renderBusinesses = () => {
     if (filteredBusinesses.length > 0) {
       return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredBusinesses.map((business) => {
             // Ensure business has a valid name for alt text
             if (!business.name) {
@@ -561,72 +707,6 @@ function SearchPageContent() {
           >
             Clear all filters
           </button>
-        </div>
-      </div>
-    );
-  };
-
-  // Render map view
-  const renderMapView = () => {
-    return (
-      <div className="bg-white rounded-2xl overflow-hidden h-[80vh] relative shadow-md my-6">
-        <div className="absolute inset-0 bg-gray-100">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center px-4">
-              <svg className="mx-auto h-20 w-20 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-              <h3 className="mt-4 text-xl font-medium text-gray-900">Map view</h3>
-              <p className="mt-2 text-gray-500">Interactive map showing all businesses in your area.</p>
-            </div>
-          </div>
-          <div className="absolute left-4 top-4 bg-white shadow-lg rounded-xl p-5 max-w-xs max-h-[70vh] overflow-y-auto">
-            <h3 className="font-medium text-lg mb-4 flex items-center justify-between">
-              <span>Businesses ({filteredBusinesses.length})</span>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </h3>
-            <div className="space-y-4">
-              {filteredBusinesses.slice(0, 5).map((business) => (
-                <Link key={business.id} href={`/search/${business.id}`} className="block">
-                  <div className="flex gap-3 pb-4 border-b border-gray-100 hover:bg-gray-50 transition-colors rounded-lg p-2">
-                    <div className="relative h-16 w-16 rounded-lg overflow-hidden flex-shrink-0">
-                      <Image
-                        src={business.logo_url || '/images/logo.png'}
-                        fill
-                        className="object-cover"
-                        alt={`${business.name || 'Business'} logo`}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">{business.name}</h4>
-                      <div className="flex items-center text-xs text-yellow-500 mt-1">
-                        {[...Array(5)].map((_, i) => (
-                          <svg key={i} className={`w-3 h-3 ${i < Math.floor(parseFloat(business.rating || '0')) ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                        ))}
-                        <span className="ml-1 text-gray-600">{business.rating || 'N/A'}</span>
-                      </div>
-                      <p className="text-gray-500 text-xs truncate mt-1 flex items-center">
-                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        {business.address || 'Location not available'}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-              {filteredBusinesses.length > 5 && (
-                <p className="text-xs text-center text-rose-600 font-medium">
-                  + {filteredBusinesses.length - 5} more businesses
-                </p>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -686,7 +766,7 @@ function SearchPageContent() {
     return (
       <>
         {resultsHeader}
-        {viewMode === 'grid' ? renderBusinessGrid() : renderMapView()}
+        {renderBusinesses()}
         
         {/* Loading more indicator */}
         {isLoadingMore && (
@@ -713,25 +793,28 @@ function SearchPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 to-white">
       {/* Split screen layout */}
       <div className="flex flex-col lg:flex-row">
         {/* Left side: Search container (fixed on desktop) */}
         <div className="lg:w-1/2 lg:fixed lg:top-0 lg:bottom-0 lg:left-0 lg:overflow-y-auto bg-white shadow-md p-6">
           <div className="max-w-xl mx-auto">
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Find Businesses in Aba</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Find Businesses in Aba</h1>
+            <p className="text-gray-500 mb-6">Discover top businesses and services from all markets</p>
+            
             {renderSearchFilters()}
             {renderFilterTags()}
+            {renderCategoryVisualFilter()}
             
-            {/* Filters panel */}
-            {renderFilterPanel()}
+            {/* Mobile filters panel */}
+            {renderMobileFilterPanel()}
             
             {/* Additional search information for desktop */}
             <div className="mt-10 hidden lg:block">
-              <div className="rounded-2xl bg-rose-50 p-6">
+              <div className="rounded-2xl bg-gradient-to-br from-rose-100 to-rose-50 p-6">
                 <h3 className="font-medium text-rose-800 text-lg mb-2">Looking for something specific?</h3>
-                <p className="text-rose-700 text-sm">Our search tool helps you find businesses, services, and products from all markets in Aba.</p>
-                <div className="mt-4 space-y-2">
+                <p className="text-rose-700 text-sm mb-4">Our search tool helps you find businesses, services, and products from all markets in Aba.</p>
+                <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-rose-700">
                     <svg className="w-5 h-5 text-rose-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -754,7 +837,7 @@ function SearchPageContent() {
                     <svg className="w-5 h-5 text-rose-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span>View on interactive map</span>
+                    <span>Find businesses near you</span>
                   </div>
                 </div>
               </div>
