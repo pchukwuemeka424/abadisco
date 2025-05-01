@@ -9,15 +9,12 @@ interface KYCVerification {
   user_id: string;
   status: 'pending' | 'approved' | 'rejected';
   document_type: string;
-  document_url?: string;
+  document_number: string;
+  document_image_url?: string;
   submitted_at: string;
-  verification_date?: string;
-  rejected_reason?: string;
-  user_details?: {
-    email?: string;
-    name?: string;
-  };
-  [key: string]: unknown;
+  processed_at?: string;
+  rejection_reason?: string;
+  user_email?: string;
 }
 
 interface KYCDetailsModalProps {
@@ -69,12 +66,12 @@ const KYCDetailsModal: React.FC<KYCDetailsModalProps> = ({
           <div className="mb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <p className="text-sm text-gray-500">User</p>
-                <p className="font-medium">{verification.user_details?.name || 'Unknown'}</p>
+                <p className="text-sm text-gray-500">User Email</p>
+                <p className="font-medium">{verification.user_email || 'Unknown'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Email</p>
-                <p className="font-medium">{verification.user_details?.email || 'N/A'}</p>
+                <p className="text-sm text-gray-500">Document Number</p>
+                <p className="font-medium">{verification.document_number}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Document Type</p>
@@ -100,18 +97,18 @@ const KYCDetailsModal: React.FC<KYCDetailsModalProps> = ({
                   {verification.status}
                 </span>
               </div>
-              {verification.verification_date && (
+              {verification.processed_at && (
                 <div>
                   <p className="text-sm text-gray-500">Verification Date</p>
                   <p className="font-medium">
-                    {new Date(verification.verification_date).toLocaleDateString()}
+                    {new Date(verification.processed_at).toLocaleDateString()}
                   </p>
                 </div>
               )}
-              {verification.rejected_reason && (
+              {verification.rejection_reason && (
                 <div className="col-span-2">
                   <p className="text-sm text-gray-500">Rejection Reason</p>
-                  <p className="font-medium text-red-600">{verification.rejected_reason}</p>
+                  <p className="font-medium text-red-600">{verification.rejection_reason}</p>
                 </div>
               )}
             </div>
@@ -119,10 +116,10 @@ const KYCDetailsModal: React.FC<KYCDetailsModalProps> = ({
             <div className="mb-4">
               <p className="text-sm text-gray-500 mb-2">Document Preview</p>
               <div className="bg-gray-100 rounded-lg p-2 relative">
-                {verification.document_url ? (
+                {verification.document_image_url ? (
                   <div className="relative w-full h-64">
                     <Image 
-                      src={verification.document_url} 
+                      src={verification.document_image_url} 
                       alt="KYC document" 
                       fill
                       style={{ objectFit: 'contain' }}

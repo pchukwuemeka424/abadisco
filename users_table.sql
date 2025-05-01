@@ -1,9 +1,12 @@
--- Users table definition with only email and password
+-- Users table definition with extended fields
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   email text NULL,
   password text NULL,
   created_at timestamp with time zone NULL DEFAULT now(),
+  agent_user_id text NULL,
+  created_by text NULL,
+  role text NULL,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 ) TABLESPACE pg_default;
 

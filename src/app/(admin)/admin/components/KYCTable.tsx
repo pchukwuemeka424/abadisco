@@ -11,15 +11,12 @@ interface KYCVerification {
   user_id: string;
   status: 'pending' | 'approved' | 'rejected';
   document_type: string;
-  document_url?: string;
+  document_number: string;
+  document_image_url?: string;
   submitted_at: string;
-  verification_date?: string;
-  rejected_reason?: string;
-  user_details?: {
-    email?: string;
-    name?: string;
-  };
-  [key: string]: unknown;
+  processed_at?: string;
+  rejection_reason?: string;
+  user_email?: string;
 }
 
 interface KYCTableProps {
@@ -33,6 +30,7 @@ const KYCTable: React.FC<KYCTableProps> = ({ onStatusUpdate }) => {
   const [selectedVerification, setSelectedVerification] = useState<KYCVerification | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchKYCVerifications();
@@ -40,37 +38,56 @@ const KYCTable: React.FC<KYCTableProps> = ({ onStatusUpdate }) => {
 
   const fetchKYCVerifications = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
-      const { data, error } = await supabase
+      // First, fetch all KYC verifications
+      const { data: kycData, error: kycError } = await supabase
         .from('kyc_verifications')
-        .select(`
-          id,
-          user_id,
-          status,
-          document_type,
-          document_url,
-          submitted_at,
-          verification_date,
-          rejected_reason,
-          users (email, full_name)
-        `)
+        .select('*')
         .order('submitted_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching KYC verifications:', error);
-      } else if (data) {
-        // Transform data to match the expected structure
-        const transformedData = data.map((item) => ({
-          ...item,
-          user_details: {
-            email: item.users?.email,
-            name: item.users?.full_name,
-          },
-        }));
-        setVerifications(transformedData);
+      if (kycError) {
+        console.error('Error fetching KYC verifications:', kycError);
+        setError('Failed to load KYC verifications. Please try again later.');
+        return;
       }
-    } catch (error) {
-      console.error('Unexpected error:', error);
+
+      if (!kycData || kycData.length === 0) {
+        setVerifications([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get all unique user IDs from the KYC data
+      const userIds = [...new Set(kycData.map(item => item.user_id))];
+      
+      // Fetch user data for these IDs
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, email')
+        .in('id', userIds);
+      
+      if (userError) {
+        console.error('Error fetching user data:', userError);
+      }
+
+      // Create a map of user IDs to user data for quick lookup
+      const userMap = (userData || []).reduce((map, user) => {
+        map[user.id] = user;
+        return map;
+      }, {} as Record<string, any>);
+
+      // Combine KYC data with user data
+      const combinedData = kycData.map(item => ({
+        ...item,
+        user_email: userMap[item.user_id]?.email || 'Unknown'
+      }));
+
+      setVerifications(combinedData);
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setError('An unexpected error occurred. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -83,13 +100,13 @@ const KYCTable: React.FC<KYCTableProps> = ({ onStatusUpdate }) => {
   const handleStatusUpdate = async (id: string, status: 'approved' | 'rejected', reason?: string) => {
     setProcessingId(id);
     try {
-      const updateData: Record<string, unknown> = {
+      const updateData: Record<string, any> = {
         status,
-        verification_date: new Date().toISOString(),
+        processed_at: new Date().toISOString(),
       };
 
       if (status === 'rejected' && reason) {
-        updateData.rejected_reason = reason;
+        updateData.rejection_reason = reason;
       }
 
       const { error } = await supabase
@@ -97,7 +114,10 @@ const KYCTable: React.FC<KYCTableProps> = ({ onStatusUpdate }) => {
         .update(updateData)
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating verification status:', error);
+        throw error;
+      }
 
       // Update local state
       setVerifications(prevVerifications =>
@@ -117,13 +137,13 @@ const KYCTable: React.FC<KYCTableProps> = ({ onStatusUpdate }) => {
 
   const filteredVerifications = verifications.filter(verification => {
     const searchLower = searchTerm.toLowerCase();
-    const userEmail = verification.user_details?.email?.toLowerCase() || '';
-    const userName = verification.user_details?.name?.toLowerCase() || '';
+    const userEmail = verification.user_email?.toLowerCase() || '';
     const docType = verification.document_type?.toLowerCase() || '';
+    const docNumber = verification.document_number?.toLowerCase() || '';
     
-    return userName.includes(searchLower) || 
-           userEmail.includes(searchLower) || 
-           docType.includes(searchLower);
+    return userEmail.includes(searchLower) || 
+           docType.includes(searchLower) || 
+           docNumber.includes(searchLower);
   });
 
   const handleViewDetails = (verification: KYCVerification) => {
@@ -137,7 +157,7 @@ const KYCTable: React.FC<KYCTableProps> = ({ onStatusUpdate }) => {
         <div className="relative flex-grow">
           <input
             type="text"
-            placeholder="Search by name, email, or document type..."
+            placeholder="Search by email, document type, or document number..."
             className="w-full pl-10 pr-4 py-2 border rounded-lg"
             value={searchTerm}
             onChange={handleSearch}
@@ -146,12 +166,19 @@ const KYCTable: React.FC<KYCTableProps> = ({ onStatusUpdate }) => {
         </div>
       </div>
 
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
+          <p>{error}</p>
+        </div>
+      )}
+
       <div className="overflow-x-auto bg-white shadow rounded-lg">
         <table className="min-w-full divide-y divide-gray-200">
           <thead>
             <tr className="bg-gray-50">
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document Type</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document Number</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -160,7 +187,7 @@ const KYCTable: React.FC<KYCTableProps> = ({ onStatusUpdate }) => {
           <tbody className="bg-white divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-6 py-4 text-center">
+                <td colSpan={6} className="px-6 py-4 text-center">
                   <div className="flex justify-center">
                     <FaSpinner className="animate-spin text-gray-500" />
                     <span className="ml-2">Loading...</span>
@@ -169,7 +196,7 @@ const KYCTable: React.FC<KYCTableProps> = ({ onStatusUpdate }) => {
               </tr>
             ) : filteredVerifications.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                   No KYC verifications found.
                 </td>
               </tr>
@@ -177,13 +204,13 @@ const KYCTable: React.FC<KYCTableProps> = ({ onStatusUpdate }) => {
               filteredVerifications.map((verification) => (
                 <tr key={verification.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="font-medium">{verification.user_details?.name || 'Unknown'}</div>
-                      <div className="text-sm text-gray-500">{verification.user_details?.email}</div>
-                    </div>
+                    <div className="text-sm text-gray-900">{verification.user_email || 'Unknown'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="capitalize">{verification.document_type}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span>{verification.document_number}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(verification.submitted_at).toLocaleDateString()}

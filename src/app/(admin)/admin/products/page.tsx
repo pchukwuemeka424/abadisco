@@ -1,13 +1,15 @@
-import { Metadata } from 'next';
+'use client';
+
+import { useState } from 'react';
 import { FaSearch, FaPlus, FaFileExport, FaFilter } from 'react-icons/fa';
 import ProductsTable from '../components/ProductsTable';
 
-export const metadata: Metadata = {
-  title: 'Products Management | Admin',
-  description: 'Manage products across the platform',
-};
-
 export default function ProductsManagement() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedMarket, setSelectedMarket] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
   return (
     <div>
       {/* Header with page title and actions */}
@@ -41,8 +43,10 @@ export default function ProductsManagement() {
               </div>
               <input
                 type="text"
-                placeholder="Search by name, description, category..."
+                placeholder="Search by title..."
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
@@ -53,7 +57,11 @@ export default function ProductsManagement() {
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <FaFilter className="text-gray-400" />
               </div>
-              <select className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 appearance-none">
+              <select 
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 appearance-none"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
                 <option value="">All Categories</option>
                 <option value="clothing">Clothing</option>
                 <option value="electronics">Electronics</option>
@@ -69,7 +77,11 @@ export default function ProductsManagement() {
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <FaFilter className="text-gray-400" />
               </div>
-              <select className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 appearance-none">
+              <select 
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 appearance-none"
+                value={selectedMarket}
+                onChange={(e) => setSelectedMarket(e.target.value)}  
+              >
                 <option value="">All Markets</option>
                 <option value="ariaria">Ariaria Market</option>
                 <option value="ahia-ohuru">Ahia Ohuru Market</option>
@@ -82,34 +94,47 @@ export default function ProductsManagement() {
         
         {/* Additional filters - expandable */}
         <div className="mt-4 pt-4 border-t border-gray-200">
-          <button className="text-blue-600 text-sm font-medium hover:underline">
-            Show advanced filters
+          <button 
+            className="text-blue-600 text-sm font-medium hover:underline"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
+            {showAdvancedFilters ? 'Hide advanced filters' : 'Show advanced filters'}
           </button>
+          
+          {showAdvancedFilters && (
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date Added</label>
+                <select className="block w-full py-2 px-3 border border-gray-300 rounded-lg">
+                  <option value="">Any time</option>
+                  <option value="today">Today</option>
+                  <option value="week">This week</option>
+                  <option value="month">This month</option>
+                  <option value="year">This year</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select className="block w-full py-2 px-3 border border-gray-300 rounded-lg">
+                  <option value="">All</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       
       {/* Products table */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
         <div className="p-4 sm:p-6">
-          <ProductsTable />
+          <ProductsTable searchTerm={searchTerm} />
         </div>
       </div>
       
-      {/* Pagination */}
-      <div className="mt-5 flex justify-between items-center flex-wrap gap-4 bg-white rounded-xl shadow-md p-3">
-        <div className="text-sm text-gray-500">
-          Showing <span className="font-medium">1</span> to <span className="font-medium">20</span> of <span className="font-medium">483</span> products
-        </div>
-        <div className="flex space-x-1">
-          <button className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">Previous</button>
-          <button className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700">1</button>
-          <button className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">2</button>
-          <button className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">3</button>
-          <button className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">...</button>
-          <button className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">24</button>
-          <button className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">Next</button>
-        </div>
-      </div>
+      {/* Pagination handled by the table component */}
     </div>
   );
 }
