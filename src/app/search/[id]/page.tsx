@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, use } from 'react'; // Added 'use' import
 import { supabase } from '../../../supabaseClient';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -37,23 +37,25 @@ interface Business {
   };
   categories?: { 
     id: number;
-    name: string;
+    title: string; // Changed from 'name' to 'title' to match the database schema
   };
   [key: string]: unknown;
 }
 
 interface Product {
   id: string;
-  name: string;
-  description: string;
-  price: number;
-  business_id: string;
-  image_url?: string;
+  user_id: string;
+  created_at: string;
+  image_urls?: string; // Can be null
+  title?: string; // Added later, can be null
   [key: string]: unknown;
 }
 
 export default function BusinessPage({ params }: { params: { id: string } }) {
-  const businessId = params.id;
+  // Unwrap params using React.use() to fix the warning
+  const unwrappedParams = use(params);
+  const businessId = unwrappedParams.id;
+
   const [business, setBusiness] = useState<Business | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,13 +76,15 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
           return;
         }
 
-        // Fetch business data from businesses table
+        console.log('Fetching business with ID:', businessId);
+
+        // Fetch business data from businesses table with related data
         const { data: businessData, error: businessError } = await supabase
           .from('businesses')
           .select(`
             *,
             markets:market_id(id, name, location),
-            categories:category_id(id, name)
+            categories:category_id(id, title)
           `)
           .eq('id', businessId)
           .single();
@@ -88,34 +92,39 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
         if (businessError) {
           console.error('Error fetching business:', businessError.message, businessError.details);
           setError(businessError.message);
-          throw businessError;
+          setLoading(false);
+          return;
         }
 
-        if (businessData) {
-          console.log('Business data found:', businessData.id);
-          setBusiness(businessData);
+        if (!businessData) {
+          setError('No business found with this ID');
+          setLoading(false);
+          return;
+        }
 
-          // Fetch products for this business
-          const { data: productsData, error: productsError } = await supabase
-            .from('products')
-            .select('*')
-            .eq('business_id', businessId);
+        console.log('Business data found:', businessData);
+        setBusiness(businessData);
 
-          if (productsError) {
-            console.error('Error fetching products:', productsError.message, productsError.details);
-          }
-          
-          setProducts(productsData || []);
+        // Now fetch products for this business
+        const { data: productsData, error: productsError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('user_id', businessId)
+          .order('title', { ascending: true }); // Updated to order by title instead of name
+
+        if (productsError) {
+          console.error('Error fetching products:', productsError.message);
+          // Continue without products - non-fatal error
         } else {
-          setError('No business data found');
-          console.error('No business data found');
+          console.log('Products found:', productsData?.length || 0);
+          setProducts(productsData || []);
         }
       } catch (error) {
-        console.error('Error fetching business details:', error);
+        console.error('Error in business details fetch:', error);
         if (error instanceof Error) {
-          setError(error.message);
-          console.error('Error message:', error.message);
-          console.error('Error stack:', error.stack);
+          setError(`Failed to load business details: ${error.message}`);
+        } else {
+          setError('An unexpected error occurred');
         }
       } finally {
         setLoading(false);
@@ -284,7 +293,7 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
                     <svg className="h-4 w-4 text-rose-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                     </svg>
-                    <span>{business.categories.name}</span>
+                    <span>{business.categories.title}</span>
                   </div>
                 )}
               </div>
@@ -377,11 +386,11 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.map((product) => (
                   <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                    {product.image_url ? (
+                    {product.image_urls ? (
                       <div className="h-48 relative">
                         <Image 
-                          src={product.image_url} 
-                          alt={product.name} 
+                          src={product.image_urls.split(',')[0]} // Take first image if multiple
+                          alt="Product image" 
                           fill
                           className="object-cover" 
                         />
@@ -391,18 +400,6 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
                         <span className="text-gray-500">No image available</span>
                       </div>
                     )}
-                    <div className="p-4">
-                      <h3 className="font-semibold mb-2">{product.name}</h3>
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-rose-600">
-                          ₦{product.price.toLocaleString()}
-                        </span>
-                        <button className="px-3 py-1 text-sm text-rose-500 border border-rose-500 rounded hover:bg-rose-50 transition-colors">
-                          Contact
-                        </button>
-                      </div>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -476,7 +473,7 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
                           <svg className="h-5 w-5 text-rose-500 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                           </svg>
-                          <span>Category: {business.categories.name}</span>
+                          <span>Category: {business.categories.title}</span>
                         </li>
                       )}
                     </ul>
