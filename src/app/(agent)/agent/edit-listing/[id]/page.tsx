@@ -13,207 +13,21 @@ const Cropper = dynamic(() => import('react-easy-crop'), {
   loading: () => <div className="w-64 h-64 bg-gray-200 animate-pulse rounded-lg"></div>
 });
 
-const SERVICES = [
-  "Dine-in",
-  "Takeaway",
-  "Delivery",
-  "Outdoor Seating",
-  "Reservations",
-  "Catering"
-];
-const SERVICES_TYPES = [
-  "Restaurant",
-  "Bar",
-  "Cafe",
-  "Bakery",
-  "Market",
-  "Pharmacy",
-  "Salon",
-  "Hotel",
-  "Boutique",
-  "Spa",
-  "Gym",
-  "Laundry",
-  "Auto Repair",
-  "Electronics",
-  "Other"
-];
-
-const SERVICE_CATEGORIES = {
-  Restaurant: [
-    "Local Dishes",
-    "   - Nkwobi",
-    "   - Isiewu",
-    "   - Suya",
-    "   - Restaurant Pepper Soup",  // Qualified with category
-    "   - Egusi Soup",
-    "   - Ogbono Soup",
-    "   - Okra Soup",
-    "   - Afang Soup",
-    "   - Edikaikong",
-    "   - Oha Soup",
-    "   - Banga Soup",
-    "   - Jollof Rice",
-    "   - Native Rice",
-    "   - Ofada Rice & Sauce",
-    "   - Moi Moi",
-    "   - Akara",
-    "   - Tuwo Shinkafa",
-    "   - Amala & Ewedu",
-    "   - Eba & Soup",
-    "   - Fufu & Soup",
-    "   - Pounded Yam",
-    "Continental Dishes",
-    "Chinese Cuisine",
-    "Fast Food",
-    "Grills & BBQ",
-    "Seafood",
-    "Small Chops",
-    "Vegetarian Options",
-    "Desserts",
-    "Beverages",
-    "Catering",
-    "Takeaway",
-    "Delivery",
-    "Dine-in",
-    "Outdoor Seating",
-    "Private Dining",
-    "Event Catering"
-  ],
-  Bar: [
-    "Local Drinks",
-    "   - Palm Wine",
-    "   - Bar Pepper Soup",  // Qualified with category
-    "   - Bar Nkwobi",      // Qualified with category
-    "   - Isi Ewu",
-    "   - Point & Kill (Fresh Fish)",
-    "   - Bar Suya",        // Qualified with category
-    "Beverages",
-    "   - Local Beer",
-    "   - Imported Beer",
-    "   - Wine & Spirits",
-    "   - Cocktails",
-    "   - Soft Drinks",
-    "   - Fresh Juices",
-    "Bar Food",
-    "   - Small Chops",
-    "   - Grilled Fish",
-    "   - Grilled Meat",
-    "   - Shawarma",
-    "Services",
-    "   - Live Music",
-    "   - Sports Screening",
-    "   - Pool Table",
-    "   - Outdoor Seating",
-    "   - Private Events",
-    "   - Weekend Special",
-    "   - Happy Hour"
-  ],
-  Market: [
-    "Clothing & Textiles",
-    "Senator Wears",
-    "Ankara Fabrics",
-    "Aso Oke",
-    "Lace Materials",
-    "   - French Lace",
-    "   - Indian Lace",
-    "   - Swiss Lace",
-    "   - Voile Lace",
-    "   - Tulle Lace",
-    "   - Cord Lace",
-    "Adire (Tie & Dye)",
-    "George Fabrics",
-    "Electronics & Gadgets",
-    "Home Appliances",
-    "Footwear",
-    "Bags & Accessories",
-    "Cosmetics",
-    "Food & Groceries",
-    "Hardware & Tools",
-    "Auto Parts",
-    "Building Materials",
-    "Wholesale",
-    "Retail",
-    "Import/Export"
-  ],
-  Pharmacy: [
-    "Prescription Medications",
-    "Over-the-Counter Drugs",
-    "Health Supplements",
-    "Medical Supplies",
-    "Personal Care Products",
-    "Baby Care",
-    "Health Consultation",
-    "Home Delivery",
-    "24/7 Service"
-  ],
-  Electronics: [
-    "Phones & Accessories",
-    "Computers & Laptops",
-    "Audio Equipment",
-    "TVs & Home Theater",
-    "Gaming Devices",
-    "Electronic Components",
-    "Repair Services",
-    "Custom Builds",
-    "Installation Services"
-  ],
-  Hotel: [
-    "Room Service",
-    "Restaurant",
-    "Bar & Lounge",
-    "Conference Facilities",
-    "Swimming Pool",
-    "Gym",
-    "Spa Services",
-    "Airport Shuttle",
-    "Laundry Service",
-    "24/7 Reception",
-    "Wi-Fi"
-  ],
-  Salon: [
-    "Haircuts & Styling",
-    "Hair Coloring",
-    "Manicure & Pedicure",
-    "Facial Treatments",
-    "Makeup Services",
-    "Waxing",
-    "Braiding",
-    "Hair Extensions",
-    "Wedding Services"
-  ],
-  "Auto Repair": [
-    "General Repairs",
-    "Engine Service",
-    "Electrical Systems",
-    "AC Service",
-    "Brake Service",
-    "Tire Service",
-    "Body Work",
-    "Paint Jobs",
-    "Diagnostics",
-    "Emergency Service"
-  ],
-  default: [
-    "Standard Service",
-    "Premium Service",
-    "Express Service",
-    "Consultation",
-    "Custom Solutions",
-    "Delivery",
-    "Installation",
-    "Maintenance",
-    "Repair"
-  ]
-};
-
+// Replacing hardcoded services with data fetched from the database
 export default function ProfilePage() {
   const { user, loading } = useAuth(); // Use auth context
   const router = useRouter();
   const params = useParams();
-  const businessId = params?.id as string;
-  const [isEditing, setIsEditing] = useState(!!businessId);
+  const businessId = params.id as string;
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUpdatingBusiness, setIsUpdatingBusiness] = useState(false);
   
+  // State for services data fetched from the database
+  const [serviceCategories, setServiceCategories] = useState<{id: number, name: string, description: string}[]>([]);
+  const [subServiceCategories, setSubServiceCategories] = useState<{id: number, parent_id: number, name: string, description: string}[]>([]);
+  const [specificServices, setSpecificServices] = useState<{id: number, name: string, category_id: number}[]>([]);
+  const [categoryMap, setCategoryMap] = useState<Record<number, {id: number, name: string, services: string[]}>>({});
+
   // Updated state variables to match businesses_table schema
   const [businessData, setBusinessData] = useState({
     name: "",
@@ -273,6 +87,34 @@ export default function ProfilePage() {
       ...prev,
       [field]: value
     }));
+  };
+
+  // Function to directly update the logo URL for a specific business in the database
+  const updateLogoInDatabase = async (logoUrl: string) => {
+    try {
+      console.log(`Directly updating logo_url for business ID ${businessId} to: ${logoUrl}`);
+      
+      const { data, error } = await supabase
+        .from('businesses')
+        .update({ logo_url: logoUrl })
+        .eq('id', businessId)
+        .select('logo_url')
+        .single();
+        
+      if (error) {
+        console.error("Failed to update logo_url in database:", error);
+        setError(`Logo update failed: ${error.message}`);
+        return false;
+      }
+      
+      console.log("Logo updated successfully in database:", data);
+      setSuccess("Logo updated successfully");
+      return true;
+    } catch (err) {
+      console.error("Exception during logo update:", err);
+      setError("An unexpected error occurred updating the logo");
+      return false;
+    }
   };
 
   // Add state to track authentication status 
@@ -337,97 +179,153 @@ export default function ProfilePage() {
     fetchBusinessCategories();
   }, []);
 
-  // Add useEffect to fetch business data by ID
+  // Fetch service categories and sub-service categories from the database
   useEffect(() => {
-    const fetchBusinessById = async () => {
-      if (!businessId) return;
+    const fetchServicesData = async () => {
+      try {
+        // Fetch main service categories
+        const { data: categories, error: categoriesError } = await supabase
+          .from('service_categories')
+          .select('id, name, description')
+          .order('name');
+          
+        if (categoriesError) {
+          console.error('Error fetching service categories:', categoriesError.message);
+        } else if (categories) {
+          setServiceCategories(categories);
+          
+          // Fetch sub-service categories
+          const { data: subCategories, error: subCategoriesError } = await supabase
+            .from('sub_service_categories')
+            .select('id, parent_id, name, description')
+            .order('name');
+            
+          if (subCategoriesError) {
+            console.error('Error fetching sub-service categories:', subCategoriesError.message);
+          } else if (subCategories) {
+            setSubServiceCategories(subCategories);
+            
+            // Create a map of service category ID to their sub-categories
+            const tempCategoryMap: Record<number, {id: number, name: string, services: string[]}> = {};
+            
+            // Initialize with all categories
+            categories.forEach(category => {
+              tempCategoryMap[category.id] = {
+                id: category.id,
+                name: category.name,
+                services: []
+              };
+            });
+            
+            // Group sub-categories by parent category
+            subCategories.forEach(subCategory => {
+              const parentId = subCategory.parent_id;
+              
+              if (tempCategoryMap[parentId]) {
+                // Add sub-category as a service
+                tempCategoryMap[parentId].services.push(subCategory.name);
+              }
+            });
+            
+            setCategoryMap(tempCategoryMap);
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching services data:', err);
+      }
+    };
+    
+    fetchServicesData();
+  }, []);
+
+  // Add useEffect to fetch business data by ID when component mounts
+  useEffect(() => {
+    const fetchBusinessData = async () => {
+      if (!businessId || !user) return;
+      
+      setIsLoading(true);
+      setError("");
       
       try {
-        // Fetch the business with all related data in a more comprehensive query
+        console.log("Fetching business data for ID:", businessId);
         const { data, error } = await supabase
           .from('businesses')
-          .select(`
-            *,
-            markets:market_id (name),
-            categories:category_id (title)
-          `)
+          .select('*')
           .eq('id', businessId)
           .single();
           
         if (error) {
-          console.error("Error fetching business data:", error);
-          setError(`Failed to load business data: ${error.message}`);
+          console.error("Error fetching business data:", error.message);
+          setError(`Failed to fetch business information: ${error.message}`);
+          setIsLoading(false);
           return;
         }
         
-        if (data) {
-          console.log("Fetched business data by ID:", data);
-          
-          // Populate form with the fetched data
-          updateBusinessData('name', data.name || "");
-          updateBusinessData('description', data.description || "");
-          updateBusinessData('market_id', data.market_id || "");
-          updateBusinessData('category_id', data.category_id || null);
-          updateBusinessData('contact_phone', data.contact_phone || "");
-          updateBusinessData('contact_email', data.contact_email || "");
-          updateBusinessData('address', data.address || "");
-          updateBusinessData('logo_url', data.logo_url || "");
-          updateBusinessData('website', data.website || "");
-          updateBusinessData('facebook', data.facebook || "");
-          updateBusinessData('instagram', data.instagram || "");
-          updateBusinessData('status', data.status || "active");
-          updateBusinessData('whatsapp', data.whatsapp || "");
-          updateBusinessData('business_type', data.business_type || "");
-          updateBusinessData('role', data.role || null);
-          
-          // Set the individual state variables too for the form fields
-          setWebsite(data.website || "");
-          setFacebook(data.facebook || "");
-          setInstagram(data.instagram || "");
-          setWhatsapp(data.whatsapp || "");
-          
-          // If there's market data from the join, use it
-          if (data.markets) {
-            setMarketName(data.markets.name);
-          }
-          
-          // If there's category data from the join, use it
-          if (data.categories) {
-            setBusinessType(data.categories.title);
-          } else if (data.business_type) {
-            // Fallback to business_type field if categories join didn't work
-            setBusinessType(data.business_type);
-          }
-          
-          if (data.logo_url) {
-            setLogoPreview(data.logo_url);
-          }
-          
-          // Load services from the business data if available
-          if (data.services) {
-            try {
-              const servicesData = typeof data.services === 'string' 
-                ? JSON.parse(data.services) 
-                : data.services;
-                
-              if (servicesData.service_list && Array.isArray(servicesData.service_list)) {
-                setSelectedServices(servicesData.service_list);
-              }
-            } catch (err) {
-              console.error("Error parsing services data:", err);
-            }
+        if (!data) {
+          setError("Business listing not found. It may have been deleted.");
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log("Business data loaded:", data);
+        
+        // Set all business data
+        setBusinessData({
+          name: data.name || "",
+          description: data.description || "",
+          market_id: data.market_id || "",
+          category_id: data.category_id || null,
+          owner_id: data.owner_id || "",
+          contact_phone: data.contact_phone || "",
+          contact_email: data.contact_email || "",
+          address: data.address || "",
+          logo_url: data.logo_url || "",
+          website: data.website || "",
+          facebook: data.facebook || "",
+          instagram: data.instagram || "",
+          created_by: data.created_by || "",
+          status: data.status || "active",
+          business_type: data.business_type || "",
+          whatsapp: data.whatsapp || "",
+          role: data.role || null,
+        });
+        
+        // Set logo preview if exists
+        if (data.logo_url) {
+          setLogoPreview(data.logo_url);
+        }
+        
+        // Look up market name from market_id
+        if (data.market_id) {
+          const marketObj = marketLocations.find(m => m.id === data.market_id);
+          if (marketObj) {
+            setMarketName(marketObj.name);
           }
         }
-      } catch (err) {
-        console.error("Error in fetchBusinessById:", err);
-        setError("Failed to load business data");
+        
+        // Set business type from services data if available
+        if (data.services && data.services.category) {
+          setBusinessType(data.services.category);
+        }
+        
+        // Set selected services if available
+        if (data.services && Array.isArray(data.services.service_list)) {
+          setSelectedServices(data.services.service_list);
+        }
+        
+        setIsLoading(false);
+      } catch (err: any) {
+        console.error("Unexpected error fetching business data:", err);
+        setError(`An unexpected error occurred: ${err?.message || "Unknown error"}`);
+        setIsLoading(false);
       }
     };
     
-    if (businessId) {
-      fetchBusinessById();
+    // Only fetch business data once markets are loaded
+    if (marketLocations.length > 0) {
+      fetchBusinessData();
     }
-  }, [businessId]);
+  }, [businessId, user, marketLocations]);
 
   // Logo handling functions
   const handleLogoDrop = (e: React.DragEvent) => {
@@ -456,9 +354,14 @@ export default function ProfilePage() {
     if (file) handleLogoFile(file);
   };
 
-  const handleRemoveLogo = () => {
+  const handleRemoveLogo = async () => {
     setLogoPreview("");
     setLogo(null);
+    // Also update the business data to ensure the logo is removed in the database
+    updateBusinessData('logo_url', "");
+    
+    // Directly update the logo in the database
+    await updateLogoInDatabase("");
   };
 
   const handleCropConfirm = async () => {
@@ -493,6 +396,8 @@ export default function ProfilePage() {
         // Update business data with logo URL
         updateBusinessData('logo_url', publicUrl);
         setSuccess('Logo uploaded successfully!');
+        // Directly update the logo URL in the database
+        await updateLogoInDatabase(publicUrl);
       }
     } catch (err) {
       setError('Failed to process image');
@@ -525,27 +430,32 @@ export default function ProfilePage() {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setIsUpdatingBusiness(true);
 
     // Show auth status for debugging
     console.log("Auth state:", { user, loading, authChecked });
     
     if (loading) {
       setError("Authentication is still loading. Please try again in a moment.");
+      setIsUpdatingBusiness(false);
       return;
     }
 
     if (!user) {
-      setError("You must be logged in to add a listing");
+      setError("You must be logged in to update a listing");
+      setIsUpdatingBusiness(false);
       return;
     }
 
     if (!businessData.name) {
       setError("Business name is required");
+      setIsUpdatingBusiness(false);
       return;
     }
 
     if (!businessType) {
       setError("Business type is required");
+      setIsUpdatingBusiness(false);
       return;
     }
 
@@ -564,11 +474,13 @@ export default function ProfilePage() {
         if (agentError) {
           console.error("Error fetching agent data:", agentError);
           setError("Could not find your agent profile. Please make sure you're registered as an agent.");
+          setIsUpdatingBusiness(false);
           return;
         }
         
         if (!agentData) {
           setError("Your agent profile was not found. Please contact support.");
+          setIsUpdatingBusiness(false);
           return;
         }
         
@@ -631,107 +543,56 @@ export default function ProfilePage() {
 
       console.log("Services JSON to be stored:", servicesJson);
       
-      // Prepare the business data object for database operation
-      const businessDataForDb = {
+      console.log("Logo data before update:", {
+        logoPreview,
+        businessDataLogoUrl: businessData.logo_url,
+        finalLogoUrl: logoPreview || businessData.logo_url || null
+      });
+      
+      // Update business with direct logo URL reference for clarity
+      const businessUpdateData = {
         name: businessData.name,
         description: businessData.description || null,
         market_id: marketId,
         category_id: categoryId,
-        owner_id: user.id, // Set the agent as the owner directly
         contact_phone: businessData.contact_phone || null,
         contact_email: businessData.contact_email || null,
         address: businessData.address || null,
-        logo_url: logoPreview || null,
+        logo_url: businessData.logo_url, // Use directly from businessData which is now synchronized
         website: businessData.website || null,
         facebook: businessData.facebook || null,
         instagram: businessData.instagram || null,
-        created_by: user.id, // The agent creates the business
-        status: 'active',
-        services: servicesJson, // Add services as JSONB data
-        updated_at: new Date().toISOString() // Always update the timestamp
+        services: servicesJson, // Update services as JSONB data
+        updated_at: new Date().toISOString()
       };
       
-      let resultData;
+      console.log("Updating business with ID:", businessId, businessUpdateData);
       
-      if (isEditing && businessId) {
-        // Update existing business
-        console.log("Updating existing business with ID:", businessId);
-        const { data: updatedBusiness, error: updateError } = await supabase
-          .from('businesses')
-          .update(businessDataForDb)
-          .eq('id', businessId)
-          .select()
-          .single();
-          
-        if (updateError) {
-          console.error("Error updating business:", updateError);
-          throw new Error(`Failed to update business: ${updateError.message}`);
-        }
+      const { data: updatedBusiness, error: businessError } = await supabase
+        .from('businesses')
+        .update(businessUpdateData)
+        .eq('id', businessId)
+        .select()
+        .single();
         
-        console.log("Business updated successfully:", updatedBusiness);
-        resultData = updatedBusiness;
-        setSuccess("Business listing updated successfully!");
-      } else {
-        // Insert new business
-        console.log("Inserting new business");
-        const { data: newBusiness, error: insertError } = await supabase
-          .from('businesses')
-          .insert(businessDataForDb)
-          .select()
-          .single();
-          
-        if (insertError) {
-          console.error("Error creating business:", insertError);
-          throw new Error(`Failed to create business: ${insertError.message}`);
-        }
-        
-        console.log("Business created successfully:", newBusiness);
-        resultData = newBusiness;
-        
-        // 4. Update the agent's registration statistics
-        const { data: agentData, error: agentError } = await supabase
-          .from('agents')
-          .select('total_registrations, current_week_registrations')
-          .eq('id', currentAgentId)
-          .single();
-
-        if (agentError) {
-          console.error('Error fetching agent data:', agentError);
-          // Continue execution even if this fails
-        } else {
-          // Then, increment the values
-          const newTotal = (agentData.total_registrations || 0) + 1;
-          const newWeekly = (agentData.current_week_registrations || 0) + 1;
-
-          // Now, update the database with the new incremented values
-          const { data: agentUpdateData, error: agentUpdateError } = await supabase
-            .from('agents')
-            .update({
-              total_registrations: newTotal,
-              current_week_registrations: newWeekly
-            })
-            .eq('id', currentAgentId)
-            .select()
-            .single();
-
-          if (agentUpdateError) {
-            console.error('Error updating agent data:', agentUpdateError);
-          } else {
-            console.log('Agent data updated:', agentUpdateData);
-          }
-        }
-        
-        setSuccess("Business listing added successfully!");
+      if (businessError) {
+        console.error("Error updating business:", businessError);
+        throw new Error(`Failed to update business: ${businessError.message}`);
       }
+      
+      console.log("Business updated successfully:", updatedBusiness);
 
+      setSuccess("Business listing updated successfully!");
       setShowSuccessModal(true);
       setTimeout(() => {
-        router.push('/agent');
+        router.push('/agent/manage-listing');
       }, 2000);
       
     } catch (err: any) {
       console.error("Error in handleSubmit:", err);
       setError(err.message || "An unexpected error occurred");
+    } finally {
+      setIsUpdatingBusiness(false);
     }
   };
 
@@ -813,135 +674,15 @@ export default function ProfilePage() {
     const loadProfile = async () => {
       if (!user) return;
 
-      try {
-        // First check if this user already has businesses in the businesses table
-        const { data: businessesData, error: businessesError } = await supabase
-          .from('businesses')
-          .select('*')
-          .eq('owner_id', user.id)
-          .single();
-
-        if (businessesData) {
-          // If business data exists, use it as the primary data source
-          console.log("Found existing business record:", businessesData);
-          
-          updateBusinessData('name', businessesData.name || "");
-          updateBusinessData('description', businessesData.description || "");
-          updateBusinessData('market_id', businessesData.market_id || "");
-          updateBusinessData('category_id', businessesData.category_id || null);
-          updateBusinessData('contact_phone', businessesData.contact_phone || "");
-          updateBusinessData('contact_email', businessesData.contact_email || "");
-          updateBusinessData('address', businessesData.address || "");
-          updateBusinessData('logo_url', businessesData.logo_url || "");
-          updateBusinessData('status', businessesData.status || "active");
-          
-          // If there's a market ID, find the corresponding market name
-          if (businessesData.market_id) {
-            const { data: marketData } = await supabase
-              .from('markets')
-              .select('name')
-              .eq('id', businessesData.market_id)
-              .single();
-              
-            if (marketData) {
-              setMarketName(marketData.name);
-            }
-          }
-          
-          // If there's a category ID, find the corresponding type
-          if (businessesData.category_id) {
-            const { data: categoryData } = await supabase
-              .from('business_categories')
-              .select('name')
-              .eq('id', businessesData.category_id)
-              .single();
-              
-            if (categoryData) {
-              setBusinessType(categoryData.name);
-            }
-          }
-          
-          if (businessesData.logo_url) {
-            setLogoPreview(businessesData.logo_url);
-          }
-          
-          // Try to get additional info from users table
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', businessesData.owner_id)
-            .single();
-            
-          if (userData) {
-            // Load supplementary data from users table
-            setWebsite(userData.website || "");
-            setFacebook(userData.facebook || "");
-            setInstagram(userData.instagram || "");
-            setWhatsapp(userData.whatsapp || "");
-            setRegistrationNumber(userData.registration_number || "");
-            
-            // Load services
-            let servicesArr = [];
-            if (Array.isArray(userData.services)) {
-              servicesArr = userData.services;
-            } else if (typeof userData.services === 'string') {
-              try {
-                const parsed = JSON.parse(userData.services);
-                servicesArr = Array.isArray(parsed) ? parsed : [parsed];
-              } catch {
-                servicesArr = userData.services.split(',').map((s: string) => s.trim()).filter(Boolean);
-              }
-            }
-            setSelectedServices(servicesArr);
-          }
-        } else {
-          // No businesses data, try loading from users table for backward compatibility
-          const { data: profile } = await supabase
-            .from("users")
-            .select("*")
-            .eq("id", user.id)
-            .single();
-
-          if (profile) {
-            updateBusinessData('name', profile.business_name || "");
-            updateBusinessData('description', profile.description || "");
-            updateBusinessData('contact_phone', profile.phone || "");
-            updateBusinessData('contact_email', profile.email || "");
-            updateBusinessData('address', profile.address || "");
-            updateBusinessData('logo_url', profile.logo_url || "");
-            setWebsite(profile.website || "");
-            setMarketName(profile.market || "");
-            
-            // Clean up services array when loading from database
-            let servicesArr = [];
-            if (Array.isArray(profile.services)) {
-              servicesArr = profile.services.map((service: any) => 
-                typeof service === 'string' ? service : JSON.stringify(service)
-              ).filter(Boolean);
-            } else if (typeof profile.services === 'string') {
-              try {
-                const parsed = JSON.parse(profile.services);
-                servicesArr = Array.isArray(parsed) ? parsed : [parsed];
-              } catch {
-                servicesArr = profile.services.split(',').map((s: string) => s.trim()).filter(Boolean);
-              }
-            }
-            setSelectedServices(servicesArr);
-            setBusinessType(profile.business_type || "");
-            setRegistrationNumber(profile.registration_number || "");
-            setFacebook(profile.facebook || "");
-            setInstagram(profile.instagram || "");
-            setWhatsapp(profile.whatsapp || "");
-            if (profile.logo_url) setLogoPreview(profile.logo_url);
-          }
-        }
-      } catch (error) {
-        console.error("Error loading profile data:", error);
+      // This is a new listing page, no need to fetch existing business data      
+      // Pre-fill basic data from user if available
+      if (user?.email && !businessData.contact_email) {
+        updateBusinessData('contact_email', user.email);
       }
     };
     
     loadProfile();
-  }, [user, loading, authChecked]);
+  }, [user, loading, authChecked, businessData.contact_email]);
 
   // Add a useEffect to fetch the agent data when the component mounts
   useEffect(() => {
@@ -1039,9 +780,23 @@ export default function ProfilePage() {
   }, [user, loading, authChecked]);
 
   const getServiceOptions = useCallback(() => {
-    if (!businessType) return SERVICE_CATEGORIES.default;
-    return SERVICE_CATEGORIES[businessType as keyof typeof SERVICE_CATEGORIES] || SERVICE_CATEGORIES.default;
-  }, [businessType]);
+    if (!businessType) return [];
+    
+    // Find the service category ID based on the selected business type
+    const serviceCategoryId = serviceCategories.find(category => category.name === businessType)?.id;
+    
+    if (!serviceCategoryId) return [];
+    
+    // Return the sub-services for this category from the category map
+    return categoryMap[serviceCategoryId]?.services || [];
+  }, [businessType, serviceCategories, categoryMap]);
+
+  // Directly update business data when setting logoPreview
+  useEffect(() => {
+    // Ensure logo_url in businessData stays synchronized with logoPreview
+    updateBusinessData('logo_url', logoPreview);
+    console.log("Logo state synchronized:", { logoPreview, businessDataLogoUrl: businessData.logo_url });
+  }, [logoPreview]);
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -1054,8 +809,8 @@ export default function ProfilePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Profile Updated!</h3>
-              <p className="text-gray-600 mb-6">Your profile has been successfully updated. Redirecting to dashboard...</p>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Business Updated!</h3>
+              <p className="text-gray-600 mb-6">Your business listing has been successfully updated. Redirecting to listings page...</p>
               <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
                 <div className="bg-green-500 h-2 rounded-full w-full animate-pulse"></div>
               </div>
@@ -1071,7 +826,7 @@ export default function ProfilePage() {
       )}
       <main className="flex-1 flex items-center justify-center">
         <div className="bg-white rounded-xl shadow p-4 sm:p-8 max-w-2xl w-full">
-          <h1 className="text-2xl font-bold mb-6 text-rose-600 flex items-center gap-2"><span>🏬</span> Add New Business Listing</h1>
+          <h1 className="text-2xl font-bold mb-6 text-rose-600 flex items-center gap-2"><span>🏬</span> Edit Business Listing</h1>
           
           {/* Authentication status indicator */}
           <div className={`mb-4 p-2 rounded-lg ${loading ? 'bg-yellow-50 border border-yellow-300' : user ? 'bg-green-50 border border-green-300' : 'bg-red-50 border border-red-300'}`}>
@@ -1179,8 +934,8 @@ export default function ProfilePage() {
                     required
                   >
                     <option value="">Select Services</option>
-                    {SERVICES_TYPES.map(type => (
-                      <option key={type} value={type}>{type}</option>
+                    {serviceCategories.map(category => (
+                      <option key={category.id} value={category.name}>{category.name}</option>
                     ))}
                   </select>
                 </div>
@@ -1192,6 +947,15 @@ export default function ProfilePage() {
                     onChange={(e) => {
                       const categoryId = e.target.value ? parseInt(e.target.value) : null;
                       updateBusinessData('category_id', categoryId);
+                      
+                      // If Markets is selected, find the corresponding category title
+                      if (categoryId) {
+                        const selectedCategory = businessCategories.find(cat => cat.id === categoryId);
+                        if (selectedCategory && selectedCategory.title === "Markets") {
+                          // Auto-select "Market" as the businessType if Markets category is selected
+                          setBusinessType("Market");
+                        }
+                      }
                     }}
                   >
                     <option value="">Select a category</option>
@@ -1208,7 +972,8 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
-              {businessType === "Market" && (
+              {/* Show market locations dropdown when Markets category is selected or businessType is Market */}
+              {(businessType === "Market" || businessCategories.find(cat => cat.id === (businessData.category_id || 0))?.title === "Markets") && (
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Market Location</label>
                   <select 
@@ -1223,6 +988,7 @@ export default function ProfilePage() {
                         updateBusinessData('market_id', marketObj.id);
                       }
                     }}
+                    required={businessType === "Market" || businessCategories.find(cat => cat.id === (businessData.category_id || 0))?.title === "Markets"}
                   >
                     <option value="">Select market location</option>
                     {marketLocations.length > 0 ? (
@@ -1246,22 +1012,33 @@ export default function ProfilePage() {
                   </p>
                 </div>
                 <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    {getServiceOptions().map((service) => (
-                      <button
-                        key={service}
-                        type="button"
-                        onClick={() => handleServiceChange(service)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                          selectedServices.includes(service)
-                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200'
-                        }`}
+                  {/* Dropdown for sub-service selection */}
+                  {businessType && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Service Options</label>
+                      <select
+                        className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900"
+                        value=""
+                        onChange={(e) => {
+                          const selectedService = e.target.value;
+                          if (selectedService && !selectedServices.includes(selectedService)) {
+                            setSelectedServices([...selectedServices, selectedService]);
+                          }
+                        }}
                       >
-                        {service}
-                      </button>
-                    ))}
-                  </div>
+                        <option value="">Select a service to add</option>
+                        {getServiceOptions().map((service) => (
+                          <option 
+                            key={service} 
+                            value={service}
+                            disabled={selectedServices.includes(service)}
+                          >
+                            {service} {selectedServices.includes(service) ? '(Added)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-2">
                     <input
@@ -1453,7 +1230,7 @@ export default function ProfilePage() {
               type="submit" 
               className="bg-rose-600 hover:bg-rose-700 text-white px-6 py-3 rounded-md shadow transition-colors font-medium text-base focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500"
             >
-              Save Profile
+              Save Changes
             </button>
           </form>
         </div>
