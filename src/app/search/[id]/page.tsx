@@ -1,10 +1,12 @@
 "use client";
-import React, { useEffect, useState, use } from 'react'; // Added 'use' import
+import React, { useEffect, useState, use } from 'react';
 import { supabase } from '../../../supabaseClient';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { FaMapMarkerAlt, FaPhone, FaGlobe, FaCheckCircle, FaWhatsapp, FaFacebook, FaInstagram, FaTv, FaGamepad, FaLaptop, FaMicrochip, FaTools, FaHeadphones } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaPhone, FaGlobe, FaCheckCircle, FaWhatsapp, 
+  FaFacebook, FaInstagram, FaTv, FaGamepad, FaLaptop, FaMicrochip, 
+  FaTools, FaHeadphones, FaChevronLeft, FaStar, FaRegCalendarAlt } from 'react-icons/fa';
 import TopNavbar from '@/components/TopNavbar';
 
 // Define proper types for businesses and products
@@ -37,7 +39,7 @@ interface Business {
   };
   categories?: { 
     id: number;
-    title: string; // Changed from 'name' to 'title' to match the database schema
+    title: string;
   };
   [key: string]: unknown;
 }
@@ -46,13 +48,13 @@ interface Product {
   id: string;
   user_id: string;
   created_at: string;
-  image_urls?: string; // Can be null
-  title?: string; // Added later, can be null
+  image_urls?: string;
+  title?: string;
   [key: string]: unknown;
 }
 
 export default function BusinessPage({ params }: { params: { id: string } }) {
-  // Unwrap params using React.use() to fix the warning
+  // Keep existing logic for data fetching and state management
   const unwrappedParams = use(params);
   const businessId = unwrappedParams.id;
 
@@ -110,7 +112,7 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
           .from('products')
           .select('*')
           .eq('user_id', businessId)
-          .order('title', { ascending: true }); // Updated to order by title instead of name
+          .order('title', { ascending: true });
 
         if (productsError) {
           console.error('Error fetching products:', productsError.message);
@@ -134,40 +136,52 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
     fetchBusinessDetails();
   }, [businessId]);
 
+  // Modern loading screen
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white flex flex-col">
         <TopNavbar />
-        <div className="flex justify-center items-center pt-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
-          <span className="ml-3 text-gray-700">Loading business details...</span>
+        <div className="flex-1 flex justify-center items-center">
+          <div className="text-center">
+            <div className="relative mx-auto w-20 h-20">
+              <div className="absolute inset-0 border-4 border-rose-200 border-opacity-50 rounded-full animate-pulse"></div>
+              <div className="absolute inset-2 border-t-4 border-rose-500 rounded-full animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="h-2 w-2 bg-rose-500 rounded-full"></div>
+              </div>
+            </div>
+            <p className="mt-6 text-rose-600 font-medium">Loading business details</p>
+            <p className="text-sm text-gray-500">Please wait while we fetch the information</p>
+          </div>
         </div>
       </div>
     );
   }
 
+  // Modern error screen
   if (error || !business) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white">
         <TopNavbar />
-        <div className="max-w-5xl mx-auto px-4 py-8">
-          <div className="bg-white p-8 rounded-lg shadow-md">
+        <div className="max-w-5xl mx-auto px-6 py-12">
+          <div className="bg-white p-8 rounded-2xl shadow-xl">
             <div className="text-center">
-              <svg className="h-16 w-16 text-gray-400 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h1 className="text-2xl font-bold text-gray-900 mt-4 mb-2">Business Not Found</h1>
-              <p className="text-gray-600 mb-6">
+              <div className="bg-rose-100 text-rose-500 w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-6">
+                <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mt-4 mb-3">Business Not Found</h1>
+              <p className="text-gray-600 mb-8 max-w-md mx-auto">
                 {error || "The business you're looking for doesn't exist or has been removed."}
               </p>
-              <div className="flex justify-center">
-                <Link 
-                  href="/search" 
-                  className="px-5 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors shadow-sm"
-                >
-                  Back to Search
-                </Link>
-              </div>
+              <Link 
+                href="/search" 
+                className="inline-flex items-center px-6 py-3 bg-rose-500 text-white rounded-full font-medium hover:bg-rose-600 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+              >
+                <FaChevronLeft className="mr-2 h-4 w-4" />
+                Back to Search
+              </Link>
             </div>
           </div>
         </div>
@@ -175,522 +189,631 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
     );
   }
 
+  // Modern business detail page design
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white">
       <TopNavbar />
       
-      {/* Business Header */}
-      <div className="bg-white shadow-md">
-        <div className="max-w-5xl mx-auto px-4 py-8">
-          <nav className="mb-6 text-sm">
-            <ol className="flex items-center space-x-2">
-              <li>
-                <Link href="/" className="text-gray-500 hover:text-rose-600 transition-colors">Home</Link>
-              </li>
-              <li className="text-gray-400">/</li>
-              <li>
-                <Link href="/search" className="text-gray-500 hover:text-rose-600 transition-colors">Search</Link>
-              </li>
-              <li className="text-gray-400">/</li>
-              <li className="text-rose-600 font-medium truncate">{business.name}</li>
-            </ol>
-          </nav>
-          
-          <div className="flex flex-col md:flex-row gap-6">
-            {/* Logo */}
-            <div className="w-32 h-32 md:w-40 md:h-40 relative flex-shrink-0 rounded-lg overflow-hidden shadow-md">
-              {business.logo_url ? (
-                <Image 
-                  src={business.logo_url} 
-                  alt={business.name} 
-                  fill
-                  className="object-cover" 
-                />
-              ) : (
-                <div className="w-full h-full bg-rose-50 flex items-center justify-center">
-                  <span className="text-rose-500 text-2xl font-bold">{business.name?.substring(0, 2).toUpperCase()}</span>
-                </div>
-              )}
-            </div>
-            
-            {/* Business Info */}
-            <div className="flex-1">
-              <div className="flex items-center">
-                <h1 className="text-3xl font-bold text-gray-900">{business.name}</h1>
-                {business.status === 'verified' && (
-                  <span className="ml-2 text-rose-500" title="Verified Business">
-                    <FaCheckCircle />
-                  </span>
+      {/* Hero section with business cover photo or gradient background */}
+      <div className="w-full h-40 md:h-64 bg-gradient-to-r from-rose-400 to-pink-500 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" className="absolute bottom-0 w-full">
+            <path fill="currentColor" fillOpacity="1" d="M0,256L48,229.3C96,203,192,149,288,154.7C384,160,480,224,576,218.7C672,213,768,139,864,128C960,117,1056,171,1152,197.3C1248,224,1344,224,1392,224L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+          </svg>
+        </div>
+        
+        {/* Back button */}
+        <div className="absolute top-4 left-4 z-10">
+          <Link 
+            href="/search" 
+            className="flex items-center bg-white bg-opacity-80 backdrop-blur-sm px-4 py-2 rounded-full text-rose-600 hover:bg-opacity-100 shadow-md transition duration-300"
+          >
+            <FaChevronLeft className="mr-2 h-3 w-3" />
+            <span className="text-sm font-medium">Back</span>
+          </Link>
+        </div>
+      </div>
+      
+      {/* Business profile section - positioned to overlap with hero section */}
+      <div className="max-w-6xl mx-auto px-4 -mt-20 relative z-10">
+        {/* Business card with main info */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-6 md:p-8">
+            <div className="flex flex-col md:flex-row gap-6 items-start">
+              {/* Logo - larger and more prominent */}
+              <div className="w-32 h-32 md:w-48 md:h-48 relative flex-shrink-0 rounded-xl overflow-hidden shadow-lg border-4 border-white">
+                {business.logo_url ? (
+                  <Image 
+                    src={business.logo_url} 
+                    alt={business.name} 
+                    fill
+                    className="object-cover" 
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-rose-400 to-rose-500 flex items-center justify-center">
+                    <span className="text-white text-3xl font-bold">{business.name?.substring(0, 2).toUpperCase()}</span>
+                  </div>
                 )}
               </div>
               
-              {business.business_type && (
-                <div className="mt-1 mb-3">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800">
-                    {business.business_type}
+              {/* Business Info - modernized layout */}
+              <div className="flex-1 pt-4 md:pt-0">
+                <div className="flex items-center flex-wrap gap-2">
+                  <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 bg-clip-text text-transparent bg-gradient-to-r from-rose-600 to-pink-600">{business.name}</h1>
+                  {business.status === 'verified' && (
+                    <span className="ml-2 text-rose-500 bg-rose-100 p-1 rounded-full" title="Verified Business">
+                      <FaCheckCircle className="h-5 w-5" />
+                    </span>
+                  )}
+                  
+                  {business.business_type && (
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-rose-100 to-pink-100 text-rose-800 ml-auto">
+                      {business.business_type}
+                    </span>
+                  )}
+                </div>
+                
+                {/* Category and location badges */}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {business.categories && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                      <svg className="mr-1 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                      {business.categories.title}
+                    </span>
+                  )}
+                  
+                  {business.markets && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                      <svg className="mr-1 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                      </svg>
+                      {business.markets.name}
+                      {business.markets.location && ` - ${business.markets.location}`}
+                    </span>
+                  )}
+                  
+                  {business.status && (
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                      business.status === 'active' || business.status === 'verified' 
+                        ? 'bg-green-50 text-green-700' 
+                        : business.status === 'pending' 
+                        ? 'bg-amber-50 text-amber-700'
+                        : 'bg-gray-50 text-gray-700'
+                    }`}>
+                      <FaStar className="mr-1 h-3 w-3" />
+                      {business.status.charAt(0).toUpperCase() + business.status.slice(1)}
+                    </span>
+                  )}
+                  
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700">
+                    <FaRegCalendarAlt className="mr-1 h-3 w-3" />
+                    Joined {new Date(business.created_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short'
+                    })}
                   </span>
                 </div>
-              )}
-              
-              <p className="text-gray-600 mb-5">{business.description || 'No description available'}</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6 text-sm">
-                {business.contact_phone && (
-                  <div className="flex items-center text-gray-700">
-                    <FaPhone className="h-4 w-4 text-rose-500 mr-2" />
-                    <a href={`tel:${business.contact_phone}`} className="hover:text-rose-600 transition-colors">
-                      {business.contact_phone}
-                    </a>
-                  </div>
-                )}
                 
-                {business.whatsapp && (
-                  <div className="flex items-center text-gray-700">
-                    <FaWhatsapp className="h-4 w-4 text-rose-500 mr-2" />
+                {/* Description - cleaner presentation */}
+                <div className="mt-5 prose prose-rose max-w-none">
+                  <p className="text-gray-700">
+                    {business.description || `${business.name} is a business located in ${business.markets ? business.markets.name : 'Aba'}.`}
+                  </p>
+                </div>
+                
+                {/* Quick contact/info row */}
+                <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {business.contact_phone && (
+                    <a href={`tel:${business.contact_phone}`} className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center">
+                        <FaPhone className="h-3 w-3 text-rose-600" />
+                      </div>
+                      <span className="text-sm text-gray-600 truncate">{business.contact_phone}</span>
+                    </a>
+                  )}
+                  
+                  {business.contact_email && (
+                    <a href={`mailto:${business.contact_email}`} className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <svg className="h-3 w-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-gray-600 truncate">{business.contact_email.substring(0, 15)}...</span>
+                    </a>
+                  )}
+                  
+                  {business.whatsapp && (
                     <a 
                       href={`https://wa.me/${business.whatsapp.replace(/\+/g, '').replace(/\s/g, '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-rose-600 transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg transition"
                     >
-                      {business.whatsapp}
-                    </a>
-                  </div>
-                )}
-                
-                {business.contact_email && (
-                  <div className="flex items-center text-gray-700">
-                    <svg className="h-4 w-4 text-rose-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    <a href={`mailto:${business.contact_email}`} className="hover:text-rose-600 transition-colors">
-                      {business.contact_email}
-                    </a>
-                  </div>
-                )}
-                
-                {business.address && (
-                  <div className="flex items-center text-gray-700">
-                    <FaMapMarkerAlt className="h-4 w-4 text-rose-500 mr-2 flex-shrink-0" />
-                    <span>{business.address}</span>
-                  </div>
-                )}
-                
-                {business.markets && (
-                  <div className="flex items-center text-gray-700">
-                    <svg className="h-4 w-4 text-rose-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                    <span>
-                      {business.markets.name}
-                      {business.markets.location && ` - ${business.markets.location}`}
-                    </span>
-                  </div>
-                )}
-                
-                {business.categories && (
-                  <div className="flex items-center text-gray-700">
-                    <svg className="h-4 w-4 text-rose-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                    </svg>
-                    <span>{business.categories.title}</span>
-                  </div>
-                )}
-              </div>
-              
-              {/* Social Media Links */}
-              <div className="flex mt-5 space-x-4">
-                {business.website && (
-                  <a 
-                    href={business.website.startsWith('http') ? business.website : `https://${business.website}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-600 hover:text-rose-500 transition-colors"
-                    aria-label="Website"
-                  >
-                    <FaGlobe className="h-5 w-5" />
-                  </a>
-                )}
-                
-                {business.facebook && (
-                  <a 
-                    href={business.facebook.startsWith('http') ? business.facebook : `https://facebook.com/${business.facebook}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-600 hover:text-rose-500 transition-colors"
-                    aria-label="Facebook"
-                  >
-                    <FaFacebook className="h-5 w-5" />
-                  </a>
-                )}
-                
-                {business.instagram && (
-                  <a 
-                    href={business.instagram.startsWith('http') ? business.instagram : `https://instagram.com/${business.instagram}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-600 hover:text-rose-500 transition-colors"
-                    aria-label="Instagram"
-                  >
-                    <FaInstagram className="h-5 w-5" />
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Content Tabs */}
-      <div className="max-w-5xl mx-auto px-4 py-6">
-        <div className="border-b mb-6">
-          <nav className="flex space-x-8">
-            <button
-              onClick={() => setActiveTab('products')}
-              className={`pb-4 px-1 ${
-                activeTab === 'products'
-                  ? 'border-b-2 border-rose-500 text-rose-600 font-medium'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Products & Services
-            </button>
-            <button
-              onClick={() => setActiveTab('about')}
-              className={`pb-4 px-1 ${
-                activeTab === 'about'
-                  ? 'border-b-2 border-rose-500 text-rose-600 font-medium'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              About
-            </button>
-            <button
-              onClick={() => setActiveTab('contact')}
-              className={`pb-4 px-1 ${
-                activeTab === 'contact'
-                  ? 'border-b-2 border-rose-500 text-rose-600 font-medium'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Contact
-            </button>
-          </nav>
-        </div>
-
-        {/* Products Tab Content */}
-        {activeTab === 'products' && (
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Products & Services</h2>
-            {products.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((product) => (
-                  <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                    {product.image_urls ? (
-                      <div className="h-48 relative">
-                        <Image 
-                          src={product.image_urls.split(',')[0]} // Take first image if multiple
-                          alt="Product image" 
-                          fill
-                          className="object-cover" 
-                        />
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                        <FaWhatsapp className="h-3 w-3 text-green-600" />
                       </div>
-                    ) : (
-                      <div className="h-48 bg-gray-100 flex items-center justify-center">
-                        <span className="text-gray-500">No image available</span>
+                      <span className="text-sm text-gray-600 truncate">WhatsApp</span>
+                    </a>
+                  )}
+                  
+                  {business.address && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
+                        <FaMapMarkerAlt className="h-3 w-3 text-amber-600" />
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white p-8 rounded-lg shadow-md text-center">
-                <svg className="h-16 w-16 text-gray-400 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                </svg>
-                <p className="text-gray-600 mt-4">No products or services listed yet.</p>
-                <p className="text-sm text-gray-500 mt-2">This business hasn't added any products or services to their profile.</p>
-              </div>
-            )}
-
-            {/* Services section if services data is available */}
-            {business.services && (
-              <div className="mt-10">
-                <h3 className="text-lg font-semibold mb-4">Services Offered</h3>
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                  {business.services.service_list && Array.isArray(business.services.service_list) ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {business.services.service_list.map((service, index) => {
-                        // Assign appropriate icons based on service type
-                        let Icon = FaTools; // Default icon
-                        if (service.includes('TV') || service.includes('Home Theater')) {
-                          Icon = FaTv;
-                        } else if (service.includes('Gaming')) {
-                          Icon = FaGamepad;
-                        } else if (service.includes('Computer') || service.includes('Laptop')) {
-                          Icon = FaLaptop;
-                        } else if (service.includes('Electronic') || service.includes('Component')) {
-                          Icon = FaMicrochip;
-                        } else if (service.includes('Repair')) {
-                          Icon = FaTools;
-                        } else if (service.includes('Audio')) {
-                          Icon = FaHeadphones;
-                        }
-                        
-                        return (
-                          <div key={index} className="flex items-center p-3 bg-rose-50 rounded-lg">
-                            <div className="flex-shrink-0 mr-3">
-                              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-rose-100 text-rose-600">
-                                <Icon className="h-5 w-5" />
-                              </div>
-                            </div>
-                            <span className="text-gray-800 font-medium">{service}</span>
-                          </div>
-                        );
-                      })}
+                      <span className="text-sm text-gray-600 truncate">{business.address}</span>
                     </div>
-                  ) : (
-                    <p className="text-gray-600">No services information available</p>
+                  )}
+                </div>
+                
+                {/* Social media links - more modern style */}
+                <div className="mt-5 flex gap-3">
+                  {business.website && (
+                    <a 
+                      href={business.website.startsWith('http') ? business.website : `https://${business.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-gray-600 hover:text-rose-500 hover:bg-rose-50 border border-gray-200 transition-all duration-300"
+                      aria-label="Website"
+                    >
+                      <FaGlobe className="h-4 w-4" />
+                    </a>
+                  )}
+                  
+                  {business.facebook && (
+                    <a 
+                      href={business.facebook.startsWith('http') ? business.facebook : `https://facebook.com/${business.facebook}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-200 transition-all duration-300"
+                      aria-label="Facebook"
+                    >
+                      <FaFacebook className="h-4 w-4" />
+                    </a>
+                  )}
+                  
+                  {business.instagram && (
+                    <a 
+                      href={business.instagram.startsWith('http') ? business.instagram : `https://instagram.com/${business.instagram}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-gray-600 hover:text-pink-600 hover:bg-pink-50 border border-gray-200 transition-all duration-300"
+                      aria-label="Instagram"
+                    >
+                      <FaInstagram className="h-4 w-4" />
+                    </a>
                   )}
                 </div>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* About Tab Content */}
-        {activeTab === 'about' && (
-          <div>
-            <h2 className="text-xl font-semibold mb-4">About {business.name}</h2>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="prose max-w-none">
-                <p className="text-gray-700">
-                  {business.description || `${business.name} is a business located in ${business.markets ? business.markets.name : 'Aba'}.`}
-                </p>
-                
-                {business.business_type && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Type of Business</h3>
-                    <p className="text-gray-700">{business.business_type}</p>
-                  </div>
-                )}
-                
-                {business.markets && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Location & Category</h3>
-                    <ul className="text-gray-700 space-y-2">
-                      <li className="flex items-start">
-                        <svg className="h-5 w-5 text-rose-500 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                        </svg>
-                        <span>Market: {business.markets.name} {business.markets.location ? `(${business.markets.location})` : ''}</span>
-                      </li>
-                      {business.categories && (
-                        <li className="flex items-start">
-                          <svg className="h-5 w-5 text-rose-500 mr-2 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                          </svg>
-                          <span>Category: {business.categories.title}</span>
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                )}
-              </div>
-              
-              <div className="mt-8 pt-6 border-t border-gray-200 text-sm text-gray-500">
-                <p>Business registered on {new Date(business.created_at).toLocaleDateString()}</p>
-                <p className="flex items-center mt-1">
-                  Status: 
-                  <span className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    business.status === 'active' || business.status === 'verified' 
-                      ? 'bg-green-100 text-green-800' 
-                      : business.status === 'pending' 
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {business.status.charAt(0).toUpperCase() + business.status.slice(1)}
-                  </span>
-                </p>
-              </div>
             </div>
           </div>
-        )}
-
-        {/* Contact Tab Content */}
-        {activeTab === 'contact' && (
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Contact {business.name}</h2>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* Modern tab navigation */}
+          <div className="px-6 border-t border-gray-100">
+            <div className="flex overflow-x-auto hide-scrollbar pt-2">
+              <button
+                onClick={() => setActiveTab('products')}
+                className={`px-5 py-3 font-medium text-sm transition-colors relative ${
+                  activeTab === 'products'
+                    ? 'text-rose-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Products & Services
+                {activeTab === 'products' && (
+                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-rose-500 rounded-t-lg"></span>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('about')}
+                className={`px-5 py-3 font-medium text-sm transition-colors relative ${
+                  activeTab === 'about'
+                    ? 'text-rose-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                About
+                {activeTab === 'about' && (
+                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-rose-500 rounded-t-lg"></span>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('contact')}
+                className={`px-5 py-3 font-medium text-sm transition-colors relative ${
+                  activeTab === 'contact'
+                    ? 'text-rose-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Contact
+                {activeTab === 'contact' && (
+                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-rose-500 rounded-t-lg"></span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Tab content with modern styling */}
+        <div className="mt-6 mb-10">
+          {/* Products Tab Content */}
+          {activeTab === 'products' && (
+            <div className="space-y-8">
+              {products.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
-                  <ul className="space-y-4">
-                    {business.contact_phone && (
-                      <li className="flex">
-                        <div className="flex-shrink-0">
-                          <div className="flex items-center justify-center h-12 w-12 rounded-md bg-rose-100 text-rose-600">
-                            <FaPhone className="h-6 w-6" />
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <h4 className="text-sm font-medium text-gray-900">Phone</h4>
-                          <a href={`tel:${business.contact_phone}`} className="mt-1 text-sm text-gray-600 hover:text-rose-600 transition-colors">
-                            {business.contact_phone}
-                          </a>
-                        </div>
-                      </li>
-                    )}
-                    
-                    {business.whatsapp && (
-                      <li className="flex">
-                        <div className="flex-shrink-0">
-                          <div className="flex items-center justify-center h-12 w-12 rounded-md bg-rose-100 text-rose-600">
-                            <FaWhatsapp className="h-6 w-6" />
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <h4 className="text-sm font-medium text-gray-900">WhatsApp</h4>
-                          <a 
-                            href={`https://wa.me/${business.whatsapp.replace(/\+/g, '').replace(/\s/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 text-sm text-gray-600 hover:text-rose-600 transition-colors"
-                          >
-                            {business.whatsapp}
-                          </a>
-                        </div>
-                      </li>
-                    )}
-                    
-                    {business.contact_email && (
-                      <li className="flex">
-                        <div className="flex-shrink-0">
-                          <div className="flex items-center justify-center h-12 w-12 rounded-md bg-rose-100 text-rose-600">
-                            <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  <h2 className="text-xl font-bold text-gray-900 mb-6">Photo Gallery</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {products.map((product) => (
+                      <div key={product.id} className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+                        {product.image_urls ? (
+                          <Image 
+                            src={product.image_urls.split(',')[0]} 
+                            alt="Product image" 
+                            fill
+                            className="object-cover transition-transform duration-700 group-hover:scale-110" 
+                          />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center bg-gray-50">
+                            <svg className="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                           </div>
-                        </div>
-                        <div className="ml-4">
-                          <h4 className="text-sm font-medium text-gray-900">Email</h4>
-                          <a href={`mailto:${business.contact_email}`} className="mt-1 text-sm text-gray-600 hover:text-rose-600 transition-colors">
-                            {business.contact_email}
-                          </a>
-                        </div>
-                      </li>
-                    )}
-                    
-                    {business.address && (
-                      <li className="flex">
-                        <div className="flex-shrink-0">
-                          <div className="flex items-center justify-center h-12 w-12 rounded-md bg-rose-100 text-rose-600">
-                            <FaMapMarkerAlt className="h-6 w-6" />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Services section with modern styling */}
+              {business.services && business.services.service_list && Array.isArray(business.services.service_list) && (
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                    <span className="bg-rose-100 text-rose-600 p-1.5 rounded-lg mr-3">
+                      <FaTools className="h-4 w-4" />
+                    </span>
+                    Services Offered
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {business.services.service_list.map((service, index) => {
+                      // Assign appropriate icons based on service type
+                      let Icon = FaTools; // Default icon
+                      let bgColor = "from-blue-50 to-blue-100";
+                      let textColor = "text-blue-700";
+                      
+                      if (service.includes('TV') || service.includes('Home Theater')) {
+                        Icon = FaTv;
+                        bgColor = "from-purple-50 to-purple-100";
+                        textColor = "text-purple-700";
+                      } else if (service.includes('Gaming')) {
+                        Icon = FaGamepad;
+                        bgColor = "from-pink-50 to-pink-100";
+                        textColor = "text-pink-700";
+                      } else if (service.includes('Computer') || service.includes('Laptop')) {
+                        Icon = FaLaptop;
+                        bgColor = "from-cyan-50 to-cyan-100";
+                        textColor = "text-cyan-700";
+                      } else if (service.includes('Electronic') || service.includes('Component')) {
+                        Icon = FaMicrochip;
+                        bgColor = "from-amber-50 to-amber-100";
+                        textColor = "text-amber-700";
+                      } else if (service.includes('Repair')) {
+                        Icon = FaTools;
+                        bgColor = "from-emerald-50 to-emerald-100";
+                        textColor = "text-emerald-700";
+                      } else if (service.includes('Audio')) {
+                        Icon = FaHeadphones;
+                        bgColor = "from-rose-50 to-rose-100";
+                        textColor = "text-rose-700";
+                      }
+                      
+                      return (
+                        <div key={index} className={`flex items-center p-4 rounded-xl bg-gradient-to-br ${bgColor} shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1`}>
+                          <div className="mr-4">
+                            <div className={`w-12 h-12 rounded-full bg-white shadow-inner flex items-center justify-center ${textColor}`}>
+                              <Icon className="h-5 w-5" />
+                            </div>
+                          </div>
+                          <div>
+                            <p className={`font-medium ${textColor}`}>{service}</p>
                           </div>
                         </div>
-                        <div className="ml-4">
-                          <h4 className="text-sm font-medium text-gray-900">Address</h4>
-                          <p className="mt-1 text-sm text-gray-600">{business.address}</p>
-                        </div>
-                      </li>
-                    )}
-                  </ul>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {/* Empty state with modern design */}
+              {products.length === 0 && !(business.services && business.services.service_list && Array.isArray(business.services.service_list)) && (
+                <div className="bg-white rounded-2xl shadow-sm p-10 text-center border border-gray-100">
+                  <div className="inline-flex items-center justify-center h-16 w-16 bg-gray-50 rounded-full text-gray-400 mb-6">
+                    <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No products or services yet</h3>
+                  <p className="text-gray-500 max-w-md mx-auto">This business hasn't added any products or services to their profile.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* About Tab Content - modernized */}
+          {activeTab === 'about' && (
+            <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
+              <div className="prose max-w-none">
+                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                  <span className="bg-blue-100 text-blue-600 p-1.5 rounded-lg mr-3">
+                    <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </span>
+                  About {business.name}
+                </h2>
+                
+                <div className="p-6 bg-gradient-to-br from-gray-50 to-white rounded-xl mb-6">
+                  <p className="text-gray-700">
+                    {business.description || `${business.name} is a business located in ${business.markets ? business.markets.name : 'Aba'}.`}
+                  </p>
                 </div>
                 
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Online Presence</h3>
-                  
-                  {(business.website || business.facebook || business.instagram) ? (
-                    <ul className="space-y-4">
-                      {business.website && (
-                        <li className="flex">
-                          <div className="flex-shrink-0">
-                            <div className="flex items-center justify-center h-12 w-12 rounded-md bg-rose-100 text-rose-600">
-                              <FaGlobe className="h-6 w-6" />
-                            </div>
+                {business.business_type && (
+                  <div className="p-6 bg-gradient-to-br from-blue-50 to-white rounded-xl mb-6">
+                    <h3 className="text-lg font-medium text-blue-900 mb-2 flex items-center">
+                      <svg className="h-5 w-5 mr-2 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Type of Business
+                    </h3>
+                    <p className="text-blue-700 font-medium">{business.business_type}</p>
+                  </div>
+                )}
+                
+                {(business.markets || business.categories) && (
+                  <div className="p-6 bg-gradient-to-br from-rose-50 to-white rounded-xl">
+                    <h3 className="text-lg font-medium text-rose-900 mb-4 flex items-center">
+                      <svg className="h-5 w-5 mr-2 text-rose-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Location & Category
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      {business.markets && (
+                        <div className="flex items-start p-3 bg-white rounded-lg shadow-sm">
+                          <svg className="h-5 w-5 text-rose-500 mr-3 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                          </svg>
+                          <div>
+                            <span className="font-medium text-gray-900">Market:</span> 
+                            <span className="text-gray-700">{business.markets.name} {business.markets.location ? `(${business.markets.location})` : ''}</span>
                           </div>
-                          <div className="ml-4">
-                            <h4 className="text-sm font-medium text-gray-900">Website</h4>
-                            <a 
-                              href={business.website.startsWith('http') ? business.website : `https://${business.website}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="mt-1 text-sm text-gray-600 hover:text-rose-600 transition-colors"
-                            >
-                              {business.website}
-                            </a>
-                          </div>
-                        </li>
+                        </div>
                       )}
                       
-                      {business.facebook && (
-                        <li className="flex">
+                      {business.categories && (
+                        <div className="flex items-start p-3 bg-white rounded-lg shadow-sm">
+                          <svg className="h-5 w-5 text-rose-500 mr-3 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                          </svg>
+                          <div>
+                            <span className="font-medium text-gray-900">Category:</span> 
+                            <span className="text-gray-700">{business.categories.title}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Contact Tab Content - modern design */}
+          {activeTab === 'contact' && (
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-rose-50 to-white">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                  <span className="bg-rose-100 text-rose-600 p-1.5 rounded-lg mr-3">
+                    <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </span>
+                  Contact {business.name}
+                </h2>
+              </div>
+              
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Contact Information - card layout */}
+                  <div className="bg-gradient-to-br from-gray-50 to-white p-6 rounded-xl shadow-sm">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                      <svg className="h-5 w-5 mr-2 text-rose-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      Contact Information
+                    </h3>
+                    
+                    <div className="space-y-6">
+                      {business.contact_phone && (
+                        <div className="flex p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
                           <div className="flex-shrink-0">
-                            <div className="flex items-center justify-center h-12 w-12 rounded-md bg-rose-100 text-rose-600">
-                              <FaFacebook className="h-6 w-6" />
+                            <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-rose-100 text-rose-600">
+                              <FaPhone className="h-5 w-5" />
                             </div>
                           </div>
                           <div className="ml-4">
-                            <h4 className="text-sm font-medium text-gray-900">Facebook</h4>
-                            <a 
-                              href={business.facebook.startsWith('http') ? business.facebook : `https://facebook.com/${business.facebook}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="mt-1 text-sm text-gray-600 hover:text-rose-600 transition-colors"
-                            >
-                              Facebook Page
+                            <h4 className="text-sm font-medium text-gray-900">Phone</h4>
+                            <a href={`tel:${business.contact_phone}`} className="mt-1 text-base text-rose-600 hover:text-rose-700 transition-colors font-medium">
+                              {business.contact_phone}
                             </a>
                           </div>
-                        </li>
+                        </div>
                       )}
                       
-                      {business.instagram && (
-                        <li className="flex">
+                      {business.whatsapp && (
+                        <div className="flex p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
                           <div className="flex-shrink-0">
-                            <div className="flex items-center justify-center h-12 w-12 rounded-md bg-rose-100 text-rose-600">
-                              <FaInstagram className="h-6 w-6" />
+                            <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-green-100 text-green-600">
+                              <FaWhatsapp className="h-5 w-5" />
                             </div>
                           </div>
                           <div className="ml-4">
-                            <h4 className="text-sm font-medium text-gray-900">Instagram</h4>
+                            <h4 className="text-sm font-medium text-gray-900">WhatsApp</h4>
                             <a 
-                              href={business.instagram.startsWith('http') ? business.instagram : `https://instagram.com/${business.instagram}`}
+                              href={`https://wa.me/${business.whatsapp.replace(/\+/g, '').replace(/\s/g, '')}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="mt-1 text-sm text-gray-600 hover:text-rose-600 transition-colors"
+                              className="mt-1 text-base text-green-600 hover:text-green-700 transition-colors font-medium"
                             >
-                              Instagram Profile
+                              {business.whatsapp}
                             </a>
                           </div>
-                        </li>
+                        </div>
                       )}
-                    </ul>
-                  ) : (
-                    <p className="text-gray-600">No online presence information available.</p>
-                  )}
+                      
+                      {business.contact_email && (
+                        <div className="flex p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
+                          <div className="flex-shrink-0">
+                            <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-blue-100 text-blue-600">
+                              <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <h4 className="text-sm font-medium text-gray-900">Email</h4>
+                            <a href={`mailto:${business.contact_email}`} className="mt-1 text-base text-blue-600 hover:text-blue-700 transition-colors font-medium break-all">
+                              {business.contact_email}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {business.address && (
+                        <div className="flex p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
+                          <div className="flex-shrink-0">
+                            <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-amber-100 text-amber-600">
+                              <FaMapMarkerAlt className="h-5 w-5" />
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <h4 className="text-sm font-medium text-gray-900">Address</h4>
+                            <p className="mt-1 text-base text-gray-700">{business.address}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <h4 className="text-sm font-medium text-gray-900 mb-3">Business Hours</h4>
-                    <p className="text-sm text-gray-600">Business hours not specified</p>
+                  {/* Online Presence - modern cards */}
+                  <div className="bg-gradient-to-br from-gray-50 to-white p-6 rounded-xl shadow-sm">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                      <svg className="h-5 w-5 mr-2 text-purple-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                      </svg>
+                      Online Presence
+                    </h3>
+                    
+                    {(business.website || business.facebook || business.instagram) ? (
+                      <div className="space-y-6">
+                        {business.website && (
+                          <div className="flex p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
+                            <div className="flex-shrink-0">
+                              <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-indigo-100 text-indigo-600">
+                                <FaGlobe className="h-5 w-5" />
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <h4 className="text-sm font-medium text-gray-900">Website</h4>
+                              <a 
+                                href={business.website.startsWith('http') ? business.website : `https://${business.website}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-1 text-base text-indigo-600 hover:text-indigo-700 transition-colors font-medium break-all"
+                              >
+                                {business.website}
+                              </a>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {business.facebook && (
+                          <div className="flex p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
+                            <div className="flex-shrink-0">
+                              <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-blue-100 text-blue-600">
+                                <FaFacebook className="h-5 w-5" />
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <h4 className="text-sm font-medium text-gray-900">Facebook</h4>
+                              <a 
+                                href={business.facebook.startsWith('http') ? business.facebook : `https://facebook.com/${business.facebook}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-1 text-base text-blue-600 hover:text-blue-700 transition-colors font-medium"
+                              >
+                                Facebook Page
+                              </a>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {business.instagram && (
+                          <div className="flex p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
+                            <div className="flex-shrink-0">
+                              <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-pink-100 text-pink-600">
+                                <FaInstagram className="h-5 w-5" />
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <h4 className="text-sm font-medium text-gray-900">Instagram</h4>
+                              <a 
+                                href={business.instagram.startsWith('http') ? business.instagram : `https://instagram.com/${business.instagram}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-1 text-base text-pink-600 hover:text-pink-700 transition-colors font-medium"
+                              >
+                                Instagram Profile
+                              </a>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center p-8 bg-white rounded-lg border border-dashed border-gray-300">
+                        <div className="text-center">
+                          <svg className="h-10 w-10 mx-auto text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                          </svg>
+                          <p className="mt-2 text-gray-500">No online presence information available</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
+                        <svg className="h-4 w-4 mr-2 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Business Hours
+                      </h4>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-sm text-gray-600">Business hours not specified</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
-      
-      {/* Back to search button */}
-      <div className="max-w-5xl mx-auto px-4 py-8 flex justify-center">
-        <Link 
-          href="/search" 
-          className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-        >
-          <svg className="mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to Search Results
-        </Link>
+          )}
+        </div>
       </div>
     </div>
   );
