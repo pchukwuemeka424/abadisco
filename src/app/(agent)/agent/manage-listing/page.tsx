@@ -30,6 +30,8 @@ export default function ManageListingPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [imageCounts, setImageCounts] = useState<{ [listingId: string]: number }>({});
   const [marketNames, setMarketNames] = useState<{ [marketId: string]: string }>({});
+  const [categoryNames, setCategoryNames] = useState<{ [categoryId: number]: string }>({});
+  const [categoryFilter, setCategoryFilter] = useState("all");
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -148,10 +150,51 @@ export default function ManageListingPage() {
     fetchMarketNames();
   }, [listings]);
 
+  // Fetch category names for all listings
+  useEffect(() => {
+    async function fetchCategoryNames() {
+      if (!listings.length) return;
+      
+      // Get unique category IDs from listings
+      const categoryIds = [...new Set(listings.filter(l => l.category_id).map(l => l.category_id))];
+      
+      if (categoryIds.length === 0) return;
+      
+      try {
+        const { data: categories, error } = await supabase
+          .from('business_categories')
+          .select('id, title') // Changed from 'id, name' to 'id, title'
+          .in('id', categoryIds as number[]);
+          
+        if (error) {
+          console.error("Error fetching category names:", error);
+          return;
+        }
+        
+        if (categories) {
+          const categoryNameMap: { [categoryId: number]: string } = {};
+          categories.forEach(category => {
+            categoryNameMap[category.id] = category.title; // Changed from category.name to category.title
+          });
+          setCategoryNames(categoryNameMap);
+        }
+      } catch (err) {
+        console.error("Error in fetchCategoryNames:", err);
+      }
+    }
+    
+    fetchCategoryNames();
+  }, [listings]);
+
+  // Get a list of unique categories from the listings data
+  const categoryIds = [...new Set(listings.filter(l => l.category_id).map(l => l.category_id))];
+
   const filteredListings = listings.filter(listing => {
     const matchesStatus = statusFilter === "all" || listing.status === statusFilter;
     const matchesType = businessTypeFilter === "all" || listing.business_type === businessTypeFilter;
-    return matchesStatus && matchesType;
+    const matchesCategory = categoryFilter === "all" || 
+                           (listing.category_id && categoryFilter === listing.category_id.toString());
+    return matchesStatus && matchesType && matchesCategory;
   });
 
   // Pagination calculations
@@ -316,7 +359,7 @@ export default function ManageListingPage() {
           </div>
 
           {/* Filters */}
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">
                 Filter by Status
@@ -346,6 +389,24 @@ export default function ManageListingPage() {
                 <option value="all">All Types</option>
                 {businessTypes.map(type => (
                   <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="category-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                Filter by Category
+              </label>
+              <select
+                id="category-filter"
+                className="w-full rounded-md border border-gray-300 py-2 px-3"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                <option value="all">All Categories</option>
+                {categoryIds.map(categoryId => (
+                  <option key={categoryId} value={categoryId}>
+                    {categoryNames[categoryId] || `Category ${categoryId}`}
+                  </option>
                 ))}
               </select>
             </div>
@@ -478,7 +539,7 @@ export default function ManageListingPage() {
                 >
                   <span className="sr-only">Next</span>
                   <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l-4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                   </svg>
                 </button>
                 <button
@@ -490,7 +551,7 @@ export default function ManageListingPage() {
                 >
                   <span className="sr-only">Last</span>
                   <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414-1.414L8.586 10l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
                     <path fillRule="evenodd" d="M10.293 4.293a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414-1.414L14.586 10l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
                 </button>
@@ -530,6 +591,7 @@ export default function ManageListingPage() {
                 onClick={() => {
                   setStatusFilter("all");
                   setBusinessTypeFilter("all");
+                  setCategoryFilter("all");
                 }}
                 className="mt-4 text-rose-600 hover:text-rose-800 font-medium"
               >
@@ -590,6 +652,11 @@ export default function ManageListingPage() {
                             {listing.market_id && (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                 {marketNames[listing.market_id] || listing.market_id}
+                              </span>
+                            )}
+                            {listing.category_id && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                {categoryNames[listing.category_id] || `Category ${listing.category_id}`}
                               </span>
                             )}
                           </div>
