@@ -568,135 +568,15 @@ export default function ProfilePage() {
     const loadProfile = async () => {
       if (!user) return;
 
-      try {
-        // First check if this user already has businesses in the businesses table
-        const { data: businessesData, error: businessesError } = await supabase
-          .from('businesses')
-          .select('*')
-          .eq('owner_id', user.id)
-          .single();
-
-        if (businessesData) {
-          // If business data exists, use it as the primary data source
-          console.log("Found existing business record:", businessesData);
-          
-          updateBusinessData('name', businessesData.name || "");
-          updateBusinessData('description', businessesData.description || "");
-          updateBusinessData('market_id', businessesData.market_id || "");
-          updateBusinessData('category_id', businessesData.category_id || null);
-          updateBusinessData('contact_phone', businessesData.contact_phone || "");
-          updateBusinessData('contact_email', businessesData.contact_email || "");
-          updateBusinessData('address', businessesData.address || "");
-          updateBusinessData('logo_url', businessesData.logo_url || "");
-          updateBusinessData('status', businessesData.status || "active");
-          
-          // If there's a market ID, find the corresponding market name
-          if (businessesData.market_id) {
-            const { data: marketData } = await supabase
-              .from('markets')
-              .select('name')
-              .eq('id', businessesData.market_id)
-              .single();
-              
-            if (marketData) {
-              setMarketName(marketData.name);
-            }
-          }
-          
-          // If there's a category ID, find the corresponding type
-          if (businessesData.category_id) {
-            const { data: categoryData } = await supabase
-              .from('business_categories')
-              .select('name')
-              .eq('id', businessesData.category_id)
-              .single();
-              
-            if (categoryData) {
-              setBusinessType(categoryData.name);
-            }
-          }
-          
-          if (businessesData.logo_url) {
-            setLogoPreview(businessesData.logo_url);
-          }
-          
-          // Try to get additional info from users table
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', businessesData.owner_id)
-            .single();
-            
-          if (userData) {
-            // Load supplementary data from users table
-            setWebsite(userData.website || "");
-            setFacebook(userData.facebook || "");
-            setInstagram(userData.instagram || "");
-            setWhatsapp(userData.whatsapp || "");
-            setRegistrationNumber(userData.registration_number || "");
-            
-            // Load services
-            let servicesArr = [];
-            if (Array.isArray(userData.services)) {
-              servicesArr = userData.services;
-            } else if (typeof userData.services === 'string') {
-              try {
-                const parsed = JSON.parse(userData.services);
-                servicesArr = Array.isArray(parsed) ? parsed : [parsed];
-              } catch {
-                servicesArr = userData.services.split(',').map((s: string) => s.trim()).filter(Boolean);
-              }
-            }
-            setSelectedServices(servicesArr);
-          }
-        } else {
-          // No businesses data, try loading from users table for backward compatibility
-          const { data: profile } = await supabase
-            .from("users")
-            .select("*")
-            .eq("id", user.id)
-            .single();
-
-          if (profile) {
-            updateBusinessData('name', profile.business_name || "");
-            updateBusinessData('description', profile.description || "");
-            updateBusinessData('contact_phone', profile.phone || "");
-            updateBusinessData('contact_email', profile.email || "");
-            updateBusinessData('address', profile.address || "");
-            updateBusinessData('logo_url', profile.logo_url || "");
-            setWebsite(profile.website || "");
-            setMarketName(profile.market || "");
-            
-            // Clean up services array when loading from database
-            let servicesArr = [];
-            if (Array.isArray(profile.services)) {
-              servicesArr = profile.services.map((service: any) => 
-                typeof service === 'string' ? service : JSON.stringify(service)
-              ).filter(Boolean);
-            } else if (typeof profile.services === 'string') {
-              try {
-                const parsed = JSON.parse(profile.services);
-                servicesArr = Array.isArray(parsed) ? parsed : [parsed];
-              } catch {
-                servicesArr = profile.services.split(',').map((s: string) => s.trim()).filter(Boolean);
-              }
-            }
-            setSelectedServices(servicesArr);
-            setBusinessType(profile.business_type || "");
-            setRegistrationNumber(profile.registration_number || "");
-            setFacebook(profile.facebook || "");
-            setInstagram(profile.instagram || "");
-            setWhatsapp(profile.whatsapp || "");
-            if (profile.logo_url) setLogoPreview(profile.logo_url);
-          }
-        }
-      } catch (error) {
-        console.error("Error loading profile data:", error);
+      // This is a new listing page, no need to fetch existing business data      
+      // Pre-fill basic data from user if available
+      if (user?.email && !businessData.contact_email) {
+        updateBusinessData('contact_email', user.email);
       }
     };
     
     loadProfile();
-  }, [user, loading, authChecked]);
+  }, [user, loading, authChecked, businessData.contact_email]);
 
   // Add a useEffect to fetch the agent data when the component mounts
   useEffect(() => {
