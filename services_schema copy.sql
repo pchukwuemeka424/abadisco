@@ -82,7 +82,7 @@ INSERT INTO general_services (name) VALUES
 ('Delivery'),
 ('Outdoor Seating'),
 ('Reservations'),
-('Catering'),  -- Keep only this instance of Catering
+('Catering'),
 -- Construction & Repairs
 ('Painting'),
 ('Plumbing'),
@@ -267,14 +267,14 @@ INSERT INTO general_services (name) VALUES
 ('Ghostwriting'),
 ('Ebook Writing'),
 ('White Paper Writing'),
-('Resume Writing'),  -- Keep only this instance of Resume Writing
+('Resume Writing'),
 ('Cover Letter Writing'),
 ('Grant Writing'),
 ('Speech Writing'),
 ('Script Writing'),
 ('Podcast Script Writing'),
 ('Video Script Writing'),
-('Translation Services'),  -- Keep only this instance of Translation Services
+('Translation Services'),
 ('Transcription Services'),
 ('Content Research'),
 ('Keyword Research'),
@@ -347,8 +347,8 @@ INSERT INTO general_services (name) VALUES
 ('Marketing Services'),
 ('Web Design'),
 ('Graphic Design'),
-('Language Translation Services'),  -- Renamed to avoid duplicate with Translation Services
-('CV Writing Services'),  -- Renamed to avoid duplicate with Resume Writing
+('Translation Services'),
+('Resume Writing'),
 -- Creative Services
 ('Photography'),
 ('Videography'),
@@ -386,7 +386,7 @@ INSERT INTO general_services (name) VALUES
 ('Home Security Assessment'),
 -- Event Services
 ('Event Planning'),
-('Event Catering Services'),  -- Renamed to avoid duplicate with Catering
+('Catering'),
 ('DJ Services'),
 ('Live Music'),
 ('Party Decoration'),

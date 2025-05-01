@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/supabaseClient";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { FaAngleLeft, FaAngleRight } from "react-icons/fa";
 
 export default function ServicesManagement() {
   const router = useRouter();
@@ -15,79 +16,137 @@ export default function ServicesManagement() {
   const [specificServices, setSpecificServices] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  
+
+  // Pagination states
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState({
+    types: 0,
+    general: 0,
+    categories: 0,
+    specific: 0
+  });
+
   // Modal states for editing
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editModalType, setEditModalType] = useState<"type" | "general" | "category" | "specific">("type");
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  
+
   // Form state for adding new items
   const [newServiceType, setNewServiceType] = useState({ name: "", description: "", icon: "" });
   const [newGeneralService, setNewGeneralService] = useState({ name: "", description: "", icon: "" });
-  const [newServiceCategory, setNewServiceCategory] = useState({ 
-    name: "", 
-    service_type_id: "", 
-    description: "", 
+  const [newServiceCategory, setNewServiceCategory] = useState({
+    name: "",
+    service_type_id: "",
+    description: "",
     is_subcategory: false,
-    parent_category_id: null 
+    parent_category_id: null
   });
-  const [newSpecificService, setNewSpecificService] = useState({ 
-    name: "", 
-    category_id: "", 
-    description: "", 
-    is_active: true 
+  const [newSpecificService, setNewSpecificService] = useState({
+    name: "",
+    category_id: "",
+    description: "",
+    is_active: true
   });
+
+  // Reset pagination when changing tabs
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
+
+  // Calculate pagination info for current tab
+  const getCurrentTabTotalItems = () => totalItems[activeTab as keyof typeof totalItems] || 0;
+  const getTotalPages = () => Math.ceil(getCurrentTabTotalItems() / itemsPerPage);
+
+  // Get paginated data for current tab
+  const getPaginatedData = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+
+    switch (activeTab) {
+      case 'types':
+        return serviceTypes.slice(startIndex, endIndex);
+      case 'general':
+        return generalServices.slice(startIndex, endIndex);
+      case 'categories':
+        return serviceCategories.slice(startIndex, endIndex);
+      case 'specific':
+        return specificServices.slice(startIndex, endIndex);
+      default:
+        return [];
+    }
+  };
 
   // Fetch all service data on component mount
   useEffect(() => {
     const fetchServices = async () => {
       setLoading(true);
       setError("");
-      
+
       try {
+        // Calculate the range for pagination
+        const from = (currentPage - 1) * itemsPerPage;
+        const to = from + itemsPerPage - 1;
+
         // Fetch service types
-        const { data: types, error: typesError } = await supabase
+        const { data: types, error: typesError, count: typesCount } = await supabase
           .from('service_types')
-          .select('*')
-          .order('name');
-          
+          .select('*', { count: 'exact' })
+          .order('name')
+          .range(from, to);
+
         if (typesError) throw new Error(`Error fetching service types: ${typesError.message}`);
         setServiceTypes(types || []);
-        
+        if (typesCount !== null) {
+          setTotalItems(prev => ({ ...prev, types: typesCount }));
+        }
+
         // Fetch general services
-        const { data: general, error: generalError } = await supabase
+        const { data: general, error: generalError, count: generalCount } = await supabase
           .from('general_services')
-          .select('*')
-          .order('name');
-          
+          .select('*', { count: 'exact' })
+          .order('name')
+          .range(from, to);
+
         if (generalError) throw new Error(`Error fetching general services: ${generalError.message}`);
         setGeneralServices(general || []);
-        
+        if (generalCount !== null) {
+          setTotalItems(prev => ({ ...prev, general: generalCount }));
+        }
+
         // Fetch service categories with service type name
-        const { data: categories, error: categoriesError } = await supabase
+        const { data: categories, error: categoriesError, count: categoriesCount } = await supabase
           .from('service_categories')
           .select(`
             *,
             service_types:service_type_id (name),
             parent_category:parent_category_id (name)
-          `)
-          .order('name');
-          
+          `, { count: 'exact' })
+          .order('name')
+          .range(from, to);
+
         if (categoriesError) throw new Error(`Error fetching service categories: ${categoriesError.message}`);
         setServiceCategories(categories || []);
-        
+        if (categoriesCount !== null) {
+          setTotalItems(prev => ({ ...prev, categories: categoriesCount }));
+        }
+
         // Fetch specific services with category name
-        const { data: specific, error: specificError } = await supabase
+        const { data: specific, error: specificError, count: specificCount } = await supabase
           .from('specific_services')
           .select(`
             *,
             service_categories:category_id (name, service_type_id, service_types:service_type_id(name))
-          `)
-          .order('name');
-          
+          `, { count: 'exact' })
+          .order('name')
+          .range(from, to);
+
         if (specificError) throw new Error(`Error fetching specific services: ${specificError.message}`);
         setSpecificServices(specific || []);
-        
+        if (specificCount !== null) {
+          setTotalItems(prev => ({ ...prev, specific: specificCount }));
+        }
+
       } catch (err: any) {
         console.error("Error fetching services data:", err);
         setError(err.message || "Failed to load services data");
@@ -95,86 +154,105 @@ export default function ServicesManagement() {
         setLoading(false);
       }
     };
-    
+
     fetchServices();
-  }, []);
-  
+  }, [currentPage, itemsPerPage, activeTab]);
+
+  // Handlers for page navigation
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= getTotalPages()) {
+      setCurrentPage(page);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < getTotalPages()) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
   // Handlers for adding new items
   const handleAddServiceType = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-    
+
     try {
       const { data, error } = await supabase
         .from('service_types')
         .insert([
-          { 
-            name: newServiceType.name, 
+          {
+            name: newServiceType.name,
             description: newServiceType.description || null,
             icon: newServiceType.icon || null
           }
         ])
         .select();
-        
+
       if (error) throw new Error(`Error adding service type: ${error.message}`);
-      
+
       setServiceTypes([...serviceTypes, data![0]]);
       setNewServiceType({ name: "", description: "", icon: "" });
       setSuccess("Service type added successfully!");
-      
+
       // Refresh the data
       router.refresh();
-      
+
     } catch (err: any) {
       console.error("Error adding service type:", err);
       setError(err.message || "Failed to add service type");
     }
   };
-  
+
   const handleAddGeneralService = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-    
+
     try {
       const { data, error } = await supabase
         .from('general_services')
         .insert([
-          { 
-            name: newGeneralService.name, 
+          {
+            name: newGeneralService.name,
             description: newGeneralService.description || null,
             icon: newGeneralService.icon || null
           }
         ])
         .select();
-        
+
       if (error) throw new Error(`Error adding general service: ${error.message}`);
-      
+
       setGeneralServices([...generalServices, data![0]]);
       setNewGeneralService({ name: "", description: "", icon: "" });
       setSuccess("General service added successfully!");
-      
+
       // Refresh the data
       router.refresh();
-      
+
     } catch (err: any) {
       console.error("Error adding general service:", err);
       setError(err.message || "Failed to add general service");
     }
   };
-  
+
   const handleAddServiceCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-    
+
     try {
       const { data, error } = await supabase
         .from('service_categories')
         .insert([
-          { 
-            name: newServiceCategory.name, 
+          {
+            name: newServiceCategory.name,
             service_type_id: newServiceCategory.service_type_id || null,
             description: newServiceCategory.description || null,
             is_subcategory: newServiceCategory.is_subcategory,
@@ -182,9 +260,9 @@ export default function ServicesManagement() {
           }
         ])
         .select();
-        
+
       if (error) throw new Error(`Error adding service category: ${error.message}`);
-      
+
       // Refresh categories data to include the relationship data
       const { data: updatedCategory, error: fetchError } = await supabase
         .from('service_categories')
@@ -195,48 +273,48 @@ export default function ServicesManagement() {
         `)
         .eq('id', data![0].id)
         .single();
-        
+
       if (fetchError) throw new Error(`Error fetching updated category: ${fetchError.message}`);
-      
+
       setServiceCategories([...serviceCategories, updatedCategory]);
-      setNewServiceCategory({ 
-        name: "", 
-        service_type_id: "", 
-        description: "", 
+      setNewServiceCategory({
+        name: "",
+        service_type_id: "",
+        description: "",
         is_subcategory: false,
-        parent_category_id: null 
+        parent_category_id: null
       });
       setSuccess("Service category added successfully!");
-      
+
       // Refresh the data
       router.refresh();
-      
+
     } catch (err: any) {
       console.error("Error adding service category:", err);
       setError(err.message || "Failed to add service category");
     }
   };
-  
+
   const handleAddSpecificService = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-    
+
     try {
       const { data, error } = await supabase
         .from('specific_services')
         .insert([
-          { 
-            name: newSpecificService.name, 
+          {
+            name: newSpecificService.name,
             category_id: newSpecificService.category_id || null,
             description: newSpecificService.description || null,
             is_active: newSpecificService.is_active
           }
         ])
         .select();
-        
+
       if (error) throw new Error(`Error adding specific service: ${error.message}`);
-      
+
       // Refresh specific services data to include the relationship data
       const { data: updatedService, error: fetchError } = await supabase
         .from('specific_services')
@@ -246,44 +324,44 @@ export default function ServicesManagement() {
         `)
         .eq('id', data![0].id)
         .single();
-        
+
       if (fetchError) throw new Error(`Error fetching updated service: ${fetchError.message}`);
-      
+
       setSpecificServices([...specificServices, updatedService]);
-      setNewSpecificService({ 
-        name: "", 
-        category_id: "", 
-        description: "", 
-        is_active: true 
+      setNewSpecificService({
+        name: "",
+        category_id: "",
+        description: "",
+        is_active: true
       });
       setSuccess("Specific service added successfully!");
-      
+
       // Refresh the data
       router.refresh();
-      
+
     } catch (err: any) {
       console.error("Error adding specific service:", err);
       setError(err.message || "Failed to add specific service");
     }
   };
-  
+
   // Handler for deleting items
   const handleDelete = async (table: string, id: number) => {
     if (!confirm(`Are you sure you want to delete this item? This action cannot be undone.`)) {
       return;
     }
-    
+
     setError("");
     setSuccess("");
-    
+
     try {
       const { error } = await supabase
         .from(table)
         .delete()
         .eq('id', id);
-        
+
       if (error) throw new Error(`Error deleting item: ${error.message}`);
-      
+
       // Update state based on which table was affected
       if (table === 'service_types') {
         setServiceTypes(serviceTypes.filter(item => item.id !== id));
@@ -294,12 +372,12 @@ export default function ServicesManagement() {
       } else if (table === 'specific_services') {
         setSpecificServices(specificServices.filter(item => item.id !== id));
       }
-      
+
       setSuccess(`Item deleted successfully!`);
-      
+
       // Refresh the data
       router.refresh();
-      
+
     } catch (err: any) {
       console.error("Error deleting item:", err);
       setError(err.message || "Failed to delete item");
@@ -317,11 +395,11 @@ export default function ServicesManagement() {
     setIsEditModalOpen(false);
     setSelectedItem(null);
   };
-  
+
   const handleUpdateServiceType = async (updatedItem: any) => {
     setError("");
     setSuccess("");
-    
+
     try {
       const { error } = await supabase
         .from('service_types')
@@ -331,30 +409,30 @@ export default function ServicesManagement() {
           icon: updatedItem.icon || null
         })
         .eq('id', updatedItem.id);
-        
+
       if (error) throw new Error(`Error updating service type: ${error.message}`);
-      
+
       // Update state
       setServiceTypes(
         serviceTypes.map(item => item.id === updatedItem.id ? updatedItem : item)
       );
-      
+
       setSuccess("Service type updated successfully!");
       handleCloseEditModal();
-      
+
       // Refresh the data
       router.refresh();
-      
+
     } catch (err: any) {
       console.error("Error updating service type:", err);
       setError(err.message || "Failed to update service type");
     }
   };
-  
+
   const handleUpdateGeneralService = async (updatedItem: any) => {
     setError("");
     setSuccess("");
-    
+
     try {
       const { error } = await supabase
         .from('general_services')
@@ -364,30 +442,30 @@ export default function ServicesManagement() {
           icon: updatedItem.icon || null
         })
         .eq('id', updatedItem.id);
-        
+
       if (error) throw new Error(`Error updating general service: ${error.message}`);
-      
+
       // Update state
       setGeneralServices(
         generalServices.map(item => item.id === updatedItem.id ? updatedItem : item)
       );
-      
+
       setSuccess("General service updated successfully!");
       handleCloseEditModal();
-      
+
       // Refresh the data
       router.refresh();
-      
+
     } catch (err: any) {
       console.error("Error updating general service:", err);
       setError(err.message || "Failed to update general service");
     }
   };
-  
+
   const handleUpdateServiceCategory = async (updatedItem: any) => {
     setError("");
     setSuccess("");
-    
+
     try {
       const { error } = await supabase
         .from('service_categories')
@@ -399,9 +477,9 @@ export default function ServicesManagement() {
           parent_category_id: updatedItem.is_subcategory ? updatedItem.parent_category_id : null
         })
         .eq('id', updatedItem.id);
-        
+
       if (error) throw new Error(`Error updating service category: ${error.message}`);
-      
+
       // Refresh the updated category with relationships
       const { data: updatedCategory, error: fetchError } = await supabase
         .from('service_categories')
@@ -412,30 +490,30 @@ export default function ServicesManagement() {
         `)
         .eq('id', updatedItem.id)
         .single();
-        
+
       if (fetchError) throw new Error(`Error fetching updated category: ${fetchError.message}`);
-      
+
       // Update state with the refreshed data
       setServiceCategories(
         serviceCategories.map(item => item.id === updatedItem.id ? updatedCategory : item)
       );
-      
+
       setSuccess("Service category updated successfully!");
       handleCloseEditModal();
-      
+
       // Refresh the data
       router.refresh();
-      
+
     } catch (err: any) {
       console.error("Error updating service category:", err);
       setError(err.message || "Failed to update service category");
     }
   };
-  
+
   const handleUpdateSpecificService = async (updatedItem: any) => {
     setError("");
     setSuccess("");
-    
+
     try {
       const { error } = await supabase
         .from('specific_services')
@@ -446,9 +524,9 @@ export default function ServicesManagement() {
           is_active: updatedItem.is_active
         })
         .eq('id', updatedItem.id);
-        
+
       if (error) throw new Error(`Error updating specific service: ${error.message}`);
-      
+
       // Refresh the updated service with relationships
       const { data: updatedService, error: fetchError } = await supabase
         .from('specific_services')
@@ -458,50 +536,136 @@ export default function ServicesManagement() {
         `)
         .eq('id', updatedItem.id)
         .single();
-        
+
       if (fetchError) throw new Error(`Error fetching updated service: ${fetchError.message}`);
-      
+
       // Update state with the refreshed data
       setSpecificServices(
         specificServices.map(item => item.id === updatedItem.id ? updatedService : item)
       );
-      
+
       setSuccess("Specific service updated successfully!");
       handleCloseEditModal();
-      
+
       // Refresh the data
       router.refresh();
-      
+
     } catch (err: any) {
       console.error("Error updating specific service:", err);
       setError(err.message || "Failed to update specific service");
     }
   };
 
+  // Render pagination controls
+  const renderPagination = () => {
+    const totalPages = getTotalPages();
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4">
+        <div className="flex flex-1 justify-between sm:hidden">
+          <button
+            onClick={goToPreviousPage}
+            disabled={currentPage === 1}
+            className={`relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium ${
+              currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Previous
+          </button>
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium ${
+              currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Next
+          </button>
+        </div>
+        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-700">
+              Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
+              <span className="font-medium">
+                {Math.min(currentPage * itemsPerPage, getCurrentTabTotalItems())}
+              </span>{" "}
+              of <span className="font-medium">{getCurrentTabTotalItems()}</span> results
+            </p>
+          </div>
+          <div>
+            <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+              <button
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className={`relative inline-flex items-center rounded-l-md px-2 py-2 ${
+                  currentPage === 1 
+                    ? 'text-gray-300 cursor-not-allowed' 
+                    : 'text-gray-500 hover:bg-gray-50'
+                } focus:z-20 focus:outline-offset-0`}
+              >
+                <span className="sr-only">Previous</span>
+                <FaAngleLeft className="h-5 w-5" aria-hidden="true" />
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => goToPage(page)}
+                  aria-current={currentPage === page ? "page" : undefined}
+                  className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                    currentPage === page
+                      ? "z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                      : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className={`relative inline-flex items-center rounded-r-md px-2 py-2 ${
+                  currentPage === totalPages 
+                    ? 'text-gray-300 cursor-not-allowed' 
+                    : 'text-gray-500 hover:bg-gray-50'
+                } focus:z-20 focus:outline-offset-0`}
+              >
+                <span className="sr-only">Next</span>
+                <FaAngleRight className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Services Management</h1>
-      
+
       {/* Success and Error Messages */}
       {success && (
         <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
           <span className="block sm:inline">{success}</span>
         </div>
       )}
-      
+
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
           <span className="block sm:inline">{error}</span>
         </div>
       )}
-      
+
       {/* Loading Indicator */}
       {loading && (
         <div className="flex justify-center items-center h-32">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
       )}
-      
+
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 mb-4">
         <nav className="flex space-x-4" aria-label="Tabs">
@@ -547,13 +711,33 @@ export default function ServicesManagement() {
           </button>
         </nav>
       </div>
-      
+
+      {/* Items per page selector */}
+      <div className="mb-4 flex justify-end">
+        <div className="flex items-center">
+          <label htmlFor="items-per-page" className="mr-2 text-sm text-gray-700">
+            Items per page:
+          </label>
+          <select
+            id="items-per-page"
+            value={itemsPerPage}
+            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+            className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
+        </div>
+      </div>
+
       {/* Service Types Tab Content */}
       {!loading && activeTab === "types" && (
         <div className="space-y-6">
           <h2 className="text-xl font-semibold">Service Types</h2>
           <p className="text-gray-600">These are the main categories of services such as Restaurant, Bar, Cafe, etc.</p>
-          
+
           {/* Add New Service Type Form */}
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <h3 className="font-medium mb-3">Add New Service Type</h3>
@@ -596,7 +780,7 @@ export default function ServicesManagement() {
               </button>
             </form>
           </div>
-          
+
           {/* Service Types Table */}
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -611,7 +795,7 @@ export default function ServicesManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {serviceTypes.map((type) => (
+                {getPaginatedData().map((type) => (
                   <tr key={type.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{type.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{type.name}</td>
@@ -638,7 +822,7 @@ export default function ServicesManagement() {
                     </td>
                   </tr>
                 ))}
-                {serviceTypes.length === 0 && (
+                {getPaginatedData().length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
                       No service types found. Add your first one!
@@ -648,15 +832,18 @@ export default function ServicesManagement() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {renderPagination()}
         </div>
       )}
-      
+
       {/* General Services Tab Content */}
       {!loading && activeTab === "general" && (
         <div className="space-y-6">
           <h2 className="text-xl font-semibold">General Services</h2>
           <p className="text-gray-600">These are common services that can apply to multiple service types, such as Delivery, Takeaway, etc.</p>
-          
+
           {/* Add New General Service Form */}
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <h3 className="font-medium mb-3">Add New General Service</h3>
@@ -699,7 +886,7 @@ export default function ServicesManagement() {
               </button>
             </form>
           </div>
-          
+
           {/* General Services Table */}
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -714,7 +901,7 @@ export default function ServicesManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {generalServices.map((service) => (
+                {getPaginatedData().map((service) => (
                   <tr key={service.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.name}</td>
@@ -741,7 +928,7 @@ export default function ServicesManagement() {
                     </td>
                   </tr>
                 ))}
-                {generalServices.length === 0 && (
+                {getPaginatedData().length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
                       No general services found. Add your first one!
@@ -751,15 +938,18 @@ export default function ServicesManagement() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {renderPagination()}
         </div>
       )}
-      
+
       {/* Service Categories Tab Content */}
       {!loading && activeTab === "categories" && (
         <div className="space-y-6">
           <h2 className="text-xl font-semibold">Service Categories</h2>
           <p className="text-gray-600">Categories specific to each service type, such as "Local Dishes" for restaurants.</p>
-          
+
           {/* Add New Service Category Form */}
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <h3 className="font-medium mb-3">Add New Service Category</h3>
@@ -843,7 +1033,7 @@ export default function ServicesManagement() {
               </button>
             </form>
           </div>
-          
+
           {/* Service Categories Table */}
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -859,7 +1049,7 @@ export default function ServicesManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {serviceCategories.map((category) => (
+                {getPaginatedData().map((category) => (
                   <tr key={category.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{category.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{category.name}</td>
@@ -889,7 +1079,7 @@ export default function ServicesManagement() {
                     </td>
                   </tr>
                 ))}
-                {serviceCategories.length === 0 && (
+                {getPaginatedData().length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
                       No service categories found. Add your first one!
@@ -899,15 +1089,18 @@ export default function ServicesManagement() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {renderPagination()}
         </div>
       )}
-      
+
       {/* Specific Services Tab Content */}
       {!loading && activeTab === "specific" && (
         <div className="space-y-6">
           <h2 className="text-xl font-semibold">Specific Services</h2>
           <p className="text-gray-600">Individual services that belong to specific categories, such as "Jollof Rice" in the "Local Dishes" category.</p>
-          
+
           {/* Add New Specific Service Form */}
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <h3 className="font-medium mb-3">Add New Specific Service</h3>
@@ -969,7 +1162,7 @@ export default function ServicesManagement() {
               </button>
             </form>
           </div>
-          
+
           {/* Specific Services Table */}
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -985,7 +1178,7 @@ export default function ServicesManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {specificServices.map((service) => (
+                {getPaginatedData().map((service) => (
                   <tr key={service.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.name}</td>
@@ -1019,7 +1212,7 @@ export default function ServicesManagement() {
                     </td>
                   </tr>
                 ))}
-                {specificServices.length === 0 && (
+                {getPaginatedData().length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
                       No specific services found. Add your first one!
@@ -1029,6 +1222,9 @@ export default function ServicesManagement() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {renderPagination()}
         </div>
       )}
 
