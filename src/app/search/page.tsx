@@ -59,13 +59,22 @@ function SearchPageContent() {
       setSelectedCategory(category);
     }
     
-    let supabaseQuery = supabase.from('users').select('*').range((reset ? 0 : (page - 1) * PAGE_SIZE), (reset ? PAGE_SIZE - 1 : page * PAGE_SIZE - 1));
+    let supabaseQuery = supabase.from('businesses').select('*').range((reset ? 0 : (page - 1) * PAGE_SIZE), (reset ? PAGE_SIZE - 1 : page * PAGE_SIZE - 1));
     
     if (query) {
-      supabaseQuery = supabaseQuery.ilike('email', `%${query}%`);
+      supabaseQuery = supabaseQuery.or(`name.ilike.%${query}%, description.ilike.%${query}%, address.ilike.%${query}%`);
+    }
+    
+    if (category && category !== 'all') {
+      // Join with business_categories to filter by category
+      supabaseQuery = supabaseQuery.eq('category_id', category);
     }
     
     const { data, error } = await supabaseQuery;
+    
+    if (error) {
+      console.error('Error fetching businesses:', error);
+    }
     
     if (reset) {
       setBusinesses(data || []);
@@ -157,18 +166,20 @@ function SearchPageContent() {
       const matchesQuery =
         searchQuery.trim() === '' ||
         (business.name && business.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (business.business_type && business.category && business.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (business.description && business.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (business.address && business.address.toLowerCase().includes(searchQuery.toLowerCase()));
       
       const matchesCategory =
         selectedCategory === 'all' ||
-        (business.category && business.category.toLowerCase().includes(selectedCategory.replace(/-/g, ' ')));
+        (business.category_id && business.category_id.toString() === selectedCategory);
       
-      const matchesRating = business.rating >= minRating;
+      const matchesRating = 
+        minRating === 0 || 
+        (business.rating && parseFloat(business.rating) >= minRating);
       
       const matchesPrice = 
         priceFilter.length === 0 || 
-        (business.price && priceFilter.includes(business.price));
+        (business.price_range && priceFilter.includes(business.price_range));
       
       // For demonstration, we'll just assume all features match since we don't have this data
       const matchesFeatures = selectedFeatures.length === 0 || true;
@@ -511,7 +522,7 @@ function SearchPageContent() {
           {filteredBusinesses.map((business) => {
             // Ensure business has a valid name for alt text
             if (!business.name) {
-              business.name = business.business_name || 'Business';
+              business.name = 'Business';
             }
             
             return (
@@ -582,17 +593,17 @@ function SearchPageContent() {
                   <div className="flex gap-3 pb-4 border-b border-gray-100 hover:bg-gray-50 transition-colors rounded-lg p-2">
                     <div className="relative h-16 w-16 rounded-lg overflow-hidden flex-shrink-0">
                       <Image
-                        src={business.image || '/images/logo.png'}
+                        src={business.logo_url || '/images/logo.png'}
                         fill
                         className="object-cover"
-                        alt={`${business.name || business.business_name || 'Business'} logo`}
+                        alt={`${business.name || 'Business'} logo`}
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">{business.name || business.business_name}</h4>
+                      <h4 className="font-medium text-sm truncate">{business.name}</h4>
                       <div className="flex items-center text-xs text-yellow-500 mt-1">
                         {[...Array(5)].map((_, i) => (
-                          <svg key={i} className={`w-3 h-3 ${i < Math.floor(business.rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
+                          <svg key={i} className={`w-3 h-3 ${i < Math.floor(parseFloat(business.rating || '0')) ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                           </svg>
                         ))}
