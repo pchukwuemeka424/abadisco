@@ -2,18 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/supabaseClient";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FaAngleLeft, FaAngleRight } from "react-icons/fa";
 
 export default function ServicesManagement() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("types");
+  const [activeTab, setActiveTab] = useState("categories");
   const [loading, setLoading] = useState(true);
-  const [serviceTypes, setServiceTypes] = useState<any[]>([]);
-  const [generalServices, setGeneralServices] = useState<any[]>([]);
   const [serviceCategories, setServiceCategories] = useState<any[]>([]);
-  const [specificServices, setSpecificServices] = useState<any[]>([]);
+  const [subServiceCategories, setSubServiceCategories] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -21,32 +18,25 @@ export default function ServicesManagement() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState({
-    types: 0,
-    general: 0,
     categories: 0,
-    specific: 0
+    subcategories: 0,
   });
 
   // Modal states for editing
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editModalType, setEditModalType] = useState<"type" | "general" | "category" | "specific">("type");
+  const [editModalType, setEditModalType] = useState<"category" | "subcategory">("category");
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
   // Form state for adding new items
-  const [newServiceType, setNewServiceType] = useState({ name: "", description: "", icon: "" });
-  const [newGeneralService, setNewGeneralService] = useState({ name: "", description: "", icon: "" });
   const [newServiceCategory, setNewServiceCategory] = useState({
     name: "",
-    service_type_id: "",
     description: "",
-    is_subcategory: false,
-    parent_category_id: null
   });
-  const [newSpecificService, setNewSpecificService] = useState({
+  
+  const [newSubServiceCategory, setNewSubServiceCategory] = useState({
     name: "",
-    category_id: "",
+    parent_id: "",
     description: "",
-    is_active: true
   });
 
   // Reset pagination when changing tabs
@@ -64,14 +54,10 @@ export default function ServicesManagement() {
     const endIndex = startIndex + itemsPerPage;
 
     switch (activeTab) {
-      case 'types':
-        return serviceTypes.slice(startIndex, endIndex);
-      case 'general':
-        return generalServices.slice(startIndex, endIndex);
       case 'categories':
         return serviceCategories.slice(startIndex, endIndex);
-      case 'specific':
-        return specificServices.slice(startIndex, endIndex);
+      case 'subcategories':
+        return subServiceCategories.slice(startIndex, endIndex);
       default:
         return [];
     }
@@ -88,63 +74,37 @@ export default function ServicesManagement() {
         const from = (currentPage - 1) * itemsPerPage;
         const to = from + itemsPerPage - 1;
 
-        // Fetch service types
-        const { data: types, error: typesError, count: typesCount } = await supabase
-          .from('service_types')
-          .select('*', { count: 'exact' })
-          .order('name')
-          .range(from, to);
+        // Fetch service categories
+        if (activeTab === 'categories') {
+          const { data: categories, error: categoriesError, count: categoriesCount } = await supabase
+            .from('service_categories')
+            .select('*', { count: 'exact' })
+            .order('name')
+            .range(from, to);
 
-        if (typesError) throw new Error(`Error fetching service types: ${typesError.message}`);
-        setServiceTypes(types || []);
-        if (typesCount !== null) {
-          setTotalItems(prev => ({ ...prev, types: typesCount }));
+          if (categoriesError) throw new Error(`Error fetching service categories: ${categoriesError.message}`);
+          setServiceCategories(categories || []);
+          if (categoriesCount !== null) {
+            setTotalItems(prev => ({ ...prev, categories: categoriesCount }));
+          }
         }
 
-        // Fetch general services
-        const { data: general, error: generalError, count: generalCount } = await supabase
-          .from('general_services')
-          .select('*', { count: 'exact' })
-          .order('name')
-          .range(from, to);
+        // Fetch sub-service categories with parent category name
+        if (activeTab === 'subcategories') {
+          const { data: subcategories, error: subcategoriesError, count: subcategoriesCount } = await supabase
+            .from('sub_service_categories')
+            .select(`
+              *,
+              service_categories:parent_id (name)
+            `, { count: 'exact' })
+            .order('name')
+            .range(from, to);
 
-        if (generalError) throw new Error(`Error fetching general services: ${generalError.message}`);
-        setGeneralServices(general || []);
-        if (generalCount !== null) {
-          setTotalItems(prev => ({ ...prev, general: generalCount }));
-        }
-
-        // Fetch service categories with service type name
-        const { data: categories, error: categoriesError, count: categoriesCount } = await supabase
-          .from('service_categories')
-          .select(`
-            *,
-            service_types:service_type_id (name),
-            parent_category:parent_category_id (name)
-          `, { count: 'exact' })
-          .order('name')
-          .range(from, to);
-
-        if (categoriesError) throw new Error(`Error fetching service categories: ${categoriesError.message}`);
-        setServiceCategories(categories || []);
-        if (categoriesCount !== null) {
-          setTotalItems(prev => ({ ...prev, categories: categoriesCount }));
-        }
-
-        // Fetch specific services with category name
-        const { data: specific, error: specificError, count: specificCount } = await supabase
-          .from('specific_services')
-          .select(`
-            *,
-            service_categories:category_id (name, service_type_id, service_types:service_type_id(name))
-          `, { count: 'exact' })
-          .order('name')
-          .range(from, to);
-
-        if (specificError) throw new Error(`Error fetching specific services: ${specificError.message}`);
-        setSpecificServices(specific || []);
-        if (specificCount !== null) {
-          setTotalItems(prev => ({ ...prev, specific: specificCount }));
+          if (subcategoriesError) throw new Error(`Error fetching sub-service categories: ${subcategoriesError.message}`);
+          setSubServiceCategories(subcategories || []);
+          if (subcategoriesCount !== null) {
+            setTotalItems(prev => ({ ...prev, subcategories: subcategoriesCount }));
+          }
         }
 
       } catch (err: any) {
@@ -178,70 +138,6 @@ export default function ServicesManagement() {
   };
 
   // Handlers for adding new items
-  const handleAddServiceType = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    try {
-      const { data, error } = await supabase
-        .from('service_types')
-        .insert([
-          {
-            name: newServiceType.name,
-            description: newServiceType.description || null,
-            icon: newServiceType.icon || null
-          }
-        ])
-        .select();
-
-      if (error) throw new Error(`Error adding service type: ${error.message}`);
-
-      setServiceTypes([...serviceTypes, data![0]]);
-      setNewServiceType({ name: "", description: "", icon: "" });
-      setSuccess("Service type added successfully!");
-
-      // Refresh the data
-      router.refresh();
-
-    } catch (err: any) {
-      console.error("Error adding service type:", err);
-      setError(err.message || "Failed to add service type");
-    }
-  };
-
-  const handleAddGeneralService = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    try {
-      const { data, error } = await supabase
-        .from('general_services')
-        .insert([
-          {
-            name: newGeneralService.name,
-            description: newGeneralService.description || null,
-            icon: newGeneralService.icon || null
-          }
-        ])
-        .select();
-
-      if (error) throw new Error(`Error adding general service: ${error.message}`);
-
-      setGeneralServices([...generalServices, data![0]]);
-      setNewGeneralService({ name: "", description: "", icon: "" });
-      setSuccess("General service added successfully!");
-
-      // Refresh the data
-      router.refresh();
-
-    } catch (err: any) {
-      console.error("Error adding general service:", err);
-      setError(err.message || "Failed to add general service");
-    }
-  };
-
   const handleAddServiceCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -253,37 +149,15 @@ export default function ServicesManagement() {
         .insert([
           {
             name: newServiceCategory.name,
-            service_type_id: newServiceCategory.service_type_id || null,
             description: newServiceCategory.description || null,
-            is_subcategory: newServiceCategory.is_subcategory,
-            parent_category_id: newServiceCategory.is_subcategory ? newServiceCategory.parent_category_id : null
           }
         ])
         .select();
 
       if (error) throw new Error(`Error adding service category: ${error.message}`);
 
-      // Refresh categories data to include the relationship data
-      const { data: updatedCategory, error: fetchError } = await supabase
-        .from('service_categories')
-        .select(`
-          *,
-          service_types:service_type_id (name),
-          parent_category:parent_category_id (name)
-        `)
-        .eq('id', data![0].id)
-        .single();
-
-      if (fetchError) throw new Error(`Error fetching updated category: ${fetchError.message}`);
-
-      setServiceCategories([...serviceCategories, updatedCategory]);
-      setNewServiceCategory({
-        name: "",
-        service_type_id: "",
-        description: "",
-        is_subcategory: false,
-        parent_category_id: null
-      });
+      setServiceCategories([...serviceCategories, data![0]]);
+      setNewServiceCategory({ name: "", description: "" });
       setSuccess("Service category added successfully!");
 
       // Refresh the data
@@ -295,53 +169,51 @@ export default function ServicesManagement() {
     }
   };
 
-  const handleAddSpecificService = async (e: React.FormEvent) => {
+  const handleAddSubServiceCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
     try {
       const { data, error } = await supabase
-        .from('specific_services')
+        .from('sub_service_categories')
         .insert([
           {
-            name: newSpecificService.name,
-            category_id: newSpecificService.category_id || null,
-            description: newSpecificService.description || null,
-            is_active: newSpecificService.is_active
+            name: newSubServiceCategory.name,
+            parent_id: parseInt(newSubServiceCategory.parent_id),
+            description: newSubServiceCategory.description || null,
           }
         ])
         .select();
 
-      if (error) throw new Error(`Error adding specific service: ${error.message}`);
+      if (error) throw new Error(`Error adding sub-service category: ${error.message}`);
 
-      // Refresh specific services data to include the relationship data
-      const { data: updatedService, error: fetchError } = await supabase
-        .from('specific_services')
+      // Refresh sub-categories data to include the relationship data
+      const { data: updatedSubCategory, error: fetchError } = await supabase
+        .from('sub_service_categories')
         .select(`
           *,
-          service_categories:category_id (name, service_type_id, service_types:service_type_id(name))
+          service_categories:parent_id (name)
         `)
         .eq('id', data![0].id)
         .single();
 
-      if (fetchError) throw new Error(`Error fetching updated service: ${fetchError.message}`);
+      if (fetchError) throw new Error(`Error fetching updated sub-category: ${fetchError.message}`);
 
-      setSpecificServices([...specificServices, updatedService]);
-      setNewSpecificService({
+      setSubServiceCategories([...subServiceCategories, updatedSubCategory]);
+      setNewSubServiceCategory({
         name: "",
-        category_id: "",
+        parent_id: "",
         description: "",
-        is_active: true
       });
-      setSuccess("Specific service added successfully!");
+      setSuccess("Sub-service category added successfully!");
 
       // Refresh the data
       router.refresh();
 
     } catch (err: any) {
-      console.error("Error adding specific service:", err);
-      setError(err.message || "Failed to add specific service");
+      console.error("Error adding sub-service category:", err);
+      setError(err.message || "Failed to add sub-service category");
     }
   };
 
@@ -363,14 +235,10 @@ export default function ServicesManagement() {
       if (error) throw new Error(`Error deleting item: ${error.message}`);
 
       // Update state based on which table was affected
-      if (table === 'service_types') {
-        setServiceTypes(serviceTypes.filter(item => item.id !== id));
-      } else if (table === 'general_services') {
-        setGeneralServices(generalServices.filter(item => item.id !== id));
-      } else if (table === 'service_categories') {
+      if (table === 'service_categories') {
         setServiceCategories(serviceCategories.filter(item => item.id !== id));
-      } else if (table === 'specific_services') {
-        setSpecificServices(specificServices.filter(item => item.id !== id));
+      } else if (table === 'sub_service_categories') {
+        setSubServiceCategories(subServiceCategories.filter(item => item.id !== id));
       }
 
       setSuccess(`Item deleted successfully!`);
@@ -385,7 +253,7 @@ export default function ServicesManagement() {
   };
 
   // Handlers for editing items
-  const handleOpenEditModal = (type: "type" | "general" | "category" | "specific", item: any) => {
+  const handleOpenEditModal = (type: "category" | "subcategory", item: any) => {
     setEditModalType(type);
     setSelectedItem(item);
     setIsEditModalOpen(true);
@@ -394,72 +262,6 @@ export default function ServicesManagement() {
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
     setSelectedItem(null);
-  };
-
-  const handleUpdateServiceType = async (updatedItem: any) => {
-    setError("");
-    setSuccess("");
-
-    try {
-      const { error } = await supabase
-        .from('service_types')
-        .update({
-          name: updatedItem.name,
-          description: updatedItem.description || null,
-          icon: updatedItem.icon || null
-        })
-        .eq('id', updatedItem.id);
-
-      if (error) throw new Error(`Error updating service type: ${error.message}`);
-
-      // Update state
-      setServiceTypes(
-        serviceTypes.map(item => item.id === updatedItem.id ? updatedItem : item)
-      );
-
-      setSuccess("Service type updated successfully!");
-      handleCloseEditModal();
-
-      // Refresh the data
-      router.refresh();
-
-    } catch (err: any) {
-      console.error("Error updating service type:", err);
-      setError(err.message || "Failed to update service type");
-    }
-  };
-
-  const handleUpdateGeneralService = async (updatedItem: any) => {
-    setError("");
-    setSuccess("");
-
-    try {
-      const { error } = await supabase
-        .from('general_services')
-        .update({
-          name: updatedItem.name,
-          description: updatedItem.description || null,
-          icon: updatedItem.icon || null
-        })
-        .eq('id', updatedItem.id);
-
-      if (error) throw new Error(`Error updating general service: ${error.message}`);
-
-      // Update state
-      setGeneralServices(
-        generalServices.map(item => item.id === updatedItem.id ? updatedItem : item)
-      );
-
-      setSuccess("General service updated successfully!");
-      handleCloseEditModal();
-
-      // Refresh the data
-      router.refresh();
-
-    } catch (err: any) {
-      console.error("Error updating general service:", err);
-      setError(err.message || "Failed to update general service");
-    }
   };
 
   const handleUpdateServiceCategory = async (updatedItem: any) => {
@@ -471,31 +273,15 @@ export default function ServicesManagement() {
         .from('service_categories')
         .update({
           name: updatedItem.name,
-          service_type_id: updatedItem.service_type_id || null,
           description: updatedItem.description || null,
-          is_subcategory: updatedItem.is_subcategory,
-          parent_category_id: updatedItem.is_subcategory ? updatedItem.parent_category_id : null
         })
         .eq('id', updatedItem.id);
 
       if (error) throw new Error(`Error updating service category: ${error.message}`);
 
-      // Refresh the updated category with relationships
-      const { data: updatedCategory, error: fetchError } = await supabase
-        .from('service_categories')
-        .select(`
-          *,
-          service_types:service_type_id (name),
-          parent_category:parent_category_id (name)
-        `)
-        .eq('id', updatedItem.id)
-        .single();
-
-      if (fetchError) throw new Error(`Error fetching updated category: ${fetchError.message}`);
-
-      // Update state with the refreshed data
+      // Update state
       setServiceCategories(
-        serviceCategories.map(item => item.id === updatedItem.id ? updatedCategory : item)
+        serviceCategories.map(item => item.id === updatedItem.id ? updatedItem : item)
       );
 
       setSuccess("Service category updated successfully!");
@@ -510,49 +296,48 @@ export default function ServicesManagement() {
     }
   };
 
-  const handleUpdateSpecificService = async (updatedItem: any) => {
+  const handleUpdateSubServiceCategory = async (updatedItem: any) => {
     setError("");
     setSuccess("");
 
     try {
       const { error } = await supabase
-        .from('specific_services')
+        .from('sub_service_categories')
         .update({
           name: updatedItem.name,
-          category_id: updatedItem.category_id || null,
+          parent_id: updatedItem.parent_id,
           description: updatedItem.description || null,
-          is_active: updatedItem.is_active
         })
         .eq('id', updatedItem.id);
 
-      if (error) throw new Error(`Error updating specific service: ${error.message}`);
+      if (error) throw new Error(`Error updating sub-service category: ${error.message}`);
 
-      // Refresh the updated service with relationships
-      const { data: updatedService, error: fetchError } = await supabase
-        .from('specific_services')
+      // Refresh the updated sub-category with relationships
+      const { data: updatedSubCategory, error: fetchError } = await supabase
+        .from('sub_service_categories')
         .select(`
           *,
-          service_categories:category_id (name, service_type_id, service_types:service_type_id(name))
+          service_categories:parent_id (name)
         `)
         .eq('id', updatedItem.id)
         .single();
 
-      if (fetchError) throw new Error(`Error fetching updated service: ${fetchError.message}`);
+      if (fetchError) throw new Error(`Error fetching updated sub-category: ${fetchError.message}`);
 
       // Update state with the refreshed data
-      setSpecificServices(
-        specificServices.map(item => item.id === updatedItem.id ? updatedService : item)
+      setSubServiceCategories(
+        subServiceCategories.map(item => item.id === updatedItem.id ? updatedSubCategory : item)
       );
 
-      setSuccess("Specific service updated successfully!");
+      setSuccess("Sub-service category updated successfully!");
       handleCloseEditModal();
 
       // Refresh the data
       router.refresh();
 
     } catch (err: any) {
-      console.error("Error updating specific service:", err);
-      setError(err.message || "Failed to update specific service");
+      console.error("Error updating sub-service category:", err);
+      setError(err.message || "Failed to update sub-service category");
     }
   };
 
@@ -670,26 +455,6 @@ export default function ServicesManagement() {
       <div className="border-b border-gray-200 mb-4">
         <nav className="flex space-x-4" aria-label="Tabs">
           <button
-            onClick={() => setActiveTab("types")}
-            className={`py-2 px-3 font-medium ${
-              activeTab === "types"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Service Types
-          </button>
-          <button
-            onClick={() => setActiveTab("general")}
-            className={`py-2 px-3 font-medium ${
-              activeTab === "general"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            General Services
-          </button>
-          <button
             onClick={() => setActiveTab("categories")}
             className={`py-2 px-3 font-medium ${
               activeTab === "categories"
@@ -700,14 +465,14 @@ export default function ServicesManagement() {
             Service Categories
           </button>
           <button
-            onClick={() => setActiveTab("specific")}
+            onClick={() => setActiveTab("subcategories")}
             className={`py-2 px-3 font-medium ${
-              activeTab === "specific"
+              activeTab === "subcategories"
                 ? "text-blue-600 border-b-2 border-blue-600"
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            Specific Services
+            Sub-Service Categories
           </button>
         </nav>
       </div>
@@ -732,229 +497,17 @@ export default function ServicesManagement() {
         </div>
       </div>
 
-      {/* Service Types Tab Content */}
-      {!loading && activeTab === "types" && (
-        <div className="space-y-6">
-          <h2 className="text-xl font-semibold">Service Types</h2>
-          <p className="text-gray-600">These are the main categories of services such as Restaurant, Bar, Cafe, etc.</p>
-
-          {/* Add New Service Type Form */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="font-medium mb-3">Add New Service Type</h3>
-            <form onSubmit={handleAddServiceType} className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                  <input
-                    type="text"
-                    value={newServiceType.name}
-                    onChange={(e) => setNewServiceType({...newServiceType, name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <input
-                    type="text"
-                    value={newServiceType.description}
-                    onChange={(e) => setNewServiceType({...newServiceType, description: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Icon URL</label>
-                  <input
-                    type="text"
-                    value={newServiceType.icon}
-                    onChange={(e) => setNewServiceType({...newServiceType, icon: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Add Service Type
-              </button>
-            </form>
-          </div>
-
-          {/* Service Types Table */}
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Icon</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {getPaginatedData().map((type) => (
-                  <tr key={type.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{type.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{type.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{type.description || "-"}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {type.icon ? <img src={type.icon} alt={type.name} className="h-6 w-6" /> : "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(type.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleOpenEditModal('type', type)}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete('service_types', type.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {getPaginatedData().length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
-                      No service types found. Add your first one!
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination Controls */}
-          {renderPagination()}
-        </div>
-      )}
-
-      {/* General Services Tab Content */}
-      {!loading && activeTab === "general" && (
-        <div className="space-y-6">
-          <h2 className="text-xl font-semibold">General Services</h2>
-          <p className="text-gray-600">These are common services that can apply to multiple service types, such as Delivery, Takeaway, etc.</p>
-
-          {/* Add New General Service Form */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="font-medium mb-3">Add New General Service</h3>
-            <form onSubmit={handleAddGeneralService} className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                  <input
-                    type="text"
-                    value={newGeneralService.name}
-                    onChange={(e) => setNewGeneralService({...newGeneralService, name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <input
-                    type="text"
-                    value={newGeneralService.description}
-                    onChange={(e) => setNewGeneralService({...newGeneralService, description: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Icon URL</label>
-                  <input
-                    type="text"
-                    value={newGeneralService.icon}
-                    onChange={(e) => setNewGeneralService({...newGeneralService, icon: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Add General Service
-              </button>
-            </form>
-          </div>
-
-          {/* General Services Table */}
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Icon</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {getPaginatedData().map((service) => (
-                  <tr key={service.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.description || "-"}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {service.icon ? <img src={service.icon} alt={service.name} className="h-6 w-6" /> : "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(service.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleOpenEditModal('general', service)}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete('general_services', service.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {getPaginatedData().length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
-                      No general services found. Add your first one!
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination Controls */}
-          {renderPagination()}
-        </div>
-      )}
-
       {/* Service Categories Tab Content */}
       {!loading && activeTab === "categories" && (
         <div className="space-y-6">
           <h2 className="text-xl font-semibold">Service Categories</h2>
-          <p className="text-gray-600">Categories specific to each service type, such as "Local Dishes" for restaurants.</p>
+          <p className="text-gray-600">These are the main categories of services such as Restaurant, Hotel, Barbing Salon, etc.</p>
 
           {/* Add New Service Category Form */}
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <h3 className="font-medium mb-3">Add New Service Category</h3>
             <form onSubmit={handleAddServiceCategory} className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                   <input
@@ -966,20 +519,6 @@ export default function ServicesManagement() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
-                  <select
-                    value={newServiceCategory.service_type_id}
-                    onChange={(e) => setNewServiceCategory({...newServiceCategory, service_type_id: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  >
-                    <option value="">Select a Service Type</option>
-                    {serviceTypes.map((type) => (
-                      <option key={type.id} value={type.id}>{type.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                   <input
                     type="text"
@@ -987,42 +526,6 @@ export default function ServicesManagement() {
                     onChange={(e) => setNewServiceCategory({...newServiceCategory, description: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   />
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center mb-3">
-                    <input
-                      type="checkbox"
-                      id="is_subcategory"
-                      checked={newServiceCategory.is_subcategory}
-                      onChange={(e) => setNewServiceCategory({...newServiceCategory, is_subcategory: e.target.checked})}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="is_subcategory" className="ml-2 block text-sm text-gray-900">
-                      Is Subcategory
-                    </label>
-                  </div>
-                  {newServiceCategory.is_subcategory && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Parent Category</label>
-                      <select
-                        value={newServiceCategory.parent_category_id || ""}
-                        onChange={(e) => setNewServiceCategory({
-                          ...newServiceCategory, 
-                          parent_category_id: e.target.value ? parseInt(e.target.value) : null
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        required={newServiceCategory.is_subcategory}
-                      >
-                        <option value="">Select a Parent Category</option>
-                        {serviceCategories
-                          .filter(cat => !cat.is_subcategory && cat.service_type_id === parseInt(newServiceCategory.service_type_id))
-                          .map((category) => (
-                            <option key={category.id} value={category.id}>{category.name}</option>
-                          ))
-                        }
-                      </select>
-                    </div>
-                  )}
                 </div>
               </div>
               <button
@@ -1041,10 +544,8 @@ export default function ServicesManagement() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Is Subcategory</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Parent Category</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -1053,15 +554,9 @@ export default function ServicesManagement() {
                   <tr key={category.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{category.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{category.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {category.service_types ? category.service_types.name : "-"}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{category.description || "-"}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {category.is_subcategory ? "Yes" : "No"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {category.parent_category ? category.parent_category.name : "-"}
+                      {new Date(category.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
@@ -1081,7 +576,7 @@ export default function ServicesManagement() {
                 ))}
                 {getPaginatedData().length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
                       No service categories found. Add your first one!
                     </td>
                   </tr>
@@ -1095,40 +590,38 @@ export default function ServicesManagement() {
         </div>
       )}
 
-      {/* Specific Services Tab Content */}
-      {!loading && activeTab === "specific" && (
+      {/* Sub-Service Categories Tab Content */}
+      {!loading && activeTab === "subcategories" && (
         <div className="space-y-6">
-          <h2 className="text-xl font-semibold">Specific Services</h2>
-          <p className="text-gray-600">Individual services that belong to specific categories, such as "Jollof Rice" in the "Local Dishes" category.</p>
+          <h2 className="text-xl font-semibold">Sub-Service Categories</h2>
+          <p className="text-gray-600">These are subcategories for each main service category, such as "Fast Food" under Restaurant.</p>
 
-          {/* Add New Specific Service Form */}
+          {/* Add New Sub-Service Category Form */}
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="font-medium mb-3">Add New Specific Service</h3>
-            <form onSubmit={handleAddSpecificService} className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <h3 className="font-medium mb-3">Add New Sub-Service Category</h3>
+            <form onSubmit={handleAddSubServiceCategory} className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                   <input
                     type="text"
-                    value={newSpecificService.name}
-                    onChange={(e) => setNewSpecificService({...newSpecificService, name: e.target.value})}
+                    value={newSubServiceCategory.name}
+                    onChange={(e) => setNewSubServiceCategory({...newSubServiceCategory, name: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Parent Category</label>
                   <select
-                    value={newSpecificService.category_id}
-                    onChange={(e) => setNewSpecificService({...newSpecificService, category_id: e.target.value})}
+                    value={newSubServiceCategory.parent_id}
+                    onChange={(e) => setNewSubServiceCategory({...newSubServiceCategory, parent_id: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     required
                   >
-                    <option value="">Select a Category</option>
+                    <option value="">Select a Parent Category</option>
                     {serviceCategories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name} {category.service_types ? `(${category.service_types.name})` : ""}
-                      </option>
+                      <option key={category.id} value={category.id}>{category.name}</option>
                     ))}
                   </select>
                 </div>
@@ -1136,75 +629,55 @@ export default function ServicesManagement() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                   <input
                     type="text"
-                    value={newSpecificService.description}
-                    onChange={(e) => setNewSpecificService({...newSpecificService, description: e.target.value})}
+                    value={newSubServiceCategory.description}
+                    onChange={(e) => setNewSubServiceCategory({...newSubServiceCategory, description: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   />
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    checked={newSpecificService.is_active}
-                    onChange={(e) => setNewSpecificService({...newSpecificService, is_active: e.target.checked})}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
-                    Is Active
-                  </label>
                 </div>
               </div>
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                Add Specific Service
+                Add Sub-Service Category
               </button>
             </form>
           </div>
 
-          {/* Specific Services Table */}
+          {/* Sub-Service Categories Table */}
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Parent Category</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {getPaginatedData().map((service) => (
-                  <tr key={service.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.name}</td>
+                {getPaginatedData().map((subcategory) => (
+                  <tr key={subcategory.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{subcategory.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{subcategory.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {service.service_categories ? service.service_categories.name : "-"}
+                      {subcategory.service_categories ? subcategory.service_categories.name : "-"}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{subcategory.description || "-"}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {service.service_categories?.service_types?.name || "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.description || "-"}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        service.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                      }`}>
-                        {service.is_active ? "Active" : "Inactive"}
-                      </span>
+                      {new Date(subcategory.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
-                        onClick={() => handleOpenEditModal('specific', service)}
+                        onClick={() => handleOpenEditModal('subcategory', subcategory)}
                         className="text-blue-600 hover:text-blue-900 mr-4"
                       >
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete('specific_services', service.id)}
+                        onClick={() => handleDelete('sub_service_categories', subcategory.id)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Delete
@@ -1214,8 +687,8 @@ export default function ServicesManagement() {
                 ))}
                 {getPaginatedData().length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
-                      No specific services found. Add your first one!
+                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
+                      No sub-service categories found. Add your first one!
                     </td>
                   </tr>
                 )}
@@ -1259,121 +732,11 @@ export default function ServicesManagement() {
               <div className="sm:flex sm:items-start">
                 <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                   <h3 className="text-lg leading-6 font-medium text-gray-900">
-                    {editModalType === 'type' && 'Edit Service Type'}
-                    {editModalType === 'general' && 'Edit General Service'}
                     {editModalType === 'category' && 'Edit Service Category'}
-                    {editModalType === 'specific' && 'Edit Specific Service'}
+                    {editModalType === 'subcategory' && 'Edit Sub-Service Category'}
                   </h3>
                   
                   <div className="mt-4">
-                    {/* Edit Service Type Form */}
-                    {editModalType === 'type' && (
-                      <form onSubmit={(e) => {
-                        e.preventDefault();
-                        handleUpdateServiceType(selectedItem);
-                      }}>
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                            <input
-                              type="text"
-                              value={selectedItem.name}
-                              onChange={(e) => setSelectedItem({...selectedItem, name: e.target.value})}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <input
-                              type="text"
-                              value={selectedItem.description || ""}
-                              onChange={(e) => setSelectedItem({...selectedItem, description: e.target.value})}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Icon URL</label>
-                            <input
-                              type="text"
-                              value={selectedItem.icon || ""}
-                              onChange={(e) => setSelectedItem({...selectedItem, icon: e.target.value})}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          </div>
-                        </div>
-                        <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                          <button
-                            type="submit"
-                            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
-                          >
-                            Save Changes
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleCloseEditModal}
-                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    )}
-                    
-                    {/* Edit General Service Form */}
-                    {editModalType === 'general' && (
-                      <form onSubmit={(e) => {
-                        e.preventDefault();
-                        handleUpdateGeneralService(selectedItem);
-                      }}>
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                            <input
-                              type="text"
-                              value={selectedItem.name}
-                              onChange={(e) => setSelectedItem({...selectedItem, name: e.target.value})}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <input
-                              type="text"
-                              value={selectedItem.description || ""}
-                              onChange={(e) => setSelectedItem({...selectedItem, description: e.target.value})}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Icon URL</label>
-                            <input
-                              type="text"
-                              value={selectedItem.icon || ""}
-                              onChange={(e) => setSelectedItem({...selectedItem, icon: e.target.value})}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          </div>
-                        </div>
-                        <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                          <button
-                            type="submit"
-                            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
-                          >
-                            Save Changes
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleCloseEditModal}
-                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    )}
-                    
                     {/* Edit Service Category Form */}
                     {editModalType === 'category' && (
                       <form onSubmit={(e) => {
@@ -1392,20 +755,6 @@ export default function ServicesManagement() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
-                            <select
-                              value={selectedItem.service_type_id || ""}
-                              onChange={(e) => setSelectedItem({...selectedItem, service_type_id: e.target.value})}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                              required
-                            >
-                              <option value="">Select a Service Type</option>
-                              {serviceTypes.map((type) => (
-                                <option key={type.id} value={type.id}>{type.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                             <input
                               type="text"
@@ -1414,40 +763,6 @@ export default function ServicesManagement() {
                               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             />
                           </div>
-                          <div className="flex items-center">
-                            <input
-                              type="checkbox"
-                              id="edit_is_subcategory"
-                              checked={selectedItem.is_subcategory}
-                              onChange={(e) => setSelectedItem({...selectedItem, is_subcategory: e.target.checked})}
-                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                            />
-                            <label htmlFor="edit_is_subcategory" className="ml-2 block text-sm text-gray-900">
-                              Is Subcategory
-                            </label>
-                          </div>
-                          {selectedItem.is_subcategory && (
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Parent Category</label>
-                              <select
-                                value={selectedItem.parent_category_id || ""}
-                                onChange={(e) => setSelectedItem({
-                                  ...selectedItem, 
-                                  parent_category_id: e.target.value ? parseInt(e.target.value) : null
-                                })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                required={selectedItem.is_subcategory}
-                              >
-                                <option value="">Select a Parent Category</option>
-                                {serviceCategories
-                                  .filter(cat => !cat.is_subcategory && cat.service_type_id === parseInt(selectedItem.service_type_id) && cat.id !== selectedItem.id)
-                                  .map((category) => (
-                                    <option key={category.id} value={category.id}>{category.name}</option>
-                                  ))
-                                }
-                              </select>
-                            </div>
-                          )}
                         </div>
                         <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
                           <button
@@ -1467,11 +782,11 @@ export default function ServicesManagement() {
                       </form>
                     )}
                     
-                    {/* Edit Specific Service Form */}
-                    {editModalType === 'specific' && (
+                    {/* Edit Sub-Service Category Form */}
+                    {editModalType === 'subcategory' && (
                       <form onSubmit={(e) => {
                         e.preventDefault();
-                        handleUpdateSpecificService(selectedItem);
+                        handleUpdateSubServiceCategory(selectedItem);
                       }}>
                         <div className="space-y-4">
                           <div>
@@ -1485,18 +800,16 @@ export default function ServicesManagement() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Parent Category</label>
                             <select
-                              value={selectedItem.category_id || ""}
-                              onChange={(e) => setSelectedItem({...selectedItem, category_id: e.target.value})}
+                              value={selectedItem.parent_id || ""}
+                              onChange={(e) => setSelectedItem({...selectedItem, parent_id: parseInt(e.target.value)})}
                               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                               required
                             >
-                              <option value="">Select a Category</option>
+                              <option value="">Select a Parent Category</option>
                               {serviceCategories.map((category) => (
-                                <option key={category.id} value={category.id}>
-                                  {category.name} {category.service_types ? `(${category.service_types.name})` : ""}
-                                </option>
+                                <option key={category.id} value={category.id}>{category.name}</option>
                               ))}
                             </select>
                           </div>
@@ -1508,18 +821,6 @@ export default function ServicesManagement() {
                               onChange={(e) => setSelectedItem({...selectedItem, description: e.target.value})}
                               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             />
-                          </div>
-                          <div className="flex items-center">
-                            <input
-                              type="checkbox"
-                              id="edit_is_active"
-                              checked={selectedItem.is_active}
-                              onChange={(e) => setSelectedItem({...selectedItem, is_active: e.target.checked})}
-                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                            />
-                            <label htmlFor="edit_is_active" className="ml-2 block text-sm text-gray-900">
-                              Is Active
-                            </label>
                           </div>
                         </div>
                         <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
