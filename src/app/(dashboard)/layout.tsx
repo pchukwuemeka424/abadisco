@@ -6,13 +6,20 @@ import { ReactNode } from "react";
 import { supabase } from '../../supabaseClient';
 import { AuthProvider, useAuth } from '../../context/auth-context';
 import { useRouter } from 'next/navigation';
+import { FiSun, FiMoon, FiMenu, FiX } from 'react-icons/fi';
 
 // Move all logic that uses useAuth into a child component of AuthProvider
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [showMenu, setShowMenu] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  const [collapsed, setCollapsed] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const { user, loading } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+  }, [darkMode]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -70,15 +77,32 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       {/* Top Bar */}
-      <header className="flex items-center justify-between px-6 py-4 bg-white shadow-sm border-b sticky top-0 z-20">
-        <div className="text-xl font-bold text-rose-600 tracking-tight">Aba Dashboard</div>
+      <header className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 shadow-md border-b sticky top-0 z-20">
         <div className="flex items-center gap-4">
-          {/* Notification Bell */}
-          <button aria-label="Notifications" className="relative p-2 rounded-full hover:bg-gray-100">
+          <button onClick={() => setCollapsed(!collapsed)} className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+            {collapsed ? <FiMenu size={20}/> : <FiX size={20}/>}          
+          </button>
+          <div className="text-2xl font-bold text-rose-600 dark:text-rose-400 tracking-tight">Aba Dashboard</div>
+          <div className="hidden md:block">
+            <input type="text" placeholder="Search..." className="px-4 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-sm focus:outline-none"/>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          {/* Search for small screens */}
+          <button className="md:hidden p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+          <button aria-label="Notifications" className="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
             <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
             <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          </button>
+          {/* Theme Toggle */}
+          <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+            {darkMode ? <FiSun size={20} className="text-yellow-400"/> : <FiMoon size={20} className="text-gray-600"/>}
           </button>
           {/* User Avatar */}
           <div className="relative">
@@ -97,14 +121,16 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <div className="flex flex-1">
-        <DashboardSidebar />
+        <div className={`${collapsed ? 'w-20' : 'w-64'} transition-width duration-300`}>
+          <DashboardSidebar collapsed={collapsed} />
+        </div>
         {/* Main content */}
-        <main className="flex-1 min-h-screen p-4 md:p-8 bg-gray-50">
+        <main className="flex-1 min-h-screen p-4 md:p-8 bg-gray-50 dark:bg-gray-800">
           {children}
         </main>
       </div>
       {/* Footer */}
-      <footer className="text-center text-xs text-gray-400 py-4 border-t bg-white">© {new Date().getFullYear()} Aba Directory. All rights reserved.</footer>
+      <footer className="text-center text-xs text-gray-400 py-4 border-t bg-white dark:bg-gray-800">© {new Date().getFullYear()} Aba Directory. All rights reserved.</footer>
     </div>
   );
 }

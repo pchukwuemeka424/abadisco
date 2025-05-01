@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { FaMapMarkerAlt, FaPhone, FaGlobe, FaCheckCircle, FaWhatsapp, 
   FaFacebook, FaInstagram, FaTv, FaGamepad, FaLaptop, FaMicrochip, 
   FaTools, FaHeadphones, FaChevronLeft, FaStar, FaRegCalendarAlt } from 'react-icons/fa';
-import TopNavbar from '@/components/TopNavbar';
+
 
 // Define proper types for businesses and products
 interface Business {
@@ -140,7 +140,7 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white flex flex-col">
-        <TopNavbar />
+
         <div className="flex-1 flex justify-center items-center">
           <div className="text-center">
             <div className="relative mx-auto w-20 h-20">
@@ -162,7 +162,7 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
   if (error || !business) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white">
-        <TopNavbar />
+     
         <div className="max-w-5xl mx-auto px-6 py-12">
           <div className="bg-white p-8 rounded-2xl shadow-xl">
             <div className="text-center">
@@ -192,7 +192,7 @@ export default function BusinessPage({ params }: { params: { id: string } }) {
   // Modern business detail page design
   return (
     <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white">
-      <TopNavbar />
+
       
       {/* Hero section with business cover photo or gradient background */}
       <div className="w-full h-40 md:h-64 bg-gradient-to-r from-rose-400 to-pink-500 relative overflow-hidden">
