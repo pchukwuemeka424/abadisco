@@ -19,9 +19,8 @@ export default function ProfilePage() {
   const router = useRouter();
   
   // State for services data fetched from the database
-  const [generalServices, setGeneralServices] = useState<{id: number, name: string}[]>([]);
-  const [serviceTypes, setServiceTypes] = useState<{id: number, name: string}[]>([]);
-  const [serviceCategories, setServiceCategories] = useState<{id: number, name: string, service_type_id: number}[]>([]);
+  const [serviceCategories, setServiceCategories] = useState<{id: number, name: string, description: string}[]>([]);
+  const [subServiceCategories, setSubServiceCategories] = useState<{id: number, parent_id: number, name: string, description: string}[]>([]);
   const [specificServices, setSpecificServices] = useState<{id: number, name: string, category_id: number}[]>([]);
   const [categoryMap, setCategoryMap] = useState<Record<number, {id: number, name: string, services: string[]}>>({});
 
@@ -148,38 +147,14 @@ export default function ProfilePage() {
     fetchBusinessCategories();
   }, []);
 
-  // Fetch service types, general services, and service categories from the database
+  // Fetch service categories and sub-service categories from the database
   useEffect(() => {
     const fetchServicesData = async () => {
       try {
-        // Fetch service types (e.g., Restaurant, Bar, etc.)
-        const { data: types, error: typesError } = await supabase
-          .from('service_types')
-          .select('id, name')
-          .order('name');
-          
-        if (typesError) {
-          console.error('Error fetching service types:', typesError.message);
-        } else if (types) {
-          setServiceTypes(types);
-        }
-        
-        // Fetch general services (e.g., Dine-in, Takeaway, etc.)
-        const { data: services, error: servicesError } = await supabase
-          .from('general_services')
-          .select('id, name')
-          .order('name');
-          
-        if (servicesError) {
-          console.error('Error fetching general services:', servicesError.message);
-        } else if (services) {
-          setGeneralServices(services);
-        }
-        
-        // Fetch service categories
+        // Fetch main service categories
         const { data: categories, error: categoriesError } = await supabase
           .from('service_categories')
-          .select('id, name, service_type_id')
+          .select('id, name, description')
           .order('name');
           
         if (categoriesError) {
@@ -187,40 +162,37 @@ export default function ProfilePage() {
         } else if (categories) {
           setServiceCategories(categories);
           
-          // Fetch specific services for each category
-          const { data: services, error: servicesError } = await supabase
-            .from('specific_services')
-            .select('id, name, category_id')
+          // Fetch sub-service categories
+          const { data: subCategories, error: subCategoriesError } = await supabase
+            .from('sub_service_categories')
+            .select('id, parent_id, name, description')
             .order('name');
             
-          if (servicesError) {
-            console.error('Error fetching specific services:', servicesError.message);
-          } else if (services) {
-            setSpecificServices(services);
+          if (subCategoriesError) {
+            console.error('Error fetching sub-service categories:', subCategoriesError.message);
+          } else if (subCategories) {
+            setSubServiceCategories(subCategories);
             
-            // Create a map of service type ID to categories and their services
+            // Create a map of service category ID to their sub-categories
             const tempCategoryMap: Record<number, {id: number, name: string, services: string[]}> = {};
             
-            // Group categories by service type
+            // Initialize with all categories
             categories.forEach(category => {
-              const serviceTypeId = category.service_type_id;
+              tempCategoryMap[category.id] = {
+                id: category.id,
+                name: category.name,
+                services: []
+              };
+            });
+            
+            // Group sub-categories by parent category
+            subCategories.forEach(subCategory => {
+              const parentId = subCategory.parent_id;
               
-              if (!tempCategoryMap[serviceTypeId]) {
-                tempCategoryMap[serviceTypeId] = {
-                  id: serviceTypeId,
-                  name: types?.find(type => type.id === serviceTypeId)?.name || '',
-                  services: []
-                };
+              if (tempCategoryMap[parentId]) {
+                // Add sub-category as a service
+                tempCategoryMap[parentId].services.push(subCategory.name);
               }
-              
-              // Add category as a service
-              tempCategoryMap[serviceTypeId].services.push(category.name);
-              
-              // Add specific services for this category
-              const categoryServices = services.filter(service => service.category_id === category.id);
-              categoryServices.forEach(service => {
-                tempCategoryMap[serviceTypeId].services.push(`   - ${service.name}`);
-              });
             });
             
             setCategoryMap(tempCategoryMap);
@@ -824,14 +796,14 @@ export default function ProfilePage() {
   const getServiceOptions = useCallback(() => {
     if (!businessType) return [];
     
-    // Find the service type ID based on the selected business type
-    const serviceTypeId = serviceTypes.find(type => type.name === businessType)?.id;
+    // Find the service category ID based on the selected business type
+    const serviceCategoryId = serviceCategories.find(category => category.name === businessType)?.id;
     
-    if (!serviceTypeId) return [];
+    if (!serviceCategoryId) return [];
     
-    // Return the services for this service type from the category map
-    return categoryMap[serviceTypeId]?.services || [];
-  }, [businessType, serviceTypes, categoryMap]);
+    // Return the sub-services for this category from the category map
+    return categoryMap[serviceCategoryId]?.services || [];
+  }, [businessType, serviceCategories, categoryMap]);
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -969,8 +941,8 @@ export default function ProfilePage() {
                     required
                   >
                     <option value="">Select Services</option>
-                    {serviceTypes.map(type => (
-                      <option key={type.id} value={type.name}>{type.name}</option>
+                    {serviceCategories.map(category => (
+                      <option key={category.id} value={category.name}>{category.name}</option>
                     ))}
                   </select>
                 </div>
@@ -982,6 +954,15 @@ export default function ProfilePage() {
                     onChange={(e) => {
                       const categoryId = e.target.value ? parseInt(e.target.value) : null;
                       updateBusinessData('category_id', categoryId);
+                      
+                      // If Markets is selected, find the corresponding category title
+                      if (categoryId) {
+                        const selectedCategory = businessCategories.find(cat => cat.id === categoryId);
+                        if (selectedCategory && selectedCategory.title === "Markets") {
+                          // Auto-select "Market" as the businessType if Markets category is selected
+                          setBusinessType("Market");
+                        }
+                      }
                     }}
                   >
                     <option value="">Select a category</option>
@@ -998,7 +979,8 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
-              {businessType === "Market" && (
+              {/* Show market locations dropdown when Markets category is selected or businessType is Market */}
+              {(businessType === "Market" || businessCategories.find(cat => cat.id === (businessData.category_id || 0))?.title === "Markets") && (
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Market Location</label>
                   <select 
@@ -1013,6 +995,7 @@ export default function ProfilePage() {
                         updateBusinessData('market_id', marketObj.id);
                       }
                     }}
+                    required={businessType === "Market" || businessCategories.find(cat => cat.id === (businessData.category_id || 0))?.title === "Markets"}
                   >
                     <option value="">Select market location</option>
                     {marketLocations.length > 0 ? (
@@ -1036,22 +1019,33 @@ export default function ProfilePage() {
                   </p>
                 </div>
                 <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    {getServiceOptions().map((service) => (
-                      <button
-                        key={service}
-                        type="button"
-                        onClick={() => handleServiceChange(service)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                          selectedServices.includes(service)
-                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200'
-                        }`}
+                  {/* Dropdown for sub-service selection */}
+                  {businessType && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Service Options</label>
+                      <select
+                        className="w-full p-2.5 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white text-gray-900"
+                        value=""
+                        onChange={(e) => {
+                          const selectedService = e.target.value;
+                          if (selectedService && !selectedServices.includes(selectedService)) {
+                            setSelectedServices([...selectedServices, selectedService]);
+                          }
+                        }}
                       >
-                        {service}
-                      </button>
-                    ))}
-                  </div>
+                        <option value="">Select a service to add</option>
+                        {getServiceOptions().map((service) => (
+                          <option 
+                            key={service} 
+                            value={service}
+                            disabled={selectedServices.includes(service)}
+                          >
+                            {service} {selectedServices.includes(service) ? '(Added)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-2">
                     <input
