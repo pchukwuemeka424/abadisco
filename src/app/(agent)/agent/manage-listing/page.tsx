@@ -30,6 +30,10 @@ export default function ManageListingPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [imageCounts, setImageCounts] = useState<{ [listingId: string]: number }>({});
   const [marketNames, setMarketNames] = useState<{ [marketId: string]: string }>({});
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   useEffect(() => {
     if (!loading && user) {
@@ -149,6 +153,26 @@ export default function ManageListingPage() {
     const matchesType = businessTypeFilter === "all" || listing.business_type === businessTypeFilter;
     return matchesStatus && matchesType;
   });
+
+  // Pagination calculations
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredListings.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredListings.length / itemsPerPage);
+
+  // Function to change page
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+  
+  // Function to handle items per page change
+  const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [statusFilter, businessTypeFilter]);
 
   const businessTypes = [...new Set(listings.map(listing => listing.business_type))];
   const statusTypes = [...new Set(listings.map(listing => listing.status))];
@@ -327,6 +351,157 @@ export default function ManageListingPage() {
             </div>
           </div>
 
+          {/* Pagination Controls */}
+          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-wrap items-center justify-between">
+            <div className="mb-3 sm:mb-0">
+              <div className="flex items-center">
+                <label htmlFor="items-per-page" className="text-sm font-medium text-gray-700 mr-2">
+                  Show
+                </label>
+                <select
+                  id="items-per-page"
+                  className="rounded-md border border-gray-300 py-1 px-2 text-sm"
+                  value={itemsPerPage}
+                  onChange={handleItemsPerPageChange}
+                >
+                  {[5, 10, 15, 20, 50].map(count => (
+                    <option key={count} value={count}>{count}</option>
+                  ))}
+                </select>
+                <span className="ml-2 text-sm text-gray-600">
+                  of {filteredListings.length} items
+                </span>
+              </div>
+            </div>
+            
+            {totalPages > 1 && (
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => paginate(1)}
+                  disabled={currentPage === 1}
+                  className={`px-2 py-1 rounded-md text-sm font-medium ${
+                    currentPage === 1 ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                >
+                  <span className="sr-only">First</span>
+                  <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M15.707 15.707a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M9.707 15.707a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 111.414 1.414L5.414 10l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => paginate(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-2 py-1 rounded-md text-sm font-medium ${
+                    currentPage === 1 ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                >
+                  <span className="sr-only">Previous</span>
+                  <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                
+                {totalPages <= 7 ? (
+                  // If less than 7 pages, show all page buttons
+                  Array.from({ length: totalPages }, (_, index) => (
+                    <button
+                      key={index + 1}
+                      onClick={() => paginate(index + 1)}
+                      className={`px-3 py-1 rounded-md text-sm font-medium ${
+                        currentPage === index + 1 ? "bg-rose-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      }`}
+                    >
+                      {index + 1}
+                    </button>
+                  ))
+                ) : (
+                  // For more than 7 pages, implement an ellipsis strategy
+                  <>
+                    {/* Show first page */}
+                    {currentPage > 3 && (
+                      <button
+                        onClick={() => paginate(1)}
+                        className="px-3 py-1 rounded-md text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      >
+                        1
+                      </button>
+                    )}
+                    
+                    {/* Show ellipsis if needed */}
+                    {currentPage > 4 && (
+                      <span className="px-3 py-1 text-sm text-gray-500">...</span>
+                    )}
+                    
+                    {/* Show pages around current page */}
+                    {Array.from({ length: totalPages }, (_, index) => {
+                      const pageNumber = index + 1;
+                      // Show current page and 1 page before and after it
+                      return (pageNumber === 1 || 
+                             pageNumber === totalPages || 
+                             (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)) ? (
+                        <button
+                          key={pageNumber}
+                          onClick={() => paginate(pageNumber)}
+                          className={`px-3 py-1 rounded-md text-sm font-medium ${
+                            currentPage === pageNumber ? "bg-rose-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      ) : null;
+                    }).filter(Boolean)}
+                    
+                    {/* Show ellipsis if needed */}
+                    {currentPage < totalPages - 3 && (
+                      <span className="px-3 py-1 text-sm text-gray-500">...</span>
+                    )}
+                    
+                    {/* Show last page */}
+                    {currentPage < totalPages - 2 && (
+                      <button
+                        onClick={() => paginate(totalPages)}
+                        className="px-3 py-1 rounded-md text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      >
+                        {totalPages}
+                      </button>
+                    )}
+                  </>
+                )}
+                
+                <button
+                  onClick={() => paginate(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`px-2 py-1 rounded-md text-sm font-medium ${
+                    currentPage === totalPages ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                >
+                  <span className="sr-only">Next</span>
+                  <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => paginate(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className={`px-2 py-1 rounded-md text-sm font-medium ${
+                    currentPage === totalPages ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                >
+                  <span className="sr-only">Last</span>
+                  <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M10.293 4.293a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414-1.414L14.586 10l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            )}
+            
+            <div className="text-sm text-gray-500 mt-3 sm:mt-0">
+              Showing {filteredListings.length > 0 ? indexOfFirstItem + 1 : 0} to {Math.min(indexOfLastItem, filteredListings.length)} of {filteredListings.length} entries
+            </div>
+          </div>
+
           {/* No listings state */}
           {listings.length === 0 ? (
             <div className="px-6 py-12 text-center">
@@ -344,7 +519,7 @@ export default function ManageListingPage() {
                 </button>
               </div>
             </div>
-          ) : filteredListings.length === 0 ? (
+          ) : currentItems.length === 0 ? (
             <div className="px-6 py-12 text-center">
               <svg className="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
@@ -363,7 +538,7 @@ export default function ManageListingPage() {
             </div>
           ) : (
             <ul className="divide-y divide-gray-200">
-              {filteredListings.map((listing) => {
+              {currentItems.map((listing) => {
                 const imgCount = imageCounts[listing.id] || 0;
                 const registrationStatus =
                   imgCount >= 6 ? (
