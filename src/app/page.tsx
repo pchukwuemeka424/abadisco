@@ -10,169 +10,345 @@ import "slick-carousel/slick/slick-theme.css";
 import { useRef, useState, useEffect } from 'react';
 import { supabase } from '@/supabaseClient';
 
-// Business categories for featured sections
-const businessCategories = [
-  {
-    title: "Markets",
-    description: "Explore Aba's vibrant commercial marketplaces",
-    image: "/images/Eziukwu Market.jpg",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-      </svg>
-    ),
-    count: 520,
-    link: "/markets"
-  },
-  {
-    title: "Fashion & Textiles",
-    description: "Quality fabrics and trendy designs",
-    image: "/images/Cemetery Market.jpeg",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
-      </svg>
-    ),
-    link: "/search?category=fashion"
-  },
-  {
-    title: "Restaurants",
-    description: "Taste local and international cuisine",
-    image: "/images/phonepicutres-TA.webp",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-      </svg>
-    ),
-    link: "/search?category=restaurants"
-  },
-  {
-    title: "Electronics",
-    description: "Latest gadgets and tech solutions",
-    image: "/images/Uratta Market.jpeg",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-      </svg>
-    ),
-    link: "/search?category=electronics"
-  },
-  {
-    title: "Hotels & Lodging",
-    description: "Comfortable stays for travelers",
-    image: "/images/RAILWAY .jpeg",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-      </svg>
-    ),
-    link: "/search?category=hotels"
-  },
-  {
-    title: "Footwear & Leather",
-    description: "Quality shoes and leather products",
-    image: "/images/ariaria-market.png",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-      </svg>
-    ),
-    link: "/search?category=footwear"
-  },
-  {
-    title: "Automotive",
-    description: "Vehicle parts and repair services",
-    image: "/images/Cemetery Market.jpeg",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21H5a2 2 0 01-2-2V6a2 2 0 012-2h2V3a1 1 0 011-1h8a1 1 0 011 1v1h2a2 2 0 012 2v13a2 2 0 01-2 2z"></path>
-      </svg>
-    ),
-    link: "/search?category=automotive"
-  },
-  {
-    title: "Art & Crafts",
-    description: "Local artisan creations and crafts",
-    image: "/images/Ahia Ohuru (New Market).webp",
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-      </svg>
-    ),
-    link: "/search?category=art"
-  }
-];
+// Define TypeScript interfaces for our data models
+interface BusinessCategory {
+  title: string;
+  description: string;
+  image_path: string;
+  icon_type: string;
+  count?: number;
+  link_path: string;
+}
+
+interface FeaturedBusiness {
+  name: string;
+  category: string;
+  rating: number;
+  reviews: number;
+  image: string;
+  highlights: string[];
+}
+
+interface HeroContent {
+  title: string;
+  subtitle: string;
+  background_image: string;
+  tagline: string;
+}
+
+interface FooterCategory {
+  title: string;
+  link: string;
+}
+
+// TypeScript declaration for JSX element
+declare namespace JSX {
+  interface Element {}
+}
+
+// Icons mapping for categories - this converts icon_type from database to JSX icons
+const iconMapping: Record<string, React.ReactNode> = {
+  "shopping-bag": (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+    </svg>
+  ),
+  "fabric": (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+    </svg>
+  ),
+  "book-open": (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+    </svg>
+  ),
+  "desktop-computer": (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+    </svg>
+  ),
+  "office-building": (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+    </svg>
+  ),
+  "user": (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+    </svg>
+  ),
+  "briefcase": (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21H5a2 2 0 01-2-2V6a2 2 0 012-2h2V3a1 1 0 011-1h8a1 1 0 011 1v1h2a2 2 0 012 2v13a2 2 0 01-2 2z"></path>
+    </svg>
+  ),
+  "photograph": (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+    </svg>
+  )
+};
 
 export default function Home() {
-  const [featuredBusinesses, setFeaturedBusinesses] = useState([]);
+  const [featuredBusinesses, setFeaturedBusinesses] = useState<FeaturedBusiness[]>([]);
+  const [businessCategories, setBusinessCategories] = useState<BusinessCategory[]>([]);
+  const [heroContent, setHeroContent] = useState<HeroContent>({
+    title: "Discover City of Aba",
+    subtitle: "Eastern Nigeria's commercial hub with vibrant markets, skilled craftsmanship, and rich cultural experiences",
+    background_image: "/images/ariaria-market.png",
+    tagline: "EASTERN NIGERIA'S COMMERCIAL HUB"
+  });
+  const [ctaImage, setCtaImage] = useState<string>("/images/Cemetery Market.jpeg");
+  const [footerCategories, setFooterCategories] = useState<FooterCategory[]>([]);
+  
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [heroLoading, setHeroLoading] = useState(true);
+  const [footerLoading, setFooterLoading] = useState(true);
+  
+  const [error, setError] = useState<string | null>(null);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  const [heroError, setHeroError] = useState<string | null>(null);
+  const [footerError, setFooterError] = useState<string | null>(null);
 
+  // Fetch site configuration for hero section
   useEffect(() => {
-    const fetchMarkets = async () => {
+    const fetchHeroContent = async () => {
       try {
-        setLoading(true);
-        // Fetch active markets from the database, ordered by created_at
+        setHeroLoading(true);
         const { data, error } = await supabase
-          .from('markets')
-          .select('id, name, location, description, image_url')
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-          .limit(3); // Fetch only 3 markets for the featured section
+          .from('site_configuration')
+          .select('*')
+          .eq('section', 'hero')
+          .single();
+        
+        if (error) {
+          // If table doesn't exist or no hero config found, we'll use the default state values
+          console.log("No hero configuration found, using defaults");
+          return;
+        }
+
+        if (data) {
+          setHeroContent({
+            title: data.title || heroContent.title,
+            subtitle: data.subtitle || heroContent.subtitle,
+            background_image: data.background_image || heroContent.background_image,
+            tagline: data.tagline || heroContent.tagline
+          });
+        }
+      } catch (err: any) {
+        console.error("Error fetching hero content:", err);
+        setHeroError(err.message || 'An error occurred');
+      } finally {
+        setHeroLoading(false);
+      }
+    };
+
+    fetchHeroContent();
+  }, []);
+
+  // Fetch business categories from database
+  useEffect(() => {
+    const fetchBusinessCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        const { data, error } = await supabase
+          .from('business_categories')
+          .select('*')
+          .order('title');
         
         if (error) {
           throw error;
         }
 
         if (data && data.length > 0) {
-          // Transform the data to match the structure expected by the UI
-          const transformedData = data.map(market => ({
-            name: market.name,
-            category: "Market",
-            rating: 4.7, // Default rating since we don't have ratings in the table
-            reviews: Math.floor(Math.random() * 300) + 100, // Random number of reviews for demo
-            image: market.image_url || "/images/ariaria-market.png", // Fallback image if none provided
-            highlights: [
-              market.location || "Aba, Abia State",
-              market.description?.split('.')[0] || "Popular market in Aba", // First sentence of description
-              "Visit for quality products"
-            ]
-          }));
-          
-          setFeaturedBusinesses(transformedData);
+          setBusinessCategories(data);
         } else {
-          // If no data is returned, use a fallback
-          setFeaturedBusinesses([
-            {
+          setCategoriesError('No business categories found');
+        }
+      } catch (err: any) {
+        console.error("Error fetching business categories:", err);
+        setCategoriesError(err.message || 'An error occurred');
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchBusinessCategories();
+  }, []);
+
+  // Fetch featured businesses with their highlights
+  useEffect(() => {
+    const fetchFeaturedBusinesses = async () => {
+      try {
+        setLoading(true);
+        // Fetch featured businesses with their highlights
+        const { data, error } = await supabase
+          .from('featured_businesses')
+          .select('id, name, category, rating, reviews, image_path')
+          .eq('is_featured', true)
+          .order('rating', { ascending: false })
+          .limit(3);
+        
+        if (error) {
+          throw error;
+        }
+
+        if (data && data.length > 0) {
+          // For each featured business, fetch its highlights
+          const businessesWithHighlights = await Promise.all(
+            data.map(async (business) => {
+              const { data: highlights, error: highlightsError } = await supabase
+                .from('business_highlights')
+                .select('highlight_text')
+                .eq('business_id', business.id)
+                .order('display_order');
+              
+              const highlightTexts = highlights 
+                ? highlights.map(h => h.highlight_text)
+                : ["Quality products", "Great service", "Highly recommended"];
+              
+              return {
+                name: business.name,
+                category: business.category,
+                rating: business.rating,
+                reviews: business.reviews,
+                image: business.image_path,
+                highlights: highlightTexts
+              };
+            })
+          );
+          
+          setFeaturedBusinesses(businessesWithHighlights);
+        } else {
+          // If no featured businesses are found, try to get from the markets table
+          const { data: marketsData, error: marketsError } = await supabase
+            .from('markets')
+            .select('id, name, location, description, image_url')
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(3);
+          
+          if (marketsError || !marketsData || marketsData.length === 0) {
+            // If still no data, use a minimal fallback
+            setFeaturedBusinesses([{
               name: "Ariaria International Market",
               category: "Market",
               rating: 4.8,
               reviews: 420,
               image: "/images/ariaria-market.png",
               highlights: ["Largest market in Eastern Nigeria", "Specializes in garments and footwear", "Over 10,000 shops"]
-            },
-          ]);
-        }
-      } catch (err) {
-        console.error("Error fetching markets:", err);
-        setError(err.message);
-        // Use fallback data in case of error
-        setFeaturedBusinesses([
-          {
-            name: "Ariaria International Market",
+            }]);
+            return;
+          }
+          
+          // Transform markets data to match featured businesses format
+          const transformedData = marketsData.map(market => ({
+            name: market.name,
             category: "Market",
-            rating: 4.8,
-            reviews: 420,
-            image: "/images/ariaria-market.png",
-            highlights: ["Largest market in Eastern Nigeria", "Specializes in garments and footwear", "Over 10,000 shops"]
-          },
-        ]);
+            rating: 4.7,
+            reviews: Math.floor(Math.random() * 300) + 100,
+            image: market.image_url || "/images/ariaria-market.png",
+            highlights: [
+              market.location || "Aba, Abia State",
+              market.description?.split('.')[0] || "Popular market in Aba",
+              "Visit for quality products"
+            ]
+          }));
+          
+          setFeaturedBusinesses(transformedData);
+        }
+      } catch (err: any) {
+        console.error("Error fetching featured businesses:", err);
+        setError(err.message || 'An error occurred');
+        // Minimal fallback
+        setFeaturedBusinesses([{
+          name: "Ariaria International Market",
+          category: "Market",
+          rating: 4.8,
+          reviews: 420,
+          image: "/images/ariaria-market.png",
+          highlights: ["Largest market in Eastern Nigeria", "Specializes in garments and footwear", "Over 10,000 shops"]
+        }]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMarkets();
+    fetchFeaturedBusinesses();
+  }, []);
+
+  // Fetch footer categories from business_categories
+  useEffect(() => {
+    const fetchFooterCategories = async () => {
+      try {
+        setFooterLoading(true);
+        const { data, error } = await supabase
+          .from('business_categories')
+          .select('title, link_path')
+          .limit(4);
+        
+        if (error) {
+          throw error;
+        }
+
+        if (data && data.length > 0) {
+          const categories = data.map(cat => ({
+            title: cat.title,
+            link: cat.link_path
+          }));
+          setFooterCategories(categories);
+        } else {
+          // Fallback
+          setFooterCategories([
+            { title: "Markets", link: "/markets" },
+            { title: "Restaurants", link: "/search?category=restaurants" },
+            { title: "Hotels & Accommodation", link: "/search?category=hotels" },
+            { title: "Fashion & Textiles", link: "/search?category=fashion" }
+          ]);
+        }
+      } catch (err: any) {
+        console.error("Error fetching footer categories:", err);
+        setFooterError(err.message || 'An error occurred');
+        // Fallback
+        setFooterCategories([
+          { title: "Markets", link: "/markets" },
+          { title: "Restaurants", link: "/search?category=restaurants" },
+          { title: "Hotels & Accommodation", link: "/search?category=hotels" },
+          { title: "Fashion & Textiles", link: "/search?category=fashion" }
+        ]);
+      } finally {
+        setFooterLoading(false);
+      }
+    };
+
+    fetchFooterCategories();
+  }, []);
+
+  // Also fetch a random image for the CTA background
+  useEffect(() => {
+    const fetchCtaImage = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('business_categories')
+          .select('image_path')
+          .limit(5);
+        
+        if (error || !data || data.length === 0) {
+          return; // Keep the default
+        }
+
+        // Pick a random image from the results
+        const randomIndex = Math.floor(Math.random() * data.length);
+        setCtaImage(data[randomIndex].image_path);
+      } catch (err) {
+        console.error("Error fetching CTA image:", err);
+        // Keep using the default image
+      }
+    };
+
+    fetchCtaImage();
   }, []);
 
   return (
@@ -183,7 +359,7 @@ export default function Home() {
         <div className="absolute inset-0 z-0">
           <div className="relative h-full w-full">
             <Image
-              src="/images/ariaria-market.png"
+              src={heroContent.background_image}
               alt="Ariaria Market Aerial View"
               fill
               priority
@@ -212,15 +388,15 @@ export default function Home() {
           <div className="text-center max-w-5xl mx-auto">
             <div className="inline-block mb-4">
               <span className="bg-red-500/30 text-white px-4 py-1 rounded-full text-sm font-medium tracking-wide text-shadow-sm">
-                EASTERN NIGERIA'S COMMERCIAL HUB
+                {heroContent.tagline}
               </span>
             </div>
             
             <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold text-white mb-4 tracking-tight animate-fade-in text-shadow-md">
-              Discover <span className="text-red-300">City of Aba</span>
+              {heroContent.title}
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl text-white mb-8 max-w-3xl mx-auto animate-fade-in-delay-1 text-shadow-sm">
-              Eastern Nigeria's commercial hub with vibrant markets, skilled craftsmanship, and rich cultural experiences
+              {heroContent.subtitle}
             </p>
             
             <div className="w-full max-w-2xl mx-auto mb-10 animate-fade-in-delay-2">
@@ -245,56 +421,66 @@ export default function Home() {
             <p className="text-gray-600 max-w-2xl mx-auto">Discover the diverse commercial ecosystem that makes Aba the manufacturing powerhouse of Eastern Nigeria</p>
           </div>
           
-          <Slider 
-            slidesToShow={3} 
-            slidesToScroll={1} 
-            autoplay={true} 
-            autoplaySpeed={3000}
-            responsive={[
-              {
-                breakpoint: 1024,
-                settings: {
-                  slidesToShow: 2,
-                  slidesToScroll: 1,
+          {categoriesLoading ? (
+            <div className="flex justify-center items-center h-48">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+            </div>
+          ) : categoriesError ? (
+            <div className="text-center text-red-500">
+              <p>Failed to load categories. Please try again later.</p>
+            </div>
+          ) : (
+            <Slider 
+              slidesToShow={3} 
+              slidesToScroll={1} 
+              autoplay={true} 
+              autoplaySpeed={3000}
+              responsive={[
+                {
+                  breakpoint: 1024,
+                  settings: {
+                    slidesToShow: 2,
+                    slidesToScroll: 1,
+                  }
+                },
+                {
+                  breakpoint: 640,
+                  settings: {
+                    slidesToShow: 1,
+                    slidesToScroll: 1,
+                  }
                 }
-              },
-              {
-                breakpoint: 640,
-                settings: {
-                  slidesToShow: 1,
-                  slidesToScroll: 1,
-                }
-              }
-            ]}
-            className="mx-4 md:mx-8"
-          >
-            {businessCategories.map((category, index) => (
-              <Link href={category.link} key={index} className="group px-3">
-                <div className="relative h-80 overflow-hidden rounded-xl shadow-lg transform transition-all duration-500 hover:scale-[1.02] hover:shadow-xl">
-                  <Image
-                    src={category.image}
-                    alt={category.title}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <div className="bg-red-500/20 p-3 rounded-full w-fit mb-3">
-                      {category.icon}
-                    </div>
-                    <h3 className="text-2xl font-bold text-white mb-2">{category.title}</h3>
-                    <p className="text-white text-shadow-sm mb-4">{category.description}</p>
-                    <div className="flex items-center text-white font-semibold">
-                      <span>Explore</span>
-                      <svg className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                      </svg>
+              ]}
+              className="mx-4 md:mx-8"
+            >
+              {businessCategories.map((category, index) => (
+                <Link href={category.link_path} key={index} className="group px-3">
+                  <div className="relative h-80 overflow-hidden rounded-xl shadow-lg transform transition-all duration-500 hover:scale-[1.02] hover:shadow-xl">
+                    <Image
+                      src={category.image_path}
+                      alt={category.title}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                    <div className="absolute bottom-0 left-0 right-0 p-6">
+                      <div className="bg-red-500/20 p-3 rounded-full w-fit mb-3">
+                        {iconMapping[category.icon_type]}
+                      </div>
+                      <h3 className="text-2xl font-bold text-white mb-2">{category.title}</h3>
+                      <p className="text-white text-shadow-sm mb-4">{category.description}</p>
+                      <div className="flex items-center text-white font-semibold">
+                        <span>Explore</span>
+                        <svg className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
-          </Slider>
+                </Link>
+              ))}
+            </Slider>
+          )}
         </div>
       </section>
       
@@ -348,15 +534,11 @@ export default function Home() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                           </svg>
                           <span className="text-gray-600 text-sm">{highlight}</span>
-                       
                         </li>
-                        
                       ))}
                     </ul>
-             
                   </div>
                 </div>
-                
               ))}
             </div>
           )}
@@ -376,7 +558,7 @@ export default function Home() {
       <section className="relative py-20 px-4">
         <div className="absolute inset-0 bg-gray-900 z-0">
           <Image
-            src="/images/Cemetery Market.jpeg" 
+            src={ctaImage} 
             alt="Aba Market"
             fill
             className="object-cover opacity-20"
@@ -409,10 +591,13 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-3">Categories</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/markets" className="hover:text-red-400 transition-colors">Markets</Link></li>
-                <li><Link href="/search?category=restaurants" className="hover:text-red-400 transition-colors">Restaurants</Link></li>
-                <li><Link href="/search?category=hotels" className="hover:text-red-400 transition-colors">Hotels & Accommodation</Link></li>
-                <li><Link href="/search?category=fashion" className="hover:text-red-400 transition-colors">Fashion & Textiles</Link></li>
+                {footerCategories.map((category, index) => (
+                  <li key={index}>
+                    <Link href={category.link} className="hover:text-red-400 transition-colors">
+                      {category.title}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
             <div>
