@@ -20,6 +20,26 @@ interface DashboardData {
     image_urls: string;
     created_at: string;
   }>;
+  userData: {
+    id: string;
+    email: string;
+    full_name?: string;
+    phone?: string;
+    created_at: string;
+    last_login?: string;
+    role?: string;
+  } | null;
+  businessData: {
+    id: string;
+    name: string;
+    description?: string;
+    logo_url?: string;
+    address?: string;
+    contact_phone?: string;
+    contact_email?: string;
+    status: string;
+    created_at: string;
+  } | null;
   error?: string; // Add error field to display error messages
 }
 
@@ -29,7 +49,9 @@ export default function Dashboard() {
     totalProducts: 0,
     pendingVerifications: 0,
     recentActivity: [],
-    popularProducts: []
+    popularProducts: [],
+    userData: null,
+    businessData: null
   });
   const [loading, setLoading] = useState(true);
 
@@ -89,13 +111,39 @@ export default function Dashboard() {
         throw new Error(`Failed to fetch popular products: ${popularError.message}`);
       }
       
+      // Fetch user data from users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (userError) {
+        console.error("Error fetching user data:", userError.message, userError.details);
+        throw new Error(`Failed to fetch user data: ${userError.message}`);
+      }
+      
+      // Fetch business data from businesses table for this user
+      const { data: businessData, error: businessError } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('owner_id', user.id)
+        .maybeSingle(); // Use maybeSingle() to handle case where user has no business
+      
+      if (businessError) {
+        console.error("Error fetching business data:", businessError.message, businessError.details);
+        throw new Error(`Failed to fetch business data: ${businessError.message}`);
+      }
+      
       console.log("Dashboard data fetched successfully");
       
       setDashboardData({
         totalProducts: productsData ? productsData.length : 0,
         pendingVerifications: kycData ? kycData.length : 0,
         recentActivity: activityData || [],
-        popularProducts: popularProductsData || []
+        popularProducts: popularProductsData || [],
+        userData: userData || null,
+        businessData: businessData || null
       });
       
     } catch (error) {
@@ -244,7 +292,132 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
-
+            
+            {/* User Profile Information */}
+            {dashboardData.userData && (
+              <div className="bg-white rounded-lg shadow mb-8">
+                <div className="p-4 border-b">
+                  <h2 className="text-lg font-semibold">User Profile</h2>
+                </div>
+                <div className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Email</p>
+                      <p className="text-base">{dashboardData.userData.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Full Name</p>
+                      <p className="text-base">{dashboardData.userData.full_name || 'Not provided'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Phone</p>
+                      <p className="text-base">{dashboardData.userData.phone || 'Not provided'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Joined</p>
+                      <p className="text-base">{formatDate(dashboardData.userData.created_at)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Last Login</p>
+                      <p className="text-base">{dashboardData.userData.last_login ? formatDate(dashboardData.userData.last_login) : 'Not available'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Role</p>
+                      <p className="text-base">{dashboardData.userData.role || 'User'}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Link href="/dashboard/profile" className="text-sm text-blue-500 hover:underline">
+                      Edit Profile
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Business Information */}
+            {dashboardData.businessData ? (
+              <div className="bg-white rounded-lg shadow mb-8">
+                <div className="p-4 border-b">
+                  <h2 className="text-lg font-semibold">Your Business</h2>
+                </div>
+                <div className="p-4">
+                  <div className="flex items-start">
+                    {dashboardData.businessData.logo_url && (
+                      <div className="mr-4">
+                        <img 
+                          src={dashboardData.businessData.logo_url} 
+                          alt="Business Logo" 
+                          className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                          onError={(e) => {
+                            e.currentTarget.src = '/images/logo.png'; // Fallback image
+                          }}
+                        />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold">{dashboardData.businessData.name}</h3>
+                      <p className="text-gray-600 text-sm mt-1">{dashboardData.businessData.description || 'No description provided'}</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Address</p>
+                          <p className="text-base">{dashboardData.businessData.address || 'Not provided'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Contact Phone</p>
+                          <p className="text-base">{dashboardData.businessData.contact_phone || 'Not provided'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Contact Email</p>
+                          <p className="text-base">{dashboardData.businessData.contact_email || 'Not provided'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Status</p>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            dashboardData.businessData.status === 'active' ? 'bg-green-100 text-green-800' : 
+                            dashboardData.businessData.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {dashboardData.businessData.status.charAt(0).toUpperCase() + dashboardData.businessData.status.slice(1)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4">
+                        <Link href="/dashboard/profile" className="text-sm text-blue-500 hover:underline">
+                          Manage Business
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow mb-8">
+                <div className="p-4 border-b">
+                  <h2 className="text-lg font-semibold">Business Profile</h2>
+                </div>
+                <div className="p-6 text-center">
+                  <div className="mb-4">
+                    <FaStore className="mx-auto h-12 w-12 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900">No Business Registered</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    You haven't created a business profile yet. Create one to showcase your products and services.
+                  </p>
+                  <div className="mt-6">
+                    <Link 
+                      href="/dashboard/profile" 
+                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      Create Business Profile
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Error Message */}
             {dashboardData.error && (
               <div className="bg-red-100 text-red-600 p-4 rounded-lg shadow mt-4">

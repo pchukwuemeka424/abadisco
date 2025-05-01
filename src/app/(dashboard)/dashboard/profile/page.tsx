@@ -75,7 +75,6 @@ export default function ProfilePage() {
   });
   
   // Additional form fields that aren't directly in businesses_table
-  const [agentId, setAgentId] = useState("");
   const [marketName, setMarketName] = useState(""); // For display purposes
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [businessType, setBusinessType] = useState(""); // For category lookup
@@ -478,6 +477,57 @@ export default function ProfilePage() {
     }
   }, [user, loading, businessId, marketLocations]);
 
+  // Add a useEffect to fetch user details from the users table
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      if (!user) {
+        console.log("No user available, skipping user data fetch");
+        return;
+      }
+      
+      console.log("Fetching user details for user ID:", user.id);
+      
+      try {
+        // Fetch user data from the users table
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching user data:", error.message);
+          return;
+        }
+        
+        if (!userData) {
+          console.log("No detailed user profile found in users table");
+          return;
+        }
+        
+        console.log("Successfully retrieved user data:", userData);
+        
+        // Populate business data with user details if not already filled
+        if (userData.phone && !businessData.contact_phone) {
+          updateBusinessData('contact_phone', userData.phone);
+        }
+        
+        // Pre-fill other fields from user data if available
+        if (userData.full_name && !businessData.name) {
+          // Only use the user's name for business name if it's empty
+          updateBusinessData('name', userData.full_name + "'s Business");
+        }
+        
+      } catch (err: any) {
+        console.error("Unexpected error in fetchUserDetails:", err);
+      }
+    };
+    
+    if (user && !loading) {
+      fetchUserDetails();
+    }
+  }, [user, loading, businessData.contact_phone, businessData.name]);
+
   // Logo handling functions
   const handleLogoDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -611,35 +661,8 @@ export default function ProfilePage() {
     }
 
     try {
-      // Get the agent ID if we don't have it already
-      let currentAgentId = agentId;
-      
-      if (!currentAgentId) {
-        console.log("Fetching agent ID for user:", user.id);
-        const { data: agentData, error: agentError } = await supabase
-          .from('agents')
-          .select('id, user_id')
-          .eq('user_id', user.id)
-          .single();
-          
-        if (agentError) {
-          console.error("Error fetching agent data:", agentError);
-          setError("Could not find your agent profile. Please make sure you're registered as an agent.");
-          setIsUpdatingBusiness(false);
-          return;
-        }
-        
-        if (!agentData) {
-          setError("Your agent profile was not found. Please contact support.");
-          setIsUpdatingBusiness(false);
-          return;
-        }
-        
-        console.log("Retrieved agent data:", agentData);
-        // Store the agent's ID for reference
-        currentAgentId = agentData.id;
-        setAgentId(currentAgentId);
-      }
+      // No need to check for agent data, this is a user dashboard
+      console.log("Submitting business profile for user:", user.id);
 
       // Find the market ID based on the selected market name
       let marketId: string | null = null;
@@ -877,101 +900,6 @@ export default function ProfilePage() {
     
     loadProfile();
   }, [user, loading, authChecked, businessData.contact_email]);
-
-  // Add a useEffect to fetch the agent data when the component mounts
-  useEffect(() => {
-    const fetchAgentData = async () => {
-      if (!user) {
-        console.log("No user available, skipping agent data fetch");
-        return;
-      }
-      
-      console.log("Fetching agent data for user ID:", user.id);
-      
-      try {
-        // First, check if the agents table exists and if the user has an agent record
-        const { count, error: checkError } = await supabase
-          .from('agents')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id);
-        
-        if (checkError) {
-          console.error("Error checking agents table:", checkError.message);
-          setError(`Failed to access agents table: ${checkError.message}. Please ensure you have proper permissions.`);
-          return;
-        }
-        
-        if (count === 0) {
-          console.warn(`No agent record found for user ID: ${user.id}`);
-          
-          // Try to create a new agent record if one doesn't exist
-          try {
-            const { data: userData } = await supabase.auth.getUser();
-            if (userData?.user) {
-              const { data: newAgent, error: createError } = await supabase
-                .from('agents')
-                .insert({
-                  id: crypto.randomUUID(),
-                  user_id: user.id,
-                  email: userData.user.email,
-                  full_name: userData.user.user_metadata?.full_name || 'Unknown',
-                  phone: '',
-                  status: 'active'
-                })
-                .select('id')
-                .single();
-                
-              if (createError) {
-                console.error("Error creating agent record:", createError);
-                setError(`Failed to create agent profile: ${createError.message}`);
-                return;
-              }
-              
-              if (newAgent) {
-                console.log("Created new agent profile:", newAgent);
-                setAgentId(newAgent.id);
-                return;
-              }
-            }
-          } catch (createErr) {
-            console.error("Error in agent creation:", createErr);
-          }
-          
-          setError("No agent profile found for your account. Please register as an agent first.");
-          return;
-        }
-        
-        // Get the agent ID from the agents table
-        const { data: agentData, error } = await supabase
-          .from('agents')
-          .select('id, full_name, email')
-          .eq('user_id', user.id)
-          .single();
-        
-        if (error) {
-          console.error("Error fetching agent data:", error.message);
-          setError(`Failed to fetch agent data: ${error.message}`);
-          return;
-        }
-        
-        if (!agentData) {
-          console.error("No agent data returned despite count check");
-          setError("Your agent profile was not found. Please contact support.");
-          return;
-        }
-        
-        console.log("Successfully retrieved agent data:", agentData);
-        setAgentId(agentData.id);
-      } catch (err: any) {
-        console.error("Unexpected error in fetchAgentData:", err);
-        setError(`An unexpected error occurred: ${err?.message || "Unknown error"}`);
-      }
-    };
-    
-    if (user && !loading) {
-      fetchAgentData();
-    }
-  }, [user, loading, authChecked]);
 
   const getServiceOptions = useCallback(() => {
     if (!businessType) return [];

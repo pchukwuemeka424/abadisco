@@ -131,6 +131,20 @@ export default function UploadProduct() {
         setProgress(Math.round(((i + 1) / files.length) * 100));
       }
 
+
+     // fetch from business table
+      const { data: businessData, error: businessError } = await supabase
+        .from("businesses")
+        .select("id")
+        .eq("owner_id", paramId || user.id)
+        .single();
+      if (businessError) throw new Error(businessError.message);
+      if (!businessData) {
+        throw new Error("Business not found.");
+      }
+      const businessId = businessData.id;
+
+
       // Insert into database
       const { data: productData, error: dbError } = await supabase
         .from('products')
@@ -138,7 +152,7 @@ export default function UploadProduct() {
           image_urls: imageUrls[0], // Main image
          
           // Use paramId if available, otherwise fall back to user.id
-          user_id: paramId || user.id,
+          user_id: businessData.id,
         })
         .select()
         .single();

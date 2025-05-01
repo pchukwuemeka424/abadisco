@@ -72,6 +72,12 @@ export default function SignUpPage() {
     const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          full_name: name,
+          role: 'user' // Explicitly set role to 'user' (not 'agent') in auth metadata
+        }
+      }
     });
     if (signUpError) {
       setError(signUpError.message);
@@ -80,15 +86,30 @@ export default function SignUpPage() {
     }
     // Get the new user's id
     const userId = signUpData?.user?.id;
-    // Insert into users table
+    // Insert into users table with simplified schema
     if (userId) {
-      await supabase.from('users').insert({ id: userId, email, full_name: name });
+      const { error: insertError } = await supabase.from('users').insert({ 
+        id: userId, 
+        email, 
+        full_name: name
+      });
+      
+      if (insertError) {
+        console.error('Error inserting user record:', insertError);
+        setError(insertError.message);
+        setLoading(false);
+        return;
+      }
+
       // Insert into kyc_verifications
-      await supabase.from('kyc_verifications').insert({ user_id: userId });
-     
+      await supabase.from('kyc_verifications').insert({ 
+        user_id: userId,
+        document_type: 'national_id',
+        document_number: 'pending'
+      });
     }
     // Redirect or show success
-    window.location.href = '/dashboard/profile';
+    window.location.href = '/dashboard/';
   };
 
   const handleGoogleSignIn = async () => {
@@ -118,14 +139,24 @@ export default function SignUpPage() {
           .eq('id', user.id)
           .single();
         if (!existingUser) {
-          await supabase.from('users').insert({
+          // Insert into users table with simplified schema
+          const { error: insertError } = await supabase.from('users').insert({
             id: user.id,
-            email: user.email
-            // No other fields needed with the simplified schema
+            email: user.email,
+            full_name: user.user_metadata?.full_name || user.email.split('@')[0]
           });
           
+          if (insertError) {
+            console.error('Error inserting Google user:', insertError);
+            return;
+          }
+          
           // Insert into kyc_verifications
-          await supabase.from('kyc_verifications').insert({ user_id: user.id });
+          await supabase.from('kyc_verifications').insert({ 
+            user_id: user.id,
+            document_type: 'national_id',
+            document_number: 'pending'
+          });
         }
       }
     }
