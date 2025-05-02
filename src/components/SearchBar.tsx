@@ -4,28 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-const categories = [
-  { name: 'Fashion & Textiles', link: '/search?category=2', icon: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-    </svg>
-  )},
-  { name: 'Markets', link: '/markets', icon: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-    </svg>
-  )},
-  { name: 'Beauty & Personal Care', link: '/search?category=10', icon: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-    </svg>
-  )},
-  { name: 'Restaurants', link: '/search?category=3', icon: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-    </svg>
-  )}
-];
+
 
 export function SearchBar() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,18 +39,7 @@ export function SearchBar() {
         </button>
       </div>
       
-      <div className="mt-6 flex flex-wrap gap-2 sm:gap-3 justify-center">
-        {categories.map((category) => (
-          <Link
-            key={category.name}
-            href={category.link}
-            className="px-4 py-2 bg-white/20 hover:bg-rose-500/30 text-white rounded-full transition-all duration-200 text-sm sm:text-base border border-white/30 hover:border-rose-300 flex items-center gap-2 backdrop-blur-sm hover:shadow-lg transform hover:-translate-y-0.5"
-          >
-            <span className="bg-white/20 p-1.5 rounded-full">{category.icon}</span>
-            {category.name}
-          </Link>
-        ))}
-      </div>
+
     </form>
   );
 }
