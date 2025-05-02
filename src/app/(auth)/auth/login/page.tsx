@@ -70,24 +70,8 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    // Fetch user row from users table
-    const { data: userRow, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single();
-    if (userError) {
-      setError('User not found in database.');
-      setLoading(false);
-      return;
-    }
-    
-    // Redirect based on user role
-    if (userRow.role === 'users') {
-      window.location.href = '/dashboard/';
-    } else {
-      window.location.href = '/admin';
-    }
+    // Redirect to dashboard
+    window.location.href = '/dashboard/';
   };
 
   const handleGoogleSignIn = async () => {
