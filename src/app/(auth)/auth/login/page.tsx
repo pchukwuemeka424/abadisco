@@ -12,8 +12,8 @@ const loginSchema = z.object({
 });
 
 export default function LoginPage() {
-  // Use explicit redirect base (set via NEXT_PUBLIC_SUPABASE_REDIRECT_URL in production)
-  const redirectBase = process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL || window.location.origin;
+  // Use explicit redirect base: prefer NEXT_PUBLIC_SITE_URL for production, fallback to Supabase redirect URL or current origin
+  const redirectBase = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL || window.location.origin;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
