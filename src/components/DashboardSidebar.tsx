@@ -7,14 +7,10 @@ import Image from "next/image";
 import { supabase } from "../supabaseClient";
 
 const sidebarLinks = [
+  { href: "/dashboard", label: "Dashboard", icon: "🏠" },
   { href: "/dashboard/profile", label: "Profile", icon: "👤" },
   { href: "/dashboard/update-password", label: "Update Password", icon: "🔒" },
-  { href: "/dashboard/upload-products", label: "Upload Products", icon: "⬆️" },
-  // { href: "/dashboard/kyc", label: "KYC", icon: "📝", badge: 1 }, // Example badge
-];
-
-const submenuLinks = [
-  { href: "/dashboard/manage-products", label: "Manage Products", icon: "📦" },
+  { href: "/dashboard/manage-uploads", label: "Manage Uploads", icon: "📤" },
 ];
 
 export default function DashboardSidebar() {

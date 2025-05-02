@@ -79,14 +79,14 @@ export default function UploadProduct() {
       // Fetch business name for activity description (if paramId is provided)
       let businessName = "your business";
       if (paramId) {
-        const { data: businessData, error: businessError } = await supabase
+        const { data: nameData, error: nameError } = await supabase
           .from("users")
           .select("business_name")
           .eq("id", paramId)
-          .single();
-          
-        if (!businessError && businessData?.business_name) {
-          businessName = businessData.business_name;
+          .maybeSingle();
+        if (nameError) throw new Error(nameError.message);
+        if (nameData?.business_name) {
+          businessName = nameData.business_name;
         }
       }
       
@@ -133,16 +133,15 @@ export default function UploadProduct() {
 
 
      // fetch from business table
-      const { data: businessData, error: businessError } = await supabase
+      const { data: bizData, error: bizError } = await supabase
         .from("businesses")
         .select("id")
         .eq("owner_id", paramId || user.id)
+        .limit(1)
         .single();
-      if (businessError) throw new Error(businessError.message);
-      if (!businessData) {
-        throw new Error("Business not found.");
-      }
-      const businessId = businessData.id;
+      if (bizError) throw new Error(bizError.message);
+      if (!bizData) throw new Error("Business not found.");
+      const businessId = bizData.id;
 
 
       // Insert into database
@@ -150,14 +149,13 @@ export default function UploadProduct() {
         .from('products')
         .insert({
           image_urls: imageUrls[0], // Main image
-         
-          // Use paramId if available, otherwise fall back to user.id
-          user_id: businessData.id,
+          user_id: businessId,
+          owner_id: paramId || user.id,
         })
         .select()
-        .single();
-
+        .maybeSingle();
       if (dbError) throw new Error(dbError.message);
+      if (!productData) throw new Error('Failed to insert product.');
       
     
 
@@ -168,7 +166,7 @@ export default function UploadProduct() {
       
       setTimeout(() => {
         setShowModal(false);
-        router.push('/dashboard/manage-products');
+        router.push('/dashboard/manage-uploads');
       }, 2000);
 
     } catch (error) {
@@ -196,6 +194,7 @@ export default function UploadProduct() {
               Upload Product Images
             </h1>
             <p className="mt-2 text-gray-600">Upload product images and add relevant tags to help buyers find your products.</p>
+            <p className="text-sm text-gray-500 mt-1">User ID: {paramId || user.id}</p>
           </div>
 
           {/* Success Modal */}

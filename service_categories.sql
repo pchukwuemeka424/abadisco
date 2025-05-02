@@ -2,13 +2,13 @@
 -- Created: May 1, 2025
 
 -- Create the service_categories table
-CREATE TABLE IF NOT EXISTS service_categories (
+CREATE TABLE IF NOT EXISTS public.service_categories (
     id SERIAL PRIMARY KEY,  -- Using SERIAL for PostgreSQL auto-increment
     name VARCHAR(100) NOT NULL,         -- Name of the category
     description TEXT,                   -- Optional description
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,  -- Using timestamptz
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP   -- Adding updated_at for consistency
-);
+) TABLESPACE pg_default;
 
 -- Create the sub_service_categories table
 CREATE TABLE IF NOT EXISTS sub_service_categories (
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS sub_service_categories (
 );
 
 -- Create indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_service_categories_name ON service_categories (name);
+CREATE INDEX IF NOT EXISTS idx_service_categories_name ON public.service_categories USING btree (name) TABLESPACE pg_default;
 CREATE INDEX IF NOT EXISTS idx_sub_service_parent_id ON sub_service_categories (parent_id);
 CREATE INDEX IF NOT EXISTS idx_sub_service_categories_name ON sub_service_categories (name);
 
@@ -750,7 +750,7 @@ $$ language 'plpgsql';
 
 -- Create triggers for automatically updating the timestamp
 CREATE TRIGGER update_service_categories_updated_at
-BEFORE UPDATE ON service_categories
+BEFORE UPDATE ON public.service_categories
 FOR EACH ROW
 EXECUTE FUNCTION update_modified_column();
 

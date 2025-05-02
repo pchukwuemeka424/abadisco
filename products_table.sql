@@ -4,8 +4,9 @@ CREATE TABLE public.products (
   user_id uuid NULL,
   created_at timestamp with time zone NULL DEFAULT now(),
   image_urls text NULL,
-  CONSTRAINT products_pkey PRIMARY KEY (id),
-  CONSTRAINT products_user_id_fkey FOREIGN KEY (user_id) REFERENCES users (id)
+  title text NULL,
+  owner_id text NULL,
+  CONSTRAINT products_pkey PRIMARY KEY (id)
 ) TABLESPACE pg_default;
 
 -- Trigger to log product activity
