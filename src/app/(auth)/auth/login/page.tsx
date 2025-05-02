@@ -12,6 +12,8 @@ const loginSchema = z.object({
 });
 
 export default function LoginPage() {
+  // Use explicit redirect base (set via NEXT_PUBLIC_SUPABASE_REDIRECT_URL in production)
+  const redirectBase = process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL || window.location.origin;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +96,8 @@ export default function LoginPage() {
     const { error: googleError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard/`
+        // Redirect through our OAuth callback, then on to dashboard
+        redirectTo: `${redirectBase}/auth/callback?next=/dashboard`
       }
     });
     if (googleError) {

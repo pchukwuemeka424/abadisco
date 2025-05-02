@@ -14,17 +14,15 @@ function AuthCallbackContent() {
 
     const handleAuthCallback = async () => {
       try {
-        // Process the OAuth callback
-        const { error } = await supabase.auth.getSession();
-        
-        if (error) {
+        // Retrieve the session (URL hash is auto-processed by Supabase client)
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data?.session) {
           console.error('Error during auth callback:', error);
           router.push('/auth/login?error=Authentication failed');
           return;
         }
+        const user = data.session.user;
 
-        // Get user info
-        const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           // Check if the user exists in the users table
           const { data: existingUser } = await supabase

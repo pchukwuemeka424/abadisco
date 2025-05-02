@@ -118,7 +118,8 @@ export default function SignUpPage() {
     const { error: googleError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard` // Redirect to dashboard after Google sign-in
+        // Send through our OAuth callback to process the hash and then route to dashboard
+        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`
       }
     });
     if (googleError) {
