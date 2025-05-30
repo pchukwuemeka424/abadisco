@@ -1,0 +1,229 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Text enhancement utilities */
+.text-shadow-sm {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.text-shadow-md {
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.text-shadow-lg {
+  text-shadow: 0 4px 6px rgba(0,0,0,0.7);
+}
+
+.text-outline-sm {
+  text-shadow: 
+    -1px -1px 0 rgba(0,0,0,0.3),
+    1px -1px 0 rgba(0,0,0,0.3),
+    -1px 1px 0 rgba(0,0,0,0.3),
+    1px 1px 0 rgba(0,0,0,0.3);
+}
+
+.text-outline-md {
+  text-shadow: 
+    -1px -1px 0 rgba(0,0,0,0.5),
+    1px -1px 0 rgba(0,0,0,0.5),
+    -1px 1px 0 rgba(0,0,0,0.5),
+    1px 1px 0 rgba(0,0,0,0.5);
+}
+
+.text-readable-overlay {
+  background-color: rgba(0,0,0,0.4);
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.text-contrast-boost {
+  filter: drop-shadow(0 0 1px rgba(0,0,0,0.8));
+}
+
+/* Animation utilities */
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  0% { 
+    opacity: 0; 
+    transform: translateY(10px);
+  }
+  100% { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.8s ease-in forwards;
+}
+
+.animate-fade-in-delay-1 {
+  opacity: 0;
+  animation: fade-in 0.8s ease-in forwards;
+  animation-delay: 0.2s;
+}
+
+.animate-fade-in-delay-2 {
+  opacity: 0;
+  animation: fade-in 0.8s ease-in forwards;
+  animation-delay: 0.4s;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s ease-out forwards;
+}
+
+@keyframes subtle-zoom {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.animate-subtle-zoom {
+  animation: subtle-zoom 20s infinite alternate ease-in-out;
+}
+
+/* Responsive improvements */
+@media (max-width: 640px) {
+  /* ensure all body text is pure black on small screens for better readability */
+  body {
+    color: #000000;
+  }
+
+  .mobile-text-center {
+    text-align: center;
+  }
+  
+  .mobile-text-shadow {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.7);
+  }
+  
+  .mobile-py-reduced {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+  
+  .mobile-text-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  
+  .mobile-text-base {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+  
+  .mobile-text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  
+  .mobile-contrast-box {
+    background-color: rgba(0,0,0,0.5);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    width: fit-content;
+    margin: 0 auto;
+  }
+
+  .mobile-readable-gradient {
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.5) 50%, transparent 100%);
+    padding: 1rem 0.5rem 0.5rem;
+    border-radius: 0 0 0.25rem 0.25rem;
+    width: 100%;
+  }
+  
+  .mobile-text-spacing {
+    letter-spacing: 0.025em;
+  }
+  
+  .mobile-text-contrast {
+    color: white;
+    font-weight: 500;
+  }
+  
+  .mobile-card-padding {
+    padding: 0.75rem !important;
+  }
+  
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+  
+  .mobile-heading-xl {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+    letter-spacing: -0.025em;
+  }
+  
+  .mobile-heading-lg {
+    font-size: 1.25rem !important;
+    line-height: 1.75rem !important;
+  }
+  
+  .mobile-image-overlay {
+    position: relative;
+  }
+  
+  .mobile-image-overlay::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.7) 100%);
+    z-index: 1;
+    pointer-events: none;
+  }
+  
+  .mobile-image-overlay-content {
+    position: relative;
+    z-index: 2;
+  }
+  
+  .mobile-enhanced-contrast {
+    text-shadow: 
+      0 2px 4px rgba(0,0,0,0.8),
+      0 0 2px rgba(0,0,0,1);
+    font-weight: 600;
+  }
+}
+
+/* Additional text contrast utilities */
+.text-white-important {
+  color: white !important;
+}
+
+.text-white-glow {
+  color: white;
+  text-shadow: 0 0 5px rgba(255,255,255,0.5);
+}
+
+.backdrop-blur-text {
+  backdrop-filter: blur(3px);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background-color: rgba(0,0,0,0.2);
+}
