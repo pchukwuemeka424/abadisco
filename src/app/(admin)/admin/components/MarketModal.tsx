@@ -150,7 +150,14 @@ export default function MarketModal({ market, isOpen, onClose, onSave }: MarketM
           })
           .eq('id', market.id);
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === 'PGRST301') {
+            throw new Error('Permission denied. Please check your database permissions or contact your administrator.');
+          } else if (error.code === '42501') {
+            throw new Error('Insufficient permissions to update markets. Please run the fix-markets-permissions.sql script.');
+          }
+          throw error;
+        }
         setSuccess('Market updated successfully');
       } else {
         // Create new market
@@ -164,7 +171,16 @@ export default function MarketModal({ market, isOpen, onClose, onSave }: MarketM
             is_active: isActive,
           });
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === 'PGRST301') {
+            throw new Error('Permission denied. Please check your database permissions or contact your administrator.');
+          } else if (error.code === '42501') {
+            throw new Error('Insufficient permissions to create markets. Please run the fix-markets-permissions.sql script.');
+          } else if (error.code === '23505') {
+            throw new Error('A market with this name already exists.');
+          }
+          throw error;
+        }
         setSuccess('Market created successfully');
       }
 
