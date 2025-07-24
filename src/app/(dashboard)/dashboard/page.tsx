@@ -20,6 +20,9 @@ import {
 } from 'react-icons/fa';
 import Link from 'next/link';
 import Image from 'next/image';
+import DashboardCard from '@/components/dashboard/DashboardCard';
+import ProfileCard from '@/components/dashboard/ProfileCard';
+import ActivityFeed from '@/components/dashboard/ActivityFeed';
 
 // Define proper types
 interface DashboardData {
@@ -57,6 +60,7 @@ interface DashboardData {
     created_at: string;
   } | null;
   error?: string; // Add error field to display error messages
+  kycStatus?: 'approved' | 'pending' | 'rejected' | 'none'; // Add kycStatus to state
 }
 
 export default function Dashboard() {
@@ -89,16 +93,23 @@ export default function Dashboard() {
         throw new Error(`Failed to fetch products: ${productsError.message}`);
       }
       
-      // Fetch pending KYC verifications
-      const { data: kycData, error: kycError } = await supabase
+      // Fetch the most recent KYC verification for this user
+      const { data: kycRecords, error: kycError } = await supabase
         .from('kyc_verifications')
-        .select('id, status') // Only select specific fields instead of all columns
+        .select('id, status, submitted_at')
         .eq('user_id', user.id)
-        .eq('status', 'pending');
+        .order('submitted_at', { ascending: false })
+        .limit(1);
       
       if (kycError) {
         console.error("Error fetching KYC verifications:", kycError.message, kycError.details);
         throw new Error(`Failed to fetch KYC verifications: ${kycError.message}`);
+      }
+      
+      // Determine KYC status
+      let kycStatus: 'approved' | 'pending' | 'rejected' | 'none' = 'none';
+      if (kycRecords && kycRecords.length > 0) {
+        kycStatus = kycRecords[0].status;
       }
       
       // Fetch recent activity
@@ -155,11 +166,13 @@ export default function Dashboard() {
       
       setDashboardData({
         totalProducts: productsCount || 0, // FIXED: Using the count returned from Supabase
-        pendingVerifications: kycData ? kycData.length : 0,
+        // Use kycStatus for dashboard display
+        pendingVerifications: kycStatus === 'approved' ? 0 : 1,
         recentActivity: activityData || [],
         popularProducts: popularProductsData || [],
         userData: userData || null,
-        businessData: businessData || null
+        businessData: businessData || null,
+        kycStatus: kycStatus // Add this if you want to use it elsewhere
       });
       
     } catch (error) {
@@ -291,165 +304,89 @@ export default function Dashboard() {
             {/* Dashboard Overview Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
               {/* Total Products */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 transition-all group hover:shadow-md">
-                <div className="flex justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">Total Products</p>
-                    <div className="mt-2 flex items-baseline">
-                      <h3 className="text-3xl font-bold text-slate-800">{dashboardData.totalProducts}</h3>
-                      <span className="ml-2 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Active</span>
-                    </div>
-                  </div>
-                  <div className="rounded-full p-3 bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
-                    <FaBox className="w-6 h-6 text-indigo-500" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center">
-                  <Link href="/dashboard/manage-products" className="text-sm font-medium text-indigo-600 hover:text-indigo-800 flex items-center group-hover:underline">
-                    View all products
-                    <FaExternalLinkAlt className="ml-1.5 w-3 h-3" />
-                  </Link>
-                </div>
-              </div>
+              <DashboardCard
+                title="Total Products"
+                value={dashboardData.totalProducts}
+                icon={<FaBox className="w-8 h-8 text-indigo-500" />}
+                status="Active"
+                statusColor="emerald"
+                link="/dashboard/manage-products"
+                linkText="View all products"
+                linkIcon={<FaExternalLinkAlt className="ml-1.5 w-3 h-3" />}
+              />
               
               {/* Profile Completion */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 transition-all group hover:shadow-md">
-                <div className="flex justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">Profile Completion</p>
-                    <div className="mt-2 flex items-baseline">
-                      <h3 className="text-3xl font-bold text-slate-800">{completionPercentage}%</h3>
-                      {completionPercentage < 100 && (
-                        <span className="ml-2 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Incomplete</span>
-                      )}
-                      {completionPercentage === 100 && (
-                        <span className="ml-2 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Complete</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="rounded-full p-3 bg-violet-50 group-hover:bg-violet-100 transition-colors">
-                    <FaChartPie className="w-6 h-6 text-violet-500" />
-                  </div>
-                </div>
-                <div className="mt-3 w-full bg-slate-200 rounded-full h-2 mb-2">
-                  <div 
-                    className="bg-violet-500 h-2 rounded-full transition-all duration-500 ease-out"
-                    style={{width: `${completionPercentage}%`}}
-                  ></div>
-                </div>
-                <div className="flex items-center">
-                  <Link href="/dashboard/profile" className="text-sm font-medium text-violet-600 hover:text-violet-800 flex items-center group-hover:underline">
-                    Complete your profile
-                    <FaExternalLinkAlt className="ml-1.5 w-3 h-3" />
-                  </Link>
-                </div>
-              </div>
+              <DashboardCard
+                title="Profile Completion"
+                value={`${completionPercentage}%`}
+                icon={<FaChartPie className="w-8 h-8 text-violet-500" />}
+                status={completionPercentage < 100 ? 'Incomplete' : 'Complete'}
+                statusColor={completionPercentage < 100 ? 'amber' : 'emerald'}
+                link="/dashboard/profile"
+                linkText="Complete your profile"
+                linkIcon={<FaExternalLinkAlt className="ml-1.5 w-3 h-3" />}
+              />
 
               {/* KYC Status */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 transition-all group hover:shadow-md">
-                <div className="flex justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">KYC Verification</p>
-                    <div className="mt-2 flex items-baseline">
-                      <h3 className={`text-2xl font-bold ${dashboardData.pendingVerifications > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                        {dashboardData.pendingVerifications > 0 ? 'Pending' : 'Verified'}
-                      </h3>
-                      <span className={`ml-2 text-xs font-medium ${dashboardData.pendingVerifications > 0 ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50'} px-2 py-0.5 rounded-full`}>
-                        {dashboardData.pendingVerifications > 0 ? 'Action needed' : 'Approved'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className={`rounded-full p-3 ${dashboardData.pendingVerifications > 0 ? 'bg-amber-50 group-hover:bg-amber-100' : 'bg-emerald-50 group-hover:bg-emerald-100'} transition-colors`}>
-                    <FaUsers className={`w-6 h-6 ${dashboardData.pendingVerifications > 0 ? 'text-amber-500' : 'text-emerald-500'}`} />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center">
-                  <Link href="/dashboard/kyc" className={`text-sm font-medium ${dashboardData.pendingVerifications > 0 ? 'text-amber-600 hover:text-amber-800' : 'text-emerald-600 hover:text-emerald-800'} flex items-center group-hover:underline`}>
-                    {dashboardData.pendingVerifications > 0 ? 'Complete verification' : 'View status'}
-                    <FaExternalLinkAlt className="ml-1.5 w-3 h-3" />
-                  </Link>
-                </div>
-              </div>
+              <DashboardCard
+                title="KYC Verification"
+                value={
+                  dashboardData.kycStatus === 'approved' ? 'Verified' :
+                  dashboardData.kycStatus === 'pending' ? 'Pending' :
+                  dashboardData.kycStatus === 'rejected' ? 'Rejected' :
+                  'Not submitted'
+                }
+                icon={
+                  <FaUsers className={`w-8 h-8 ${
+                    dashboardData.kycStatus === 'approved' ? 'text-emerald-500' :
+                    dashboardData.kycStatus === 'pending' ? 'text-amber-500' :
+                    dashboardData.kycStatus === 'rejected' ? 'text-red-500' :
+                    'text-gray-400'
+                  }`} />
+                }
+                status={
+                  dashboardData.kycStatus === 'approved' ? 'Approved' :
+                  dashboardData.kycStatus === 'pending' ? 'Action needed' :
+                  dashboardData.kycStatus === 'rejected' ? 'Rejected' :
+                  'Not submitted'
+                }
+                statusColor={
+                  dashboardData.kycStatus === 'approved' ? 'emerald' :
+                  dashboardData.kycStatus === 'pending' ? 'amber' :
+                  dashboardData.kycStatus === 'rejected' ? 'red' :
+                  'gray'
+                }
+                link="/dashboard/kyc"
+                linkText={
+                  dashboardData.kycStatus === 'approved' ? 'View status' :
+                  dashboardData.kycStatus === 'pending' ? 'Complete verification' :
+                  dashboardData.kycStatus === 'rejected' ? 'Resubmit' :
+                  'Start verification'
+                }
+                linkIcon={<FaExternalLinkAlt className="ml-1.5 w-3 h-3" />}
+              />
               
               {/* Monthly Views */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 transition-all group hover:shadow-md">
-                <div className="flex justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">Monthly Views</p>
-                    <div className="mt-2 flex items-baseline">
-                      <h3 className="text-3xl font-bold text-slate-800">0</h3>
-                      <div className="ml-2 flex items-center text-xs font-medium text-emerald-600">
-                        <FaArrowUp className="mr-1 h-3 w-3" />
-                        <span>0%</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-full p-3 bg-cyan-50 group-hover:bg-cyan-100 transition-colors">
-                    <FaEye className="w-6 h-6 text-cyan-500" />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span>0 views this month</span>
-                    <span>Goal: 100</span>
-                  </div>
-                  <div className="mt-1 w-full bg-slate-200 rounded-full h-1.5">
-                    <div className="bg-cyan-500 h-1.5 rounded-full w-0"></div>
-                  </div>
-                </div>
-              </div>
+              <DashboardCard
+                title="Monthly Views"
+                value="0"
+                icon={<FaEye className="w-8 h-8 text-cyan-500" />}
+                status="0 views this month"
+                statusColor="cyan"
+                link="/dashboard/manage-products"
+                linkText="View all products"
+                linkIcon={<FaExternalLinkAlt className="ml-1.5 w-3 h-3" />}
+              />
             </div>
 
             {/* Main Dashboard Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Recent Activity Column */}
-              <div className="lg:col-span-1">
-                <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden h-full">
-                  <div className="p-6 border-b border-slate-100">
-                    <div className="flex justify-between items-center">
-                      <h2 className="text-lg font-semibold text-slate-800">Recent Activity</h2>
-                      <div className="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-lg">
-                        Last 5 events
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="p-1 overflow-hidden">
-                    {dashboardData.recentActivity.length > 0 ? (
-                      <div className="divide-y divide-slate-100">
-                        {dashboardData.recentActivity.map((activity) => (
-                          <div key={activity.id} className="p-4 hover:bg-slate-50 transition-colors">
-                            <div className="flex items-start gap-3">
-                              <div className="flex-shrink-0 w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
-                                {getActivityIcon(activity.type || 'default')}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-slate-800">{activity.description}</p>
-                                <time className="text-xs text-slate-500 mt-1">{formatDate(activity.created_at)}</time>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-16 px-4">
-                        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                          <FaRegClock className="text-slate-400 w-8 h-8" />
-                        </div>
-                        <h3 className="text-lg font-medium text-slate-700 mb-1">No Recent Activity</h3>
-                        <p className="text-center text-slate-500 mb-6">
-                          Your recent activities will appear here as you interact with the marketplace.
-                        </p>
-                        <Link href="/dashboard/upload-products"
-                          className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg font-medium text-sm hover:bg-indigo-200 transition-colors"
-                        >
-                          Add Your First Product
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <ActivityFeed
+                activities={dashboardData.recentActivity}
+                getActivityIcon={getActivityIcon}
+                formatDate={formatDate}
+              />
 
               {/* Middle Column: Your Products */}
               <div className="lg:col-span-2">
@@ -535,88 +472,12 @@ export default function Dashboard() {
             {/* User and Business Profile Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* User Profile Card */}
-              {dashboardData.userData && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden lg:col-span-1">
-                  <div className="p-6 border-b border-slate-100">
-                    <div className="flex justify-between items-center">
-                      <h2 className="text-lg font-semibold text-slate-800">Your Profile</h2>
-                      <Link href="/dashboard/profile" className="text-indigo-600 hover:text-indigo-800 text-sm font-medium hover:underline">
-                        Edit
-                      </Link>
-                    </div>
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="flex items-center mb-6">
-                      <div className="relative w-16 h-16">
-                        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500"></div>
-                        <div className="absolute inset-1 rounded-full bg-white flex items-center justify-center text-2xl font-bold text-indigo-600">
-                          {dashboardData.userData.full_name ? dashboardData.userData.full_name[0].toUpperCase() : 'U'}
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <h3 className="text-lg font-semibold text-slate-800">{dashboardData.userData.full_name || 'Unnamed User'}</h3>
-                        <p className="text-sm text-slate-500">{dashboardData.userData.email}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-md bg-indigo-50 flex items-center justify-center mr-3">
-                          <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-slate-500">Email Address</p>
-                          <p className="text-sm font-medium text-slate-800">{dashboardData.userData.email}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-md bg-green-50 flex items-center justify-center mr-3">
-                          <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-slate-500">Phone Number</p>
-                          <p className="text-sm font-medium text-slate-800">{dashboardData.userData.phone || 'Not provided'}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-md bg-amber-50 flex items-center justify-center mr-3">
-                          <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"></path>
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-slate-500">Role</p>
-                          <p className="text-sm font-medium text-slate-800">{dashboardData.userData.role || 'User'}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-md bg-purple-50 flex items-center justify-center mr-3">
-                          <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-slate-500">Member Since</p>
-                          <p className="text-sm font-medium text-slate-800">{formatDate(dashboardData.userData.created_at)}</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <Link href="/dashboard/profile" className="w-full mt-6 flex items-center justify-center px-4 py-2.5 bg-slate-100 text-slate-800 rounded-lg font-medium hover:bg-slate-200 transition-colors">
-                      <FaWrench className="mr-2 h-4 w-4" />
-                      Manage Your Account
-                    </Link>
-                  </div>
-                </div>
-              )}
+              <ProfileCard
+                user={dashboardData.userData}
+                loading={loading}
+                error={dashboardData.error}
+                onRefresh={fetchDashboardData}
+              />
 
               {/* Business Information */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden lg:col-span-2">

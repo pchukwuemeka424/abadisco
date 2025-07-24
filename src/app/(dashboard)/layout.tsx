@@ -81,9 +81,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Top Bar */}
       <header className="flex items-center justify-between px-2 sm:px-6 py-3 sm:py-4 bg-white dark:bg-gray-800 shadow-md border-b sticky top-0 z-20 w-full">
         <div className="flex items-center gap-2 sm:gap-4">
-          <button onClick={() => setCollapsed(!collapsed)} className="p-1 sm:p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
-            {collapsed ? <FiMenu size={20}/> : <FiX size={20}/>}
-          </button>
+          {/* Removed sidebar toggle button for mobile/desktop, handled by DashboardSidebar */}
           <div className="text-lg sm:text-2xl font-bold text-rose-600 dark:text-rose-400 tracking-tight">Aba Dashboard</div>
           <div className="hidden md:block">
             <input type="text" placeholder="Search..." className="px-4 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-sm focus:outline-none"/>
@@ -121,8 +119,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <div className="flex flex-1 w-full max-w-full overflow-hidden">
-        <div className={`${collapsed ? 'w-12 sm:w-16' : 'w-48 sm:w-64'} transition-width duration-300 min-w-fit flex-shrink-0 hidden sm:block`}>
-          <DashboardSidebar collapsed={collapsed} />
+        <div className="transition-width duration-300 min-w-fit flex-shrink-0">
+          <DashboardSidebar />
         </div>
         {/* Main content */}
         <main className="flex-1 min-h-screen p-2 sm:p-4 md:p-6 bg-gray-50 dark:bg-gray-800 w-full max-w-full overflow-x-hidden">
