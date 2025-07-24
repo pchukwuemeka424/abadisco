@@ -331,7 +331,7 @@ export default function Home() {
               className="mx-0 md:mx-8"
             >
               {businessCategories.map((category, index) => (
-                <Link href={category.link_path} key={index} className="group px-3">
+                <Link href={category.link_path} key={index} className="group pr-3 pl-1">
                   <div className="relative h-80 overflow-hidden rounded-xl shadow-lg transform transition-all duration-500 hover:scale-[1.02] hover:shadow-xl">
                     <Image
                       src={category.image_path}

@@ -27,22 +27,21 @@ export function Navbar() {
     <header className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 mb-40 bg-white shadow-md`}
       role="banner"
     >
-      <nav className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center justify-between h-16 md:h-20">
+      <nav className="max-w-7xl mx-auto px-0 sm:px-0 flex items-center justify-between h-16 md:h-20">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 min-w-[120px]" aria-label="Go to homepage">
-          <div className="relative w-36 h-10 md:w-48 md:h-14">
-            <Image
-              src="/images/logo.png"
-              alt="Aba Traders Logo"
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
-        </Link>
+        <div className="relative w-32 h-16">
+          <Image
+            src="/images/logo.png"
+            alt="Aba Traders Logo"
+            fill
+            className="object-contain ml-0"
+            priority
+          />
+        </div>
 
         {/* Desktop Nav Links */}
         <ul className="hidden md:flex items-center gap-6">
+          
           {navLinks.map((link) => (
             <li key={link.href}>
               <Link
