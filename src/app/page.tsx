@@ -178,77 +178,29 @@ export default function Home() {
     fetchBusinessCategories();
   }, []);
 
-  // Fetch featured businesses with their highlights
+  // Fetch featured businesses with their highlights (now: fetch featured markets only from markets table)
   useEffect(() => {
-    const fetchFeaturedBusinesses = async () => {
+    const fetchFeaturedMarkets = async () => {
       try {
         setLoading(true);
-        // Fetch featured businesses with their highlights
-        const { data, error } = await supabase
-          .from('featured_businesses')
-          .select('id, name, category, rating, reviews, image_path')
-          .eq('is_featured', true)
-          .order('rating', { ascending: false })
+        // Fetch from the markets table
+        const { data: marketsData, error: marketsError } = await supabase
+          .from('markets')
+          .select('id, name, location, description, image_url')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
           .limit(3);
-        
-        if (error) {
-          throw error;
+
+        if (marketsError) {
+          throw marketsError;
         }
 
-        if (data && data.length > 0) {
-          // For each featured business, fetch its highlights
-          const businessesWithHighlights = await Promise.all(
-            data.map(async (business) => {
-              const { data: highlights, error: highlightsError } = await supabase
-                .from('business_highlights')
-                .select('highlight_text')
-                .eq('business_id', business.id)
-                .order('display_order');
-              
-              const highlightTexts = highlights 
-                ? highlights.map(h => h.highlight_text)
-                : ["Quality products", "Great service", "Highly recommended"];
-              
-              return {
-                name: business.name,
-                category: business.category,
-                rating: business.rating,
-                reviews: business.reviews,
-                image: business.image_path,
-                highlights: highlightTexts
-              };
-            })
-          );
-          
-          setFeaturedBusinesses(businessesWithHighlights);
-        } else {
-          // If no featured businesses are found, try to get from the markets table
-          const { data: marketsData, error: marketsError } = await supabase
-            .from('markets')
-            .select('id, name, location, description, image_url')
-            .eq('is_active', true)
-            .order('created_at', { ascending: false })
-            .limit(3);
-          
-          if (marketsError || !marketsData || marketsData.length === 0) {
-            // If still no data, use a minimal fallback
-            setFeaturedBusinesses([{
-              name: "Ariaria International Market",
-              category: "Market",
-              rating: 4.8,
-              reviews: 420,
-              image: "/images/ariaria-market.png",
-              highlights: ["Largest market in Eastern Nigeria", "Specializes in garments and footwear", "Over 10,000 shops"]
-            }]);
-            return;
-          }
-          
-          // Transform markets data to match featured businesses format
+        if (marketsData && marketsData.length > 0) {
           const transformedData = marketsData.map(market => ({
             name: market.name,
             category: "Market",
-            rating: 4.7,
-            reviews: Math.floor(Math.random() * 300) + 100,
+            rating: 4.7, // Placeholder, replace with real rating if available
+            reviews: Math.floor(Math.random() * 300) + 100, // Placeholder, replace with real reviews if available
             image: market.image_url || "/images/ariaria-market.png",
             highlights: [
               market.location || "Aba, Abia State",
@@ -256,27 +208,20 @@ export default function Home() {
               "Visit for quality products"
             ]
           }));
-          
           setFeaturedBusinesses(transformedData);
+        } else {
+          setFeaturedBusinesses([]);
         }
       } catch (err: any) {
-        console.error("Error fetching featured businesses:", err);
+        console.error("Error fetching featured markets:", err);
         setError(err.message || 'An error occurred');
-        // Minimal fallback
-        setFeaturedBusinesses([{
-          name: "Ariaria International Market",
-          category: "Market",
-          rating: 4.8,
-          reviews: 420,
-          image: "/images/ariaria-market.png",
-          highlights: ["Largest market in Eastern Nigeria", "Specializes in garments and footwear", "Over 10,000 shops"]
-        }]);
+        setFeaturedBusinesses([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchFeaturedBusinesses();
+    fetchFeaturedMarkets();
   }, []);
 
   // Fetch footer categories from business_categories
@@ -499,6 +444,10 @@ export default function Home() {
           ) : error ? (
             <div className="text-center text-red-500">
               <p>Failed to load markets. Please try again later.</p>
+            </div>
+          ) : featuredBusinesses.length === 0 ? (
+            <div className="text-center text-gray-500">
+              <p>No markets found.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
