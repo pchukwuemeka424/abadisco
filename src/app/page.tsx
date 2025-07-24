@@ -271,19 +271,19 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/70" />
         </div>
         <div className="relative z-10 flex flex-col items-center w-full max-w-2xl px-4 text-center">
-          <h1 className="text-5xl md:text-5xl font-extrabold text-white mb-4 drop-shadow-lg tracking-tight animate-fade-in">Welcome to Aba Traders</h1>
+          <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-4 drop-shadow-lg tracking-tight animate-fade-in">Welcome to Aba Traders</h1>
           <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl drop-shadow animate-fade-in-delay-1">
             Find trusted traders, explore bustling markets, and unlock new business opportunities in the heart of Eastern Nigeria.
           </p>
           <div className="w-full max-w-lg mb-6 animate-fade-in-delay-2">
             <SearchBar />
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-delay-3">
+          <div className="flex  sm:flex-row gap-4 justify-center animate-fade-in-delay-3">
             <Link href="/markets" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-semibold rounded-md text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-lg">
               Explore Markets
             </Link>
             <Link href="/auth/signup" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-semibold rounded-md text-rose-600 bg-white hover:bg-gray-100 transition-colors shadow-lg">
-              Join as Trader
+              Join Now
             </Link>
         
           </div>

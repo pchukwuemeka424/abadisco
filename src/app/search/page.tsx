@@ -326,7 +326,14 @@ function SearchPageContent() {
   const renderMobileFilterPanel = () => {
     return (
       <>
-        {/* Removed the black background overlay */}
+        {/* Overlay for background dimming */}
+        {isMobileFilterOpen && (
+          <div 
+            className="fixed inset-0 z-40 bg-black transition-opacity duration-300"
+            onClick={() => setIsMobileFilterOpen(false)}
+            aria-hidden="true"
+          />
+        )}
         <div 
           className={`fixed left-0 top-0 z-50 h-full w-full max-w-md bg-white shadow-xl transform transition-transform duration-300 overflow-y-auto pt-20 ${
             isMobileFilterOpen ? 'translate-x-0' : '-translate-x-full'
