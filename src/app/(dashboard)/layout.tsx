@@ -82,7 +82,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       <header className="flex items-center justify-between px-2 sm:px-6 py-3 sm:py-4 bg-white dark:bg-gray-800 shadow-md border-b sticky top-0 z-20 w-full">
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Removed sidebar toggle button for mobile/desktop, handled by DashboardSidebar */}
-          <div className="text-lg sm:text-2xl font-bold text-rose-600 dark:text-rose-400 tracking-tight">Aba Dashboard</div>
+          <div className="text-lg sm:text-2xl font-bold text-rose-600 dark:text-rose-400 tracking-tight"></div>
           <div className="hidden md:block">
             <input type="text" placeholder="Search..." className="px-4 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-sm focus:outline-none"/>
           </div>
