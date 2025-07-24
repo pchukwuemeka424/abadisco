@@ -271,8 +271,8 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/70" />
         </div>
         <div className="relative z-10 flex flex-col items-center w-full max-w-2xl px-4 text-center">
-          <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-4 drop-shadow-lg tracking-tight animate-fade-in">Welcome to Aba Traders</h1>
-          <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl drop-shadow animate-fade-in-delay-1">
+          <h1 className="text-2xl md:text-5xl font-extrabold text-white mb-4 drop-shadow-lg tracking-tight animate-fade-in">Welcome to Aba Traders</h1>
+          <p className="text-lg md:text-2xl text-white/90 mb-8 max-w-2xl drop-shadow animate-fade-in-delay-1">
             Find trusted traders, explore bustling markets, and unlock new business opportunities.
           </p>
           <div className="w-full max-w-lg mb-6 animate-fade-in-delay-2">
@@ -294,8 +294,8 @@ export default function Home() {
       <section className="py-20 px-4 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Explore Aba by Category</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">Discover the diverse commercial ecosystem that makes Aba the manufacturing powerhouse of Eastern Nigeria</p>
+            <h2 className="text-2xl md:text-4xl font-bold mb-4">Explore Aba by Category</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-sm md:text-base">Discover the diverse commercial ecosystem that makes Aba the manufacturing powerhouse of Eastern Nigeria</p>
           </div>
           
           {categoriesLoading ? (
@@ -344,8 +344,8 @@ export default function Home() {
                       <div className="bg-red-500/20 p-3 rounded-full w-fit mb-3">
                         {iconMapping[category.icon_type]}
                       </div>
-                      <h3 className="text-2xl font-bold text-white mb-2">{category.title}</h3>
-                      <p className="text-white text-shadow-sm mb-4">{category.description}</p>
+                      <h3 className="text-lg md:text-2xl font-bold text-white mb-2">{category.title}</h3>
+                      <p className="text-white text-shadow-sm mb-4 text-sm md:text-base">{category.description}</p>
                       <div className="flex items-center text-white font-semibold">
                         <span>Explore</span>
                         <svg className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -365,8 +365,8 @@ export default function Home() {
       <section className="py-20 px-4 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Featured Markets</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">Discover top-rated markets that showcase the best Aba has to offer</p>
+            <h2 className="text-2xl md:text-4xl font-bold mb-4">Featured Markets</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-sm md:text-base">Discover top-rated markets that showcase the best Aba has to offer</p>
           </div>
           
           {loading ? (
@@ -397,7 +397,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2">{business.name}</h3>
+                    <h3 className="text-lg md:text-xl font-bold mb-2">{business.name}</h3>
                     <div className="flex items-center mb-4">
                       <div className="flex items-center text-red-500">
                         {[...Array(5)].map((_, i) => (
@@ -406,7 +406,7 @@ export default function Home() {
                           </svg>
                         ))}
                       </div>
-                      <span className="text-sm text-gray-600 ml-2">{business.rating} ({business.reviews} reviews)</span>
+                      <span className="text-xs md:text-sm text-gray-600 ml-2">{business.rating} ({business.reviews} reviews)</span>
                     </div>
                     <ul className="space-y-2 mb-4">
                       {business.highlights.map((highlight, i) => (
@@ -414,7 +414,7 @@ export default function Home() {
                           <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                           </svg>
-                          <span className="text-gray-600 text-sm">{highlight}</span>
+                          <span className="text-gray-600 text-xs md:text-sm">{highlight}</span>
                         </li>
                       ))}
                     </ul>
@@ -446,8 +446,8 @@ export default function Home() {
           />
         </div>
         <div className="relative z-10 max-w-5xl mx-auto text-center">
-          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Ready to explore Aba?</h2>
-          <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
+          <h2 className="text-2xl md:text-5xl font-bold text-white mb-6">Ready to explore Aba?</h2>
+          <p className="text-lg md:text-xl text-white/80 mb-8 max-w-2xl mx-auto">
             Discover the perfect businesses, services, and products that Aba has to offer
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
