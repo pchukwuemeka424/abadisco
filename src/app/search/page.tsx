@@ -581,7 +581,7 @@ function SearchPageContent() {
         {/* Left side: Search container (fixed on desktop) */}
         <div className="lg:w-1/2 lg:fixed lg:top-0 lg:bottom-0 lg:left-0 lg:overflow-y-auto bg-white shadow-md p-6">
           <div className="max-w-xl mx-auto">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Find Businesses in Aba</h1>
+            <h1 className="text-3xl font-bold text-gray-900  md:mt-20 mb-2">Find Businesses in Aba</h1>
             <p className="text-gray-500 mb-6">Discover top businesses and services from all markets</p>
             
             {renderSearchFilters()}

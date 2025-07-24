@@ -24,7 +24,7 @@ export function Navbar() {
   ];
 
   return (
-    <header className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
+    <header className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 mb-40 ${
       scrolled ? "bg-white/80 shadow-md backdrop-blur-md" : "bg-white/60"
     }`}
       role="banner"

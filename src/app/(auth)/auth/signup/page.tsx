@@ -225,15 +225,7 @@ export default function SignUpPage() {
         <div className="max-w-md w-full space-y-8">
           {/* Logo and Title */}
           <div className="text-center">
-            <Link href="/" className="flex items-center justify-center mb-6">
-              <Image
-                src="/images/logo.png"
-                alt="Aba Directory Logo"
-                width={48}
-                height={48}
-                className="rounded-lg"
-              />
-            </Link>
+            {/* Logo removed */}
             <h2 className="text-3xl font-bold text-gray-900">Join the Aba Community</h2>
             <p className="mt-2 text-gray-600">
               Create your account to discover Aba's markets and businesses
@@ -401,6 +393,15 @@ export default function SignUpPage() {
               </Link>
             </p>
           </form>
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => window.location.href = '/'}
+              className="inline-block px-6 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium shadow-sm transition-colors"
+            >
+              Return to Home
+            </button>
+          </div>
         </div>
       </div>
     </div>
