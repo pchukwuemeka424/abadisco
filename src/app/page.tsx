@@ -273,7 +273,7 @@ export default function Home() {
         <div className="relative z-10 flex flex-col items-center w-full max-w-2xl px-4 text-center">
           <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-4 drop-shadow-lg tracking-tight animate-fade-in">Welcome to Aba Traders</h1>
           <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl drop-shadow animate-fade-in-delay-1">
-            Find trusted traders, explore bustling markets, and unlock new business opportunities in the heart of Eastern Nigeria.
+            Find trusted traders, explore bustling markets, and unlock new business opportunities.
           </p>
           <div className="w-full max-w-lg mb-6 animate-fade-in-delay-2">
             <SearchBar />
@@ -323,7 +323,7 @@ export default function Home() {
                 {
                   breakpoint: 640,
                   settings: {
-                    slidesToShow: 1,
+                    slidesToShow: 2, // Changed from 1 to 2 for mobile
                     slidesToScroll: 1,
                   }
                 }
