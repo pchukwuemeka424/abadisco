@@ -61,7 +61,6 @@ function SearchPageContent() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
@@ -196,25 +195,6 @@ function SearchPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  const features = [
-    'Air Conditioning',
-    'WiFi',
-    'Parking',
-    'Delivery',
-    'Outdoor Seating',
-    'Wheelchair Accessible',
-    'Pet Friendly',
-    'Card Payment'
-  ];
-
-  const toggleFeature = (feature: string) => {
-    setSelectedFeatures(prev => 
-      prev.includes(feature)
-        ? prev.filter(f => f !== feature)
-        : [...prev, feature]
-    );
-  };
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -231,7 +211,7 @@ function SearchPageContent() {
         (business.category_id && business.category_id.toString() === selectedCategory);
       
       // For demonstration, we'll just assume all features match since we don't have this data
-      const matchesFeatures = selectedFeatures.length === 0 || true;
+      const matchesFeatures = true;
       
       return matchesQuery && matchesCategory && matchesFeatures;
     });
@@ -277,10 +257,9 @@ function SearchPageContent() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
             </svg>
             <span className="font-medium">Filters</span>
-            {(selectedCategory !== 'all' || selectedFeatures.length > 0) && (
+            {(selectedCategory !== 'all') && (
               <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-rose-500 rounded-full">
-                {(selectedCategory !== 'all' ? 1 : 0) + 
-                (selectedFeatures.length > 0 ? 1 : 0)}
+                {selectedCategory !== 'all' ? 1 : 0}
               </span>
             )}
           </button>
@@ -347,16 +326,10 @@ function SearchPageContent() {
   const renderMobileFilterPanel = () => {
     return (
       <>
+        {/* Removed the black background overlay */}
         <div 
-          className={`fixed inset-0 z-40 bg-black bg-opacity-40 backdrop-blur-sm transition-opacity duration-300 ${
-            isMobileFilterOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-          onClick={() => setIsMobileFilterOpen(false)}
-          aria-hidden="true"
-        />
-        <div 
-          className={`fixed right-0 top-0 z-50 h-full w-full max-w-md bg-white shadow-xl transform transition-transform duration-300 overflow-y-auto ${
-            isMobileFilterOpen ? 'translate-x-0' : 'translate-x-full'
+          className={`fixed left-0 top-0 z-50 h-full w-full max-w-md bg-white shadow-xl transform transition-transform duration-300 overflow-y-auto pt-20 ${
+            isMobileFilterOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
           aria-labelledby="filter-heading"
         >
@@ -405,35 +378,6 @@ function SearchPageContent() {
                 </div>
               </div>
               
-              {/* Features Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Features</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {features.map((feature) => (
-                    <div
-                      key={feature}
-                      onClick={() => toggleFeature(feature)}
-                      className={`px-3 py-2 rounded-lg cursor-pointer text-sm flex items-center gap-2 transition-all duration-200 ${
-                        selectedFeatures.includes(feature)
-                          ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                          : 'bg-gray-50 hover:bg-gray-100 border border-gray-100'
-                      }`}
-                    >
-                      {selectedFeatures.includes(feature) ? (
-                        <svg className="w-4 h-4 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 12m-8 0a8 8 0 1 0 16 0 8 8 0 1 0 -16 0" />
-                        </svg>
-                      )}
-                      <span className="truncate">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
               <div className="pt-4 space-y-3">
                 <button
                   type="button"
@@ -446,7 +390,6 @@ function SearchPageContent() {
                   type="button"
                   onClick={() => {
                     setSelectedCategory('all');
-                    setSelectedFeatures([]);
                   }}
                   className="w-full py-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors text-gray-700 font-medium"
                 >
@@ -462,7 +405,7 @@ function SearchPageContent() {
 
   // Render the active filter tags
   const renderFilterTags = () => {
-    if (selectedCategory === 'all' && !searchQuery && selectedFeatures.length === 0) {
+    if (selectedCategory === 'all' && !searchQuery) {
       return null;
     }
     
@@ -501,20 +444,6 @@ function SearchPageContent() {
             </button>
           </span>
         )}
-        {selectedFeatures.length > 0 && selectedFeatures.map(feature => (
-          <span key={feature} className="px-4 py-2 bg-rose-50 text-rose-700 rounded-full text-sm font-medium flex items-center gap-1 shadow-sm">
-            {feature}
-            <button 
-              onClick={() => toggleFeature(feature)}
-              className="ml-1 hover:text-rose-500 transition-colors"
-              aria-label={`Remove ${feature} filter`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </span>
-        ))}
       </div>
     );
   };
@@ -529,13 +458,20 @@ function SearchPageContent() {
             if (!business.name) {
               business.name = 'Business';
             }
-            
+            // Map to BusinessProps for BusinessCard
+            const businessCardProps = {
+              id: String(business.id),
+              name: business.name,
+              description: business.description || null,
+              logo_url: business.logo_url || null,
+              category: business.category_name ? { title: business.category_name, icon_type: '' } : null,
+              market: null,
+              contact_phone: business.phone || null,
+              contact_email: business.email || null,
+              address: business.address || null,
+            };
             return (
-              <div key={business.id} className="h-full transform hover:scale-105 transition-transform duration-300">
-                <div className="h-full cursor-pointer rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 bg-white">
-                  <BusinessCard business={business} />
-                </div>
-              </div>
+              <BusinessCard key={business.id} business={businessCardProps} />
             );
           })}
         </div>
@@ -557,7 +493,6 @@ function SearchPageContent() {
             onClick={() => {
               setSearchQuery('');
               setSelectedCategory('all');
-              setSelectedFeatures([]);
               router.push('/search');
             }}
             className="px-6 py-3 border border-gray-300 rounded-xl text-base font-medium text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-colors duration-200"

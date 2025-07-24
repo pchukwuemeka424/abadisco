@@ -10,7 +10,7 @@ const TopNavbar = () => {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="text-xl font-bold text-blue-600">
-                ABA.Disco
+                Aba Traders
               </Link>
             </div>
           </div>

@@ -26,20 +26,22 @@ const pacifico = Pacifico({
 
 export const metadata: Metadata = {
   title: "Aba Traders | Aba Markets & Businesses Directory",
-  description: "Discover Aba, Eastern Nigeria's commercial hub. Curated by founder Prince Chukwuemeka. Explore markets, businesses, and services in Aba with Aba Traders.",
+  description: "Discover Aba, Eastern Nigeria's commercial hub. Curated by founders Prince Chukwuemeka and Princess C Ibekwe. Explore markets, businesses, and services in Aba with Aba Traders.",
   keywords: [
     "Aba",
     "Aba Markets",
     "Aba Businesses",
     "Aba Traders",
     "Prince Chukwuemeka",
+    "Princess C Ibekwe",
     "Founder",
+    "Co-founder",
     "Nigeria",
     "Markets",
     "Business Directory"
   ],
   other: {
-    founder: "Prince Chukwuemeka"
+    founders: "Prince Chukwuemeka, Princess C Ibekwe"
   }
 };
 

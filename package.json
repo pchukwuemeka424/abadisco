@@ -43,6 +43,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-slick": "^0.23.13",
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
     "md-to-pdf": "^5.2.4",
