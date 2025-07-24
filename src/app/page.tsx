@@ -291,7 +291,7 @@ export default function Home() {
       </section>
 
       {/* Featured Categories Section */}
-      <section className="py-20 px-4 bg-white">
+      <section className="py-20 px-0 md:px-4 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-2xl md:text-4xl font-bold mb-4">Explore Aba by Category</h2>
@@ -328,7 +328,7 @@ export default function Home() {
                   }
                 }
               ]}
-              className="mx-4 md:mx-8"
+              className="mx-0 md:mx-8"
             >
               {businessCategories.map((category, index) => (
                 <Link href={category.link_path} key={index} className="group px-3">

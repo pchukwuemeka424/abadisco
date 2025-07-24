@@ -24,9 +24,7 @@ export function Navbar() {
   ];
 
   return (
-    <header className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 mb-40 ${
-      scrolled ? "bg-white/80 shadow-md backdrop-blur-md" : "bg-white/60"
-    }`}
+    <header className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 mb-40 bg-white shadow-md`}
       role="banner"
     >
       <nav className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center justify-between h-16 md:h-20">
@@ -77,15 +75,6 @@ export function Navbar() {
 
         {/* Mobile Hamburger + Auth Buttons */}
         <div className="md:hidden flex items-center gap-2">
-          <button
-            className="flex items-center justify-center p-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
-            aria-label="Open menu"
-            aria-controls="mobile-menu"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen(true)}
-          >
-            <FaBars className="w-7 h-7 text-rose-600" />
-          </button>
           <Link
             href="/auth/login"
             className="flex items-center gap-1 bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
@@ -102,6 +91,15 @@ export function Navbar() {
             <FaUserPlus className="h-4 w-4" />
             <span className="sr-only sm:not-sr-only sm:ml-1">Sign Up</span>
           </Link>
+          <button
+            className="flex items-center justify-center p-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+            aria-label="Open menu"
+            aria-controls="mobile-menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(true)}
+          >
+            <FaBars className="w-7 h-7 text-rose-600" />
+          </button>
         </div>
       </nav>
 
