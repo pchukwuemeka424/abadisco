@@ -18,18 +18,11 @@ interface Agent {
   user_id: string;
   email: string;
   full_name: string;
-  phone?: string;
-  role: string;
-  status: 'active' | 'inactive' | 'pending' | 'suspended';
-  avatar_url?: string;
-  weekly_target: number;
-  weekly_target_met: boolean;
-  current_week_registrations: number;
-  total_registrations: number;
-  total_businesses: number;
-  created_at: string;
-  updated_at?: string;
-  created_by?: string;
+  status: 'active' | 'inactive' | 'suspended';
+  weekly_target?: number;
+  department?: string;
+  hire_date?: string;
+  avatar?: string;
 }
 
 interface PerformanceMetrics {
@@ -130,26 +123,19 @@ export default function AgentPerformanceDashboard() {
 
   // Generate mock data for demonstration
   const generateMockData = (): { agents: Agent[], metrics: PerformanceMetrics[] } => {
-    const roles = ['agent', 'senior_agent', 'team_lead'];
-    const statuses: Array<'active' | 'inactive' | 'pending' | 'suspended'> = ['active', 'inactive', 'pending', 'suspended'];
+    const departments = ['Sales', 'Support', 'Business Development', 'Customer Success'];
+    const statuses: Array<'active' | 'inactive' | 'suspended'> = ['active', 'inactive', 'suspended'];
     
     const mockAgents: Agent[] = Array.from({ length: 12 }, (_, i) => ({
       id: `agent-${i + 1}`,
       user_id: `user-${i + 1}`,
       email: `agent${i + 1}@abadisco.com`,
       full_name: `Agent ${i + 1}`,
-      phone: `+234${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-      role: roles[Math.floor(Math.random() * roles.length)],
       status: statuses[Math.floor(Math.random() * statuses.length)],
-      avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=Agent${i + 1}`,
       weekly_target: 20 + Math.floor(Math.random() * 30),
-      weekly_target_met: Math.random() > 0.5,
-      current_week_registrations: Math.floor(Math.random() * 25),
-      total_registrations: Math.floor(Math.random() * 200) + 50,
-      total_businesses: Math.floor(Math.random() * 50) + 10,
-      created_at: new Date(2023, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28)).toISOString(),
-      updated_at: new Date().toISOString(),
-      created_by: 'admin'
+      department: departments[Math.floor(Math.random() * departments.length)],
+      hire_date: new Date(2023, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28)).toISOString(),
+      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=Agent${i + 1}`
     }));
 
     const mockMetrics: PerformanceMetrics[] = mockAgents.map((agent, i) => {
@@ -162,23 +148,22 @@ export default function AgentPerformanceDashboard() {
         agent_id: agent.id,
         name: agent.full_name,
         email: agent.email,
-        avatar: agent.avatar_url,
-        department: agent.role === 'agent' ? 'Field Operations' : 
-                   agent.role === 'senior_agent' ? 'Senior Operations' : 'Team Leadership',
+        avatar: agent.avatar,
+        department: agent.department,
         tasks_completed,
         tasks_pending,
         tasks_failed,
         completion_rate: (tasks_completed / total_tasks) * 100,
-        business_registrations: agent.total_businesses,
-        user_registrations: agent.total_registrations,
+        business_registrations: Math.floor(Math.random() * 15) + 2,
+        user_registrations: Math.floor(Math.random() * 30) + 5,
         avg_response_time: Math.random() * 2 + 0.5,
         customer_satisfaction: Math.random() * 2 + 3,
         quality_score: Math.random() * 2 + 3,
         revenue_generated: Math.floor(Math.random() * 50000) + 10000,
         commission_earned: Math.floor(Math.random() * 5000) + 1000,
-        weekly_target: agent.weekly_target,
-        monthly_target: agent.weekly_target * 4,
-        target_achievement: ((tasks_completed / agent.weekly_target) * 100),
+        weekly_target: agent.weekly_target || 25,
+        monthly_target: (agent.weekly_target || 25) * 4,
+        target_achievement: ((tasks_completed / (agent.weekly_target || 25)) * 100),
         weekly_change: (Math.random() - 0.5) * 40,
         monthly_change: (Math.random() - 0.5) * 60,
         performance_trend: Math.random() > 0.5 ? 'up' : Math.random() > 0.5 ? 'down' : 'stable',
@@ -201,30 +186,23 @@ export default function AgentPerformanceDashboard() {
       setLoading(true);
       setError(null);
 
-      // Fetch real agents data
+      // Try to fetch real data first
       const { data: agentsData, error: agentsError } = await supabase
         .from('agents')
         .select('*')
         .order('full_name');
 
-      if (agentsError) {
-        console.error('Error fetching agents:', agentsError);
-        setError('Failed to load agents data');
-        return;
-      }
-
-      if (!agentsData || agentsData.length === 0) {
-        console.warn('No agents found, using mock data for demonstration');
+      if (agentsError || !agentsData || agentsData.length === 0) {
+        console.warn('Using mock data for demonstration');
         const mockData = generateMockData();
         setAgents(mockData.agents);
         setPerformanceData(mockData.metrics);
         calculateDashboardStats(mockData.metrics);
-        return;
+      } else {
+        setAgents(agentsData);
+        // Fetch performance metrics for real agents
+        await fetchPerformanceMetrics(agentsData);
       }
-
-      setAgents(agentsData);
-      // Fetch performance metrics for real agents
-      await fetchPerformanceMetrics(agentsData);
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Failed to load data. Using demo data instead.');
@@ -239,233 +217,49 @@ export default function AgentPerformanceDashboard() {
 
   // Fetch performance metrics for agents
   const fetchPerformanceMetrics = async (agentsList: Agent[]) => {
-    try {
-      // Calculate period dates based on selected timeframe
-      const now = new Date();
-      let startDate: Date;
-      let endDate: Date;
-
-      switch (selectedTimeframe) {
-        case 'week':
-          startDate = new Date(now);
-          startDate.setDate(now.getDate() - now.getDay()); // Start of current week
-          startDate.setHours(0, 0, 0, 0);
-          endDate = new Date(startDate);
-          endDate.setDate(startDate.getDate() + 6);
-          endDate.setHours(23, 59, 59, 999);
-          break;
-        case 'month':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1); // Start of current month
-          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0); // End of current month
-          endDate.setHours(23, 59, 59, 999);
-          break;
-        case 'quarter':
-          const quarterStart = Math.floor(now.getMonth() / 3) * 3;
-          startDate = new Date(now.getFullYear(), quarterStart, 1);
-          endDate = new Date(now.getFullYear(), quarterStart + 3, 0);
-          endDate.setHours(23, 59, 59, 999);
-          break;
-        default:
-          startDate = new Date(now);
-          startDate.setDate(now.getDate() - 7);
-          endDate = new Date(now);
-      }
-
-      // Fetch activities for all agents in the period
-      let activitiesData: any[] = [];
-      let businessesData: any[] = [];
-
-      try {
-        const { data: activities, error: activitiesError } = await supabase
-          .from('activities')
-          .select('*')
-          .in('agent_id', agentsList.map(a => a.id))
-          .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString());
-
-        if (activitiesError) {
-          console.warn('Activities table not available:', activitiesError.message);
-          console.log('📋 To enable full performance tracking, please create the activities table.');
-          console.log('💡 Run this SQL in your Supabase dashboard:');
-          console.log(`
-CREATE TABLE IF NOT EXISTS public.activities (
-    id uuid NOT NULL DEFAULT gen_random_uuid(),
-    agent_id uuid NOT NULL,
-    action_type text NOT NULL,
-    description text NOT NULL,
-    resource_type text NULL,
-    resource_id uuid NULL,
-    created_at timestamp with time zone DEFAULT now(),
-    completed_at timestamp with time zone NULL,
-    status text DEFAULT 'completed',
-    metadata jsonb NULL,
-    CONSTRAINT activities_pkey PRIMARY KEY (id),
-    CONSTRAINT activities_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_activities_agent_id ON public.activities(agent_id);
-CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(created_at);
-          `);
-        } else {
-          activitiesData = activities || [];
-        }
-      } catch (err) {
-        console.warn('Failed to fetch activities:', err);
-      }
-
-      // Fetch businesses created by agents in the period
-      try {
-        const { data: businesses, error: businessesError } = await supabase
-          .from('businesses')
-          .select('*')
-          .in('created_by', agentsList.map(a => a.id))
-          .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString());
-
-        if (businessesError) {
-          console.warn('Error fetching businesses:', businessesError.message);
-        } else {
-          businessesData = businesses || [];
-        }
-      } catch (err) {
-        console.warn('Failed to fetch businesses:', err);
-      }
-
-      // Calculate metrics for each agent
-      const metrics: PerformanceMetrics[] = agentsList.map((agent, index) => {
-        // Get agent's activities
-        const agentActivities = activitiesData?.filter(act => act.agent_id === agent.id) || [];
-        const agentBusinesses = businessesData?.filter(bus => bus.created_by === agent.id) || [];
-
-        // Calculate task metrics
-        const tasks_completed = agentActivities.filter(act => act.status === 'completed').length;
-        const tasks_pending = agentActivities.filter(act => act.status === 'pending').length;
-        const tasks_failed = agentActivities.filter(act => act.status === 'failed').length;
-        const total_tasks = tasks_completed + tasks_pending + tasks_failed;
-        const completion_rate = total_tasks > 0 ? (tasks_completed / total_tasks) * 100 : 0;
-
-        // Calculate registrations
-        const business_registrations = agentBusinesses.length;
-        const user_registrations = agentActivities.filter(act => 
-          act.action_type === 'registration' && act.resource_type === 'user'
-        ).length;
-
-        // Generate realistic metrics based on actual performance
-        const baseQuality = Math.min(5, Math.max(2, completion_rate / 20));
-        const quality_score = baseQuality + (Math.random() * 0.5 - 0.25);
-        const avg_response_time = Math.max(0.5, 3 - (completion_rate / 50));
-        const customer_satisfaction = Math.min(5, baseQuality + (Math.random() * 0.5));
-
-        // Calculate revenue (estimated based on activities and businesses)
-        const revenue_generated = (business_registrations * 2000) + (tasks_completed * 500) + Math.floor(Math.random() * 10000);
-        const commission_earned = revenue_generated * 0.15; // 15% commission
-
-        // Calculate target achievement
-        const weekly_target = agent.weekly_target || 25;
-        const target_achievement = (tasks_completed / weekly_target) * 100;
-
-        // Calculate trends based on previous period performance
-        const weekly_change = (Math.random() - 0.4) * 30; // Slight positive bias
-        const monthly_change = (Math.random() - 0.3) * 50;
-        const performance_trend: 'up' | 'down' | 'stable' = 
-          weekly_change > 5 ? 'up' : 
-          weekly_change < -5 ? 'down' : 'stable';
-
-        // Generate daily activity data
-        const daily_activity = Array.from({ length: 7 }, (_, day) => {
-          const date = new Date(startDate);
-          date.setDate(startDate.getDate() + day);
-          
-          // Get activities for this specific day
-          const dayActivities = agentActivities.filter(act => {
-            const actDate = new Date(act.created_at);
-            return actDate.toDateString() === date.toDateString();
-          });
-
-          return {
-            date: date.toISOString().split('T')[0],
-            tasks: dayActivities.length,
-            revenue: dayActivities.length * 500 + Math.floor(Math.random() * 1000)
-          };
-        });
-
-        return {
-          agent_id: agent.id,
-          name: agent.full_name,
-          email: agent.email,
-          avatar: agent.avatar_url,
-          department: agent.role === 'agent' ? 'Field Agent' : agent.role,
-          tasks_completed,
-          tasks_pending,
-          tasks_failed,
-          completion_rate,
-          business_registrations,
-          user_registrations,
-          avg_response_time,
-          customer_satisfaction,
-          quality_score,
-          revenue_generated,
-          commission_earned,
-          weekly_target,
-          monthly_target: weekly_target * 4,
-          target_achievement,
-          weekly_change,
-          monthly_change,
-          performance_trend,
-          daily_activity,
-          rank_overall: index + 1,
-          rank_department: Math.floor(Math.random() * 5) + 1
-        } as PerformanceMetrics;
-      });
-
-      // Sort by completion rate for ranking
-      metrics.sort((a, b) => b.completion_rate - a.completion_rate);
-      metrics.forEach((metric, index) => {
-        metric.rank_overall = index + 1;
-      });
-
-      setPerformanceData(metrics);
-      calculateDashboardStats(metrics);
-    } catch (error) {
-      console.error('Error calculating performance metrics:', error);
-      // Fallback to agent data without detailed metrics
-      const basicMetrics: PerformanceMetrics[] = agentsList.map((agent, index) => ({
+    // In a real app, this would fetch from performance tables
+    // For now, generate realistic metrics
+    const metrics = agentsList.map((agent, index) => {
+      const tasks_completed = Math.floor(Math.random() * 50) + 10;
+      const tasks_pending = Math.floor(Math.random() * 20) + 5;
+      const tasks_failed = Math.floor(Math.random() * 5);
+      const total_tasks = tasks_completed + tasks_pending + tasks_failed;
+      
+      return {
         agent_id: agent.id,
         name: agent.full_name,
         email: agent.email,
-        avatar: agent.avatar_url,
-        department: agent.role === 'agent' ? 'Field Agent' : agent.role,
-        tasks_completed: agent.current_week_registrations || 0,
-        tasks_pending: Math.max(0, (agent.weekly_target || 25) - (agent.current_week_registrations || 0)),
-        tasks_failed: 0,
-        completion_rate: agent.weekly_target ? 
-          ((agent.current_week_registrations || 0) / agent.weekly_target) * 100 : 0,
-        business_registrations: agent.total_businesses || 0,
-        user_registrations: agent.total_registrations || 0,
-        avg_response_time: 2.5,
-        customer_satisfaction: 4.0,
-        quality_score: 4.0,
-        revenue_generated: (agent.total_businesses || 0) * 2000,
-        commission_earned: (agent.total_businesses || 0) * 300,
+        avatar: agent.avatar,
+        department: agent.department,
+        tasks_completed,
+        tasks_pending,
+        tasks_failed,
+        completion_rate: (tasks_completed / total_tasks) * 100,
+        business_registrations: Math.floor(Math.random() * 15) + 2,
+        user_registrations: Math.floor(Math.random() * 30) + 5,
+        avg_response_time: Math.random() * 2 + 0.5,
+        customer_satisfaction: Math.random() * 2 + 3,
+        quality_score: Math.random() * 2 + 3,
+        revenue_generated: Math.floor(Math.random() * 50000) + 10000,
+        commission_earned: Math.floor(Math.random() * 5000) + 1000,
         weekly_target: agent.weekly_target || 25,
         monthly_target: (agent.weekly_target || 25) * 4,
-        target_achievement: agent.weekly_target ? 
-          ((agent.current_week_registrations || 0) / agent.weekly_target) * 100 : 0,
-        weekly_change: 0,
-        monthly_change: 0,
-        performance_trend: 'stable' as const,
+        target_achievement: ((tasks_completed / (agent.weekly_target || 25)) * 100),
+        weekly_change: (Math.random() - 0.5) * 40,
+        monthly_change: (Math.random() - 0.5) * 60,
+        performance_trend: Math.random() > 0.5 ? 'up' : Math.random() > 0.5 ? 'down' : 'stable',
         daily_activity: Array.from({ length: 7 }, (_, day) => ({
           date: new Date(Date.now() - (6 - day) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          tasks: Math.floor(Math.random() * 5),
-          revenue: Math.floor(Math.random() * 1000) + 500
+          tasks: Math.floor(Math.random() * 8) + 2,
+          revenue: Math.floor(Math.random() * 2000) + 500
         })),
         rank_overall: index + 1,
         rank_department: Math.floor(Math.random() * 5) + 1
-      }));
+      } as PerformanceMetrics;
+    });
 
-      setPerformanceData(basicMetrics);
-      calculateDashboardStats(basicMetrics);
-    }
+    setPerformanceData(metrics);
+    calculateDashboardStats(metrics);
   };
 
   // Calculate dashboard statistics
@@ -551,121 +345,6 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
     return `${value.toFixed(1)}%`;
   };
 
-  // Seed test data function
-  const seedTestData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Create some test agents
-      const testAgents = [
-        {
-          id: '550e8400-e29b-41d4-a716-446655440001',
-          user_id: '550e8400-e29b-41d4-a716-446655440001',
-          email: 'john.doe@abadisco.com',
-          full_name: 'John Doe',
-          phone: '+2348123456789',
-          role: 'agent',
-          status: 'active',
-          avatar_url: 'https://api.dicebear.com/7.x/initials/svg?seed=JohnDoe',
-          weekly_target: 40,
-          weekly_target_met: true,
-          current_week_registrations: 35,
-          total_registrations: 156,
-          total_businesses: 42
-        },
-        {
-          id: '550e8400-e29b-41d4-a716-446655440002',
-          user_id: '550e8400-e29b-41d4-a716-446655440002',
-          email: 'jane.smith@abadisco.com',
-          full_name: 'Jane Smith',
-          phone: '+2348123456790',
-          role: 'senior_agent',
-          status: 'active',
-          avatar_url: 'https://api.dicebear.com/7.x/initials/svg?seed=JaneSmith',
-          weekly_target: 50,
-          weekly_target_met: false,
-          current_week_registrations: 28,
-          total_registrations: 203,
-          total_businesses: 67
-        }
-      ];
-
-      // Insert test agents
-      const { error: agentError } = await supabase
-        .from('agents')
-        .upsert(testAgents, { onConflict: 'id' });
-
-      if (agentError) {
-        console.error('Error seeding agents:', agentError);
-        setError('Failed to seed test agents: ' + agentError.message);
-        return;
-      }
-
-      // Create some test activities
-      const testActivities = [
-        {
-          agent_id: '550e8400-e29b-41d4-a716-446655440001',
-          action_type: 'registration',
-          description: 'Registered new business - Ace Electronics',
-          resource_type: 'business',
-          status: 'completed',
-          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          completed_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          agent_id: '550e8400-e29b-41d4-a716-446655440001',
-          action_type: 'verification',
-          description: 'Completed KYC verification for business owner',
-          resource_type: 'kyc',
-          status: 'completed',
-          created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          completed_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          agent_id: '550e8400-e29b-41d4-a716-446655440002',
-          action_type: 'support',
-          description: 'Provided customer support for market listing',
-          resource_type: 'user',
-          status: 'completed',
-          created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-          completed_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          agent_id: '550e8400-e29b-41d4-a716-446655440002',
-          action_type: 'outreach',
-          description: 'Conducted business outreach in Ariaria Market',
-          resource_type: 'business',
-          status: 'pending',
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-        }
-      ];
-
-      // Insert test activities
-      const { error: activityError } = await supabase
-        .from('activities')
-        .upsert(testActivities, { onConflict: 'id' });
-
-      if (activityError) {
-        console.error('Error seeding activities:', activityError);
-        setError('Failed to seed test activities: ' + activityError.message);
-        return;
-      }
-
-      // Refresh the data
-      await fetchAgentsData();
-      setError('Test data seeded successfully!');
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setError(null), 3000);
-    } catch (err) {
-      console.error('Error seeding test data:', err);
-      setError('Failed to seed test data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Render dashboard stats cards
   const renderStatsCards = () => {
     if (!dashboardStats) return null;
@@ -702,7 +381,7 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
       {
         title: 'Avg Completion Rate',
         value: formatPercentage(dashboardStats.avg_completion_rate),
-        icon: FiBarChart,
+        icon: FiBarChart3,
         color: colors.teal,
         change: '+5%'
       },
@@ -863,7 +542,7 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
               outerRadius={80}
               fill="#8884d8"
               dataKey="value"
-              label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
+              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
             >
               {completionData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -1077,10 +756,10 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button 
                       onClick={() => { setSelectedAgent(agent); setShowAgentModal(true); }}
-                      className="inline-flex items-center px-3 py-1.5 text-sm text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-md transition-colors space-x-1"
+                      className="text-blue-600 hover:text-blue-900 flex items-center space-x-1"
                     >
                       <FiEye className="h-4 w-4" />
-                      <span>View Details</span>
+                      <span>View</span>
                     </button>
                   </td>
                 </tr>
@@ -1097,18 +776,14 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
     if (!selectedAgent || !showAgentModal) return null;
 
     return (
-      <div className="fixed inset-0 z-[9999] overflow-y-auto">
-        {/* Background overlay */}
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-          onClick={() => setShowAgentModal(false)}
-        ></div>
-        
-        {/* Modal container */}
-        <div className="flex min-h-full items-center justify-center p-4">
-          <div className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl transform transition-all">
-            {/* Modal content */}
-            <div className="px-6 pt-6 pb-4">
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+          <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+            <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={() => setShowAgentModal(false)}></div>
+          </div>
+
+          <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+            <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               {/* Modal Header */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-4">
@@ -1122,7 +797,7 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
                 </div>
                 <button 
                   onClick={() => setShowAgentModal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-full"
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1131,7 +806,7 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
               </div>
 
               {/* Modal Content */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Performance Metrics */}
                 <div className="space-y-4">
                   <h4 className="text-lg font-semibold text-gray-900">Performance Metrics</h4>
@@ -1249,10 +924,10 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-3 rounded-b-xl flex justify-end">
+            <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="button"
-                className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-6 py-2 bg-blue-600 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
                 onClick={() => setShowAgentModal(false)}
               >
                 Close
@@ -1306,7 +981,7 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
                   : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
               }`}
             >
-              <FiBarChart className="mr-2 h-4 w-4" />
+              <FiBarChart3 className="mr-2 h-4 w-4" />
               Table View
             </button>
             
@@ -1320,15 +995,6 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
             >
               <FiPieChart className="mr-2 h-4 w-4" />
               Analytics
-            </button>
-            
-            <button 
-              onClick={seedTestData}
-              disabled={loading}
-              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
-            >
-              <FiRefreshCw className="mr-2 h-4 w-4" />
-              Seed Test Data
             </button>
             
             <button className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
@@ -1380,7 +1046,7 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Status</option>
-                <option value="active">Active (&gt;60%)</option>
+                <option value="active">Active (>60%)</option>
                 <option value="inactive">Needs Improvement (≤60%)</option>
               </select>
             </div>

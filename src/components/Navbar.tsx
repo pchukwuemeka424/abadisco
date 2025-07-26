@@ -24,7 +24,7 @@ export function Navbar() {
   ];
 
   return (
-    <header className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 mb-40 bg-white shadow-md`}
+    <header className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 bg-white shadow-md`}
       role="banner"
     >
       <nav className="max-w-7xl mx-auto px-0 sm:px-0 flex items-center justify-between h-16 md:h-20">
