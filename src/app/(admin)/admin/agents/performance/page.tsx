@@ -209,12 +209,18 @@ export default function AgentPerformanceDashboard() {
 
       if (agentsError) {
         console.error('Error fetching agents:', agentsError);
-        setError('Failed to load agents data');
+        setError(`Failed to load agents data: ${agentsError.message}`);
+        // Use mock data as fallback
+        const mockData = generateMockData();
+        setAgents(mockData.agents);
+        setPerformanceData(mockData.metrics);
+        calculateDashboardStats(mockData.metrics);
         return;
       }
 
       if (!agentsData || agentsData.length === 0) {
         console.warn('No agents found, using mock data for demonstration');
+        setError('No agents found in database. Using demo data.');
         const mockData = generateMockData();
         setAgents(mockData.agents);
         setPerformanceData(mockData.metrics);
