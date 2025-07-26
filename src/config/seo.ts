@@ -35,7 +35,7 @@ export function generateMetadata({
   keywords = [],
   image,
   url,
-  type = 'website',
+  type = 'website' as const,
   author,
   publishedTime,
   modifiedTime,
@@ -45,7 +45,7 @@ export function generateMetadata({
   keywords?: string[];
   image?: string;
   url?: string;
-  type?: string;
+  type?: 'website' | 'article' | 'book' | 'profile';
   author?: string;
   publishedTime?: string;
   modifiedTime?: string;

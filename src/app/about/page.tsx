@@ -1,7 +1,27 @@
 import React from 'react';
+import { generateMetadata } from '@/config/seo';
+import { Metadata } from 'next';
 import { Navbar } from '../../components/Navbar';
 import Image from 'next/image';
 import Footer from '../../components/Footer';
+
+export const metadata: Metadata = generateMetadata({
+  title: 'About Aba Traders - Founders Prince Chukwuemeka & Princess Ibekwe Johnson',
+  description: 'Learn about Aba Traders, founded by Prince Chukwuemeka and Princess Ibekwe Johnson to showcase Aba\'s vibrant markets and business ecosystem. Discover our mission to connect traders and promote Nigerian commerce.',
+  keywords: [
+    'About Aba Traders',
+    'Prince Chukwuemeka founder',
+    'Princess Ibekwe Johnson co-founder',
+    'Aba business directory founders',
+    'Nigerian entrepreneurs',
+    'Aba commerce platform',
+    'Eastern Nigeria business',
+    'African marketplace founders',
+    'Made in Aba initiative',
+    'Local business empowerment'
+  ],
+  url: '/about',
+});
 
 const features = [
   {

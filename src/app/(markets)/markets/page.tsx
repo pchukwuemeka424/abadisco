@@ -1,5 +1,25 @@
+import { generateMetadata } from '@/config/seo';
+import { Metadata } from 'next';
 import Image from 'next/image';
 import MarketsList from '@/components/MarketsList';
+
+export const metadata: Metadata = generateMetadata({
+  title: 'Aba Markets Directory - Explore Traditional & Modern Markets',
+  description: 'Discover Aba\'s vibrant markets including Ariaria International Market, Aba Main Market, and more. Find traders, businesses, and authentic products in Nigeria\'s commercial hub.',
+  keywords: [
+    'Aba markets',
+    'Ariaria Market',
+    'Aba Main Market',
+    'Nigeria markets',
+    'Aba traders',
+    'African markets',
+    'traditional markets',
+    'commercial markets',
+    'Aba shopping',
+    'Nigerian commerce'
+  ],
+  url: '/markets',
+});
 
 export default function MarketsPage() {
   return (
