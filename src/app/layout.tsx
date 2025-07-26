@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Barlow, Pacifico } from "next/font/google";
+import { generateMetadata, organizationSchema, websiteSchema } from "@/config/seo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,26 +25,7 @@ const pacifico = Pacifico({
   variable: "--font-pacifico",
 });
 
-export const metadata: Metadata = {
-  title: "Aba Traders | Aba Markets & Businesses Directory",
-  description: "Discover Aba, Eastern Nigeria's commercial hub. Curated by founders Prince Chukwuemeka and Princess C Ibekwe. Explore markets, businesses, and services in Aba with Aba Traders.",
-  keywords: [
-    "Aba",
-    "Aba Markets",
-    "Aba Businesses",
-    "Aba Traders",
-    "Prince Chukwuemeka",
-    "Princess C Ibekwe",
-    "Founder",
-    "Co-founder",
-    "Nigeria",
-    "Markets",
-    "Business Directory"
-  ],
-  other: {
-    founders: "Prince Chukwuemeka, Princess C Ibekwe"
-  }
-};
+export const metadata: Metadata = generateMetadata();
 
 export default function RootLayout({
   children,
@@ -52,6 +34,25 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationSchema),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(websiteSchema),
+          }}
+        />
+        <meta name="theme-color" content="#e11d48" />
+        <meta name="msapplication-TileColor" content="#e11d48" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/images/logo.png" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${barlow.variable} ${pacifico.variable} antialiased bg-gray-50`}
       >
