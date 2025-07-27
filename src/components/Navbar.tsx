@@ -29,7 +29,7 @@ export function Navbar() {
     >
       <nav className="max-w-7xl mx-auto px-0 sm:px-0 flex items-center justify-between h-16 md:h-20">
         {/* Logo */}
-        <div className="relative w-32 h-16 ml-2">
+        <Link href="/" className="relative w-32 h-16 ml-2 block">
           <Image
             src="/images/logo.png"
             alt="Aba Traders Logo"
@@ -37,7 +37,7 @@ export function Navbar() {
             className="object-contain ml-0"
             priority
           />
-        </div>
+        </Link>
 
         {/* Desktop Nav Links */}
         <ul className="hidden md:flex items-center gap-6">
