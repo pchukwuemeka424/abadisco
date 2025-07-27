@@ -135,7 +135,8 @@ const SearchPageContent = () => {
       sortBy
     });
 
-    // Perform search with URL parameters
+    // Only perform search if there are actual search parameters
+    // Otherwise, the initial fetchAllBusinesses will handle showing all businesses
     if (query || category || priceRange || rating || location) {
       performSearch(query, { category, priceRange, rating, location, sortBy }, page);
     }
@@ -144,6 +145,11 @@ const SearchPageContent = () => {
   // Fetch categories for filter dropdown
   useEffect(() => {
     fetchCategories();
+  }, []);
+
+  // Fetch all businesses on component mount
+  useEffect(() => {
+    fetchAllBusinesses();
   }, []);
 
   const fetchCategories = async () => {
@@ -157,6 +163,55 @@ const SearchPageContent = () => {
       setCategories(data || []);
     } catch (err) {
       console.error('Error fetching categories:', err);
+    }
+  };
+
+  const fetchAllBusinesses = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const { data: businessData, error: businessError, count: businessCount } = await supabase
+        .from('businesses')
+        .select(`
+          *,
+          business_categories(title)
+        `, { count: 'exact' })
+        .order('name', { ascending: true })
+        .range(0, pagination.itemsPerPage - 1);
+
+      if (businessError) throw businessError;
+
+      // Fetch markets as well
+      const { data: marketData, error: marketError } = await supabase
+        .from('markets')
+        .select('*')
+        .eq('is_active', true);
+
+      if (marketError) throw marketError;
+
+      // Process results
+      const transformedBusinesses: Business[] = businessData?.map(business => ({
+        ...business,
+        category_name: business.business_categories?.title || 'Uncategorized',
+        highlights: business.highlights || []
+      })) || [];
+
+      setBusinesses(transformedBusinesses);
+      setMarkets(marketData || []);
+      
+      // Update pagination
+      setPagination(prev => ({
+        ...prev,
+        totalItems: businessCount || 0,
+        totalPages: Math.ceil((businessCount || 0) / prev.itemsPerPage)
+      }));
+
+    } catch (err: any) {
+      console.error('Error fetching all businesses:', err);
+      setError(err.message || 'An error occurred while fetching businesses');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -304,9 +359,51 @@ const SearchPageContent = () => {
   };
 
   const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('page', page.toString());
-    router.push(`/search?${params.toString()}`);
+    // If there are search parameters, use the existing search logic
+    if (searchQuery || Object.values(selectedFilters).some(f => f !== '')) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('page', page.toString());
+      router.push(`/search?${params.toString()}`);
+    } else {
+      // For initial business load, fetch the specific page
+      loadBusinessesPage(page);
+    }
+  };
+
+  const loadBusinessesPage = async (page: number) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const offset = (page - 1) * pagination.itemsPerPage;
+      
+      const { data: businessData, error: businessError } = await supabase
+        .from('businesses')
+        .select(`
+          *,
+          business_categories(title)
+        `)
+        .order('name', { ascending: true })
+        .range(offset, offset + pagination.itemsPerPage - 1);
+
+      if (businessError) throw businessError;
+
+      // Process results
+      const transformedBusinesses: Business[] = businessData?.map(business => ({
+        ...business,
+        category_name: business.business_categories?.title || 'Uncategorized',
+        highlights: business.highlights || []
+      })) || [];
+
+      setBusinesses(transformedBusinesses);
+      setPagination(prev => ({ ...prev, currentPage: page }));
+
+    } catch (err: any) {
+      console.error('Error loading business page:', err);
+      setError(err.message || 'An error occurred while loading businesses');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Filter options
@@ -451,13 +548,16 @@ const SearchPageContent = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Search Results Header */}
-        {!loading && (searchQuery || Object.values(selectedFilters).some(f => f !== '')) && (
+        {!loading && (searchQuery || Object.values(selectedFilters).some(f => f !== '') || businesses.length > 0) && (
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              {searchQuery ? `Search Results for "${searchQuery}"` : 'Search Results'}
+              {searchQuery ? `Search Results for "${searchQuery}"` : businesses.length > 0 ? 'All Businesses' : 'Search Results'}
             </h1>
             <p className="text-gray-600">
-              Found {pagination.totalItems} {activeTab === 'businesses' ? 'businesses' : 'markets'}
+              {searchQuery || Object.values(selectedFilters).some(f => f !== '') 
+                ? `Found ${pagination.totalItems} ${activeTab === 'businesses' ? 'businesses' : 'markets'}`
+                : `Showing ${businesses.length} of ${pagination.totalItems} businesses`
+              }
               {Object.values(selectedFilters).some(f => f !== '') && (
                 <span> with applied filters</span>
               )}
@@ -641,7 +741,7 @@ const SearchPageContent = () => {
           </>
         )}
 
-        {/* Default Content for Fresh Page Load */}
+        {/* Default Content for Fresh Page Load - Only show when no businesses are loaded and no search is active */}
         {!loading && !searchQuery && !Object.values(selectedFilters).some(f => f !== '') && businesses.length === 0 && markets.length === 0 && (
           <div className="text-center py-12">
             <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
