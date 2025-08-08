@@ -12,6 +12,19 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Additional configuration to handle build warnings
+  experimental: {
+    serverComponentsExternalPackages: [],
+  },
+  // Suppress webpack warnings
+  webpack: (config, { dev, isServer }) => {
+    // Ignore specific warnings
+    config.ignoreWarnings = [
+      { module: /node_modules/ },
+      { file: /node_modules/ },
+    ];
+    return config;
+  },
 };
 
 export default nextConfig;

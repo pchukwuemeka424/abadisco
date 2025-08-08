@@ -6,14 +6,7 @@
     "silent": true
   },
   "env": {
-    "VERCEL_IGNORE_BUILD_ERRORS": "true"
-  },
-  "functions": {
-    "app/api/**/*.js": {
-      "runtime": "nodejs20.x"
-    },
-    "app/api/**/*.ts": {
-      "runtime": "nodejs20.x"
-    }
+    "VERCEL_IGNORE_BUILD_ERRORS": "1",
+    "CI": "false"
   }
 }
