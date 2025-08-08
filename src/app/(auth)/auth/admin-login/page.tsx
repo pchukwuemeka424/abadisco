@@ -22,7 +22,7 @@ export default function AdminLoginPage() {
       // 1. Fetch admin user by email
       const { data: adminUser, error: fetchError } = await supabase
         .from('admin')
-        .select('id, email, password_hash')
+        .select('id, email, password_hash, name')
         .eq('email', email)
         .single();
 
@@ -41,10 +41,21 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // 3. Handle successful login (e.g., set session, redirect)
+      // 3. Set admin session in localStorage for persistence
+      const adminSession = {
+        id: adminUser.id,
+        email: adminUser.email,
+        name: adminUser.name,
+        role: 'admin',
+        loginTime: new Date().toISOString()
+      };
+      
+      localStorage.setItem('adminSession', JSON.stringify(adminSession));
+      
       console.log('Admin login successful:', adminUser.id);
-      // TODO: Implement session management (e.g., using Supabase Auth or cookies)
-      router.push('/admin'); // Redirect to admin dashboard
+      
+      // 4. Redirect to admin dashboard
+      router.push('/admin');
 
     } catch (err) {
       console.error('Login error:', err);
@@ -76,7 +87,7 @@ export default function AdminLoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              placeholder="admin@example.com"
+              placeholder="admin@abatraders.com"
             />
           </div>
           <div className="mb-6">

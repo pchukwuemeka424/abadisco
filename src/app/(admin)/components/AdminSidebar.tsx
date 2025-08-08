@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@/supabaseClient';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: <FaHome /> },
@@ -32,6 +33,7 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { adminSession, logout } = useAdminAuth();
   
   const isActive = (path: string) => {
     if (path === '/admin') {
@@ -42,17 +44,10 @@ export default function AdminSidebar() {
 
   const handleLogout = async () => {
     try {
-      // Direct implementation using Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out:', error);
-        return;
-      }
-      
-      // Manually navigate to login page after successful logout
-      router.push('/auth/login');
+      // Use the admin logout function
+      logout();
     } catch (error) {
-      console.error('Exception during logout:', error);
+      console.error('Unexpected error during logout:', error);
     }
   };
 
@@ -98,6 +93,12 @@ export default function AdminSidebar() {
             />
             <span className="ml-3 text-xl font-bold">Admin Panel</span>
           </div>
+          {adminSession && (
+            <div className="mt-3 text-center">
+              <p className="text-blue-100 text-sm">Welcome,</p>
+              <p className="text-white font-medium">{adminSession.name || adminSession.email}</p>
+            </div>
+          )}
         </div>
         
         <div className="flex-grow py-5 overflow-y-auto">
