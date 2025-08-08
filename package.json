@@ -53,7 +53,7 @@
     "typescript": "^5"
   },
   "engines": {
-    "node": ">=20.0.0",
+    "node": "20.x",
     "npm": ">=9.0.0"
   }
 }
