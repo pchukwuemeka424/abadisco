@@ -3,7 +3,7 @@
 import { 
   FaHome, FaUsers, FaBox, FaIdCard, FaChartBar, FaClock,
   FaCog, FaBell, FaSignOutAlt, FaBars, FaTimes, FaUserSecret, FaChartLine,
-  FaTags, FaStore, FaConciergeBell
+  FaTags, FaStore, FaConciergeBell, FaBuilding
 } from 'react-icons/fa';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -15,6 +15,7 @@ import { useAdminAuth } from '@/hooks/useAdminAuth';
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: <FaHome /> },
   { name: 'Users', href: '/admin/users', icon: <FaUsers /> },
+  { name: 'Businesses', href: '/admin/businesses', icon: <FaBuilding /> },
   { name: 'Agents', href: '/admin/agents', icon: <FaUserSecret /> },
   { name: 'Agent Performance', href: '/admin/agents/performance', icon: <FaChartBar /> },
   { name: 'Agent Analytics', href: '/admin/agents/analytics', icon: <FaChartLine /> },

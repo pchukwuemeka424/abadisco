@@ -234,7 +234,7 @@ export default function ProfilePage() {
   const [whatsapp, setWhatsapp] = useState("");
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
-  const [generating, setGenerating] = useState(false);
+
   const [customService, setCustomService] = useState("");
   const [showCrop, setShowCrop] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -409,29 +409,7 @@ export default function ProfilePage() {
     });
   }
 
-  const handleGenerateDescription = async () => {
-    setGenerating(true);
-    setError("");
-    try {
-      console.log("Calling /api/generate-description with prompt:", description);
-      const response = await axios.post("/api/generate-description", {
-        prompt: description
-      });
-      console.log("API response:", response.data);
-      if (response.data.generatedText) {
-        setDescription(response.data.generatedText);
-      } else if (response.data.error) {
-        setError(response.data.error);
-      } else {
-        setError("No text generated and no error message returned.");
-      }
-    } catch (err: any) {
-      console.error("Error calling AI generate API:", err);
-      setError(err?.response?.data?.error || err.message || "Failed to generate description");
-    } finally {
-      setGenerating(false);
-    }
-  };
+
 
   const handleAutoFillDescription = () => {
     const name = businessName.trim();
@@ -695,17 +673,7 @@ export default function ProfilePage() {
                       </svg>
                       Auto-fill
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleGenerateDescription}
-                      disabled={generating}
-                      className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-2 disabled:opacity-50"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      {generating ? 'Generating...' : 'Generate with AI'}
-                    </button>
+
                   </div>
                 </div>
               </div>

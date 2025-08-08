@@ -70,3 +70,4 @@ export function useAdminAuth() {
     isAuthenticated: !!adminSession
   };
 }
+

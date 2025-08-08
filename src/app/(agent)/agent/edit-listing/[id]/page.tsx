@@ -118,7 +118,7 @@ export default function ProfilePage() {
   const [businessCategories, setBusinessCategories] = useState<{id: number, title: string}[]>([]);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
-  const [generating, setGenerating] = useState(false);
+
   const [customService, setCustomService] = useState("");
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
@@ -684,29 +684,7 @@ export default function ProfilePage() {
     });
   }
 
-  const handleGenerateDescription = async () => {
-    setGenerating(true);
-    setError("");
-    try {
-      console.log("Calling /api/generate-description with prompt:", businessData.description);
-      const response = await axios.post("/api/generate-description", {
-        prompt: businessData.description
-      });
-      console.log("API response:", response.data);
-      if (response.data.generatedText) {
-        updateBusinessData('description', response.data.generatedText);
-      } else if (response.data.error) {
-        setError(response.data.error);
-      } else {
-        setError("No text generated and no error message returned.");
-      }
-    } catch (err: any) {
-      console.error("Error calling AI generate API:", err);
-      setError(err?.response?.data?.error || err.message || "Failed to generate description");
-    } finally {
-      setGenerating(false);
-    }
-  };
+
 
   const handleAutoFillDescription = () => {
     const name = businessData.name.trim();
@@ -1258,28 +1236,7 @@ export default function ProfilePage() {
                       </svg>
                       Auto-fill
                     </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="button"
-                      onClick={handleGenerateDescription}
-                      disabled={generating}
-                      className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50 font-medium shadow-sm"
-                    >
-                      {generating ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                          Generate with AI
-                        </>
-                      )}
-                    </motion.button>
+
                   </div>
                 </div>
               </motion.div>

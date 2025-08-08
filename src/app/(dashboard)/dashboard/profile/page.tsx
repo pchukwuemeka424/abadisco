@@ -91,7 +91,7 @@ export default function ProfilePage() {
   const [businessCategories, setBusinessCategories] = useState<{id: number, title: string}[]>([]);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
-  const [generating, setGenerating] = useState(false);
+
   const [customService, setCustomService] = useState("");
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
@@ -850,32 +850,7 @@ export default function ProfilePage() {
     });
   }
 
-  const handleGenerateDescription = async () => {
-    setGenerating(true);
-    setError("");
-    try {
-      // Create a default prompt if description is empty to prevent 400 errors
-      const promptToSend = businessData.description.trim() || `Generate a compelling description for ${businessData.name || 'a business'} that offers ${selectedServices.length > 0 ? selectedServices.join(", ") : businessType || 'various services'} in Aba, Nigeria.`;
-      
-      console.log("Calling /api/generate-description with prompt:", promptToSend);
-      const response = await axios.post("/api/generate-description", {
-        prompt: promptToSend
-      });
-      console.log("API response:", response.data);
-      if (response.data.generatedText) {
-        updateBusinessData('description', response.data.generatedText);
-      } else if (response.data.error) {
-        setError(response.data.error);
-      } else {
-        setError("No text generated and no error message returned.");
-      }
-    } catch (err: any) {
-      console.error("Error calling AI generate API:", err);
-      setError(err?.response?.data?.error || err.message || "Failed to generate description");
-    } finally {
-      setGenerating(false);
-    }
-  };
+
 
   const handleAutoFillDescription = () => {
     const name = businessData.name.trim();
@@ -1283,14 +1258,7 @@ export default function ProfilePage() {
                           >
                             Auto-fill
                           </button>
-                          <button
-                            type="button"
-                            onClick={handleGenerateDescription}
-                            disabled={generating}
-                            className="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors disabled:opacity-50"
-                          >
-                            {generating ? 'Generating...' : 'Generate with AI'}
-                          </button>
+
                         </div>
                       </div>
                       <textarea

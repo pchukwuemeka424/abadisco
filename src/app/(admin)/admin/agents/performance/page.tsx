@@ -128,72 +128,7 @@ export default function AgentPerformanceDashboard() {
     fetchAgentsData();
   }, [selectedTimeframe]);
 
-  // Generate mock data for demonstration
-  const generateMockData = (): { agents: Agent[], metrics: PerformanceMetrics[] } => {
-    const roles = ['agent', 'senior_agent', 'team_lead'];
-    const statuses: Array<'active' | 'inactive' | 'pending' | 'suspended'> = ['active', 'inactive', 'pending', 'suspended'];
-    
-    const mockAgents: Agent[] = Array.from({ length: 12 }, (_, i) => ({
-      id: `agent-${i + 1}`,
-      user_id: `user-${i + 1}`,
-      email: `agent${i + 1}@abadisco.com`,
-      full_name: `Agent ${i + 1}`,
-      phone: `+234${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-      role: roles[Math.floor(Math.random() * roles.length)],
-      status: statuses[Math.floor(Math.random() * statuses.length)],
-      avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=Agent${i + 1}`,
-      weekly_target: 20 + Math.floor(Math.random() * 30),
-      weekly_target_met: Math.random() > 0.5,
-      current_week_registrations: Math.floor(Math.random() * 25),
-      total_registrations: Math.floor(Math.random() * 200) + 50,
-      total_businesses: Math.floor(Math.random() * 50) + 10,
-      created_at: new Date(2023, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28)).toISOString(),
-      updated_at: new Date().toISOString(),
-      created_by: 'admin'
-    }));
-
-    const mockMetrics: PerformanceMetrics[] = mockAgents.map((agent, i) => {
-      const tasks_completed = Math.floor(Math.random() * 50) + 10;
-      const tasks_pending = Math.floor(Math.random() * 20) + 5;
-      const tasks_failed = Math.floor(Math.random() * 5);
-      const total_tasks = tasks_completed + tasks_pending + tasks_failed;
-      
-      return {
-        agent_id: agent.id,
-        name: agent.full_name,
-        email: agent.email,
-        avatar: agent.avatar_url,
-        department: agent.role === 'agent' ? 'Field Operations' : 
-                   agent.role === 'senior_agent' ? 'Senior Operations' : 'Team Leadership',
-        tasks_completed,
-        tasks_pending,
-        tasks_failed,
-        completion_rate: (tasks_completed / total_tasks) * 100,
-        business_registrations: agent.total_businesses,
-        user_registrations: agent.total_registrations,
-        avg_response_time: Math.random() * 2 + 0.5,
-        customer_satisfaction: Math.random() * 2 + 3,
-        quality_score: Math.random() * 2 + 3,
-        revenue_generated: Math.floor(Math.random() * 50000) + 10000,
-        commission_earned: Math.floor(Math.random() * 5000) + 1000,
-        weekly_target: agent.weekly_target,
-        monthly_target: agent.weekly_target * 4,
-        target_achievement: ((tasks_completed / agent.weekly_target) * 100),
-        weekly_change: (Math.random() - 0.5) * 40,
-        monthly_change: (Math.random() - 0.5) * 60,
-        performance_trend: Math.random() > 0.5 ? 'up' : Math.random() > 0.5 ? 'down' : 'stable',
-        daily_activity: Array.from({ length: 7 }, (_, day) => ({
-          date: new Date(Date.now() - (6 - day) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          tasks: Math.floor(Math.random() * 8) + 2,
-          revenue: Math.floor(Math.random() * 2000) + 500
-        })),
-        rank_overall: i + 1,
-        rank_department: Math.floor(Math.random() * 5) + 1
-      };
-    });
-
-    return { agents: mockAgents, metrics: mockMetrics };
-  };
+  // Mock data generation removed - now using real database data
 
   // Fetch agents and performance data
   const fetchAgentsData = async () => {
@@ -210,21 +145,12 @@ export default function AgentPerformanceDashboard() {
       if (agentsError) {
         console.error('Error fetching agents:', agentsError);
         setError(`Failed to load agents data: ${agentsError.message}`);
-        // Use mock data as fallback
-        const mockData = generateMockData();
-        setAgents(mockData.agents);
-        setPerformanceData(mockData.metrics);
-        calculateDashboardStats(mockData.metrics);
         return;
       }
 
       if (!agentsData || agentsData.length === 0) {
-        console.warn('No agents found, using mock data for demonstration');
-        setError('No agents found in database. Using demo data.');
-        const mockData = generateMockData();
-        setAgents(mockData.agents);
-        setPerformanceData(mockData.metrics);
-        calculateDashboardStats(mockData.metrics);
+        console.warn('No agents found in database');
+        setError('No agents found in database.');
         return;
       }
 
@@ -233,11 +159,7 @@ export default function AgentPerformanceDashboard() {
       await fetchPerformanceMetrics(agentsData);
     } catch (err) {
       console.error('Error fetching data:', err);
-      setError('Failed to load data. Using demo data instead.');
-      const mockData = generateMockData();
-      setAgents(mockData.agents);
-      setPerformanceData(mockData.metrics);
-      calculateDashboardStats(mockData.metrics);
+      setError('Failed to load data from database.');
     } finally {
       setLoading(false);
     }
@@ -337,11 +259,26 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
         console.warn('Failed to fetch businesses:', err);
       }
 
+      // Fetch user registrations for all agents
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('created_by, agent_user_id, created_at, business_name')
+        .not('created_by', 'is', null);
+
+      if (usersError) {
+        console.warn('Error fetching users data:', usersError.message);
+      }
+
       // Calculate metrics for each agent
       const metrics: PerformanceMetrics[] = agentsList.map((agent, index) => {
         // Get agent's activities
         const agentActivities = activitiesData?.filter(act => act.agent_id === agent.id) || [];
         const agentBusinesses = businessesData?.filter(bus => bus.created_by === agent.id) || [];
+
+        // Get users registered by this agent from users table
+        const agentUsers = usersData?.filter(user => 
+          user.created_by === agent.id || user.agent_user_id === agent.user_id
+        ) || [];
 
         // Calculate task metrics
         const tasks_completed = agentActivities.filter(act => act.status === 'completed').length;
@@ -350,34 +287,37 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
         const total_tasks = tasks_completed + tasks_pending + tasks_failed;
         const completion_rate = total_tasks > 0 ? (tasks_completed / total_tasks) * 100 : 0;
 
-        // Calculate registrations
-        const business_registrations = agentBusinesses.length;
-        const user_registrations = agentActivities.filter(act => 
-          act.action_type === 'registration' && act.resource_type === 'user'
-        ).length;
+        // Use real registration data from database
+        const user_registrations = agent.total_registrations || agentUsers.length;
+        const business_registrations = agent.total_businesses || agentUsers.filter(user => user.business_name).length;
 
         // Generate realistic metrics based on actual performance
-        const baseQuality = Math.min(5, Math.max(2, completion_rate / 20));
-        const quality_score = baseQuality + (Math.random() * 0.5 - 0.25);
-        const avg_response_time = Math.max(0.5, 3 - (completion_rate / 50));
-        const customer_satisfaction = Math.min(5, baseQuality + (Math.random() * 0.5));
+        const baseQuality = Math.min(5, Math.max(2, user_registrations / 10));
+        const quality_score = baseQuality;
+        const avg_response_time = Math.max(0.5, 3 - (user_registrations / 20));
+        const customer_satisfaction = Math.min(5, baseQuality);
 
-        // Calculate revenue (estimated based on activities and businesses)
-        const revenue_generated = (business_registrations * 2000) + (tasks_completed * 500) + Math.floor(Math.random() * 10000);
+        // Calculate revenue based on real user registrations * 93.73
+        const registration_value = 93.73;
+        const revenue_generated = user_registrations * registration_value;
         const commission_earned = revenue_generated * 0.15; // 15% commission
 
         // Calculate target achievement
         const weekly_target = agent.weekly_target || 25;
-        const target_achievement = (tasks_completed / weekly_target) * 100;
+        const target_achievement = agent.weekly_target ? 
+          ((agent.current_week_registrations || 0) / agent.weekly_target) * 100 : 0;
 
-        // Calculate trends based on previous period performance
-        const weekly_change = (Math.random() - 0.4) * 30; // Slight positive bias
-        const monthly_change = (Math.random() - 0.3) * 50;
+        // Calculate trends based on actual performance
+        const current_week_registrations = agent.current_week_registrations || 0;
+        const previous_week_estimate = Math.max(0, user_registrations - current_week_registrations);
+        const weekly_change = previous_week_estimate > 0 ? 
+          ((current_week_registrations - previous_week_estimate) / previous_week_estimate) * 100 : 0;
+        const monthly_change = weekly_change * 4; // Estimate monthly change
         const performance_trend: 'up' | 'down' | 'stable' = 
           weekly_change > 5 ? 'up' : 
           weekly_change < -5 ? 'down' : 'stable';
 
-        // Generate daily activity data
+        // Generate daily activity data based on real registrations
         const daily_activity = Array.from({ length: 7 }, (_, day) => {
           const date = new Date(startDate);
           date.setDate(startDate.getDate() + day);
@@ -388,10 +328,16 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
             return actDate.toDateString() === date.toDateString();
           });
 
+          // Get user registrations for this specific day
+          const dayRegistrations = agentUsers.filter(user => {
+            const userDate = new Date(user.created_at);
+            return userDate.toDateString() === date.toDateString();
+          });
+
           return {
             date: date.toISOString().split('T')[0],
-            tasks: dayActivities.length,
-            revenue: dayActivities.length * 500 + Math.floor(Math.random() * 1000)
+            tasks: dayActivities.length + dayRegistrations.length,
+            revenue: dayRegistrations.length * registration_value
           };
         });
 
@@ -434,43 +380,9 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
       calculateDashboardStats(metrics);
     } catch (error) {
       console.error('Error calculating performance metrics:', error);
-      // Fallback to agent data without detailed metrics
-      const basicMetrics: PerformanceMetrics[] = agentsList.map((agent, index) => ({
-        agent_id: agent.id,
-        name: agent.full_name,
-        email: agent.email,
-        avatar: agent.avatar_url,
-        department: agent.role === 'agent' ? 'Field Agent' : agent.role,
-        tasks_completed: agent.current_week_registrations || 0,
-        tasks_pending: Math.max(0, (agent.weekly_target || 25) - (agent.current_week_registrations || 0)),
-        tasks_failed: 0,
-        completion_rate: agent.weekly_target ? 
-          ((agent.current_week_registrations || 0) / agent.weekly_target) * 100 : 0,
-        business_registrations: agent.total_businesses || 0,
-        user_registrations: agent.total_registrations || 0,
-        avg_response_time: 2.5,
-        customer_satisfaction: 4.0,
-        quality_score: 4.0,
-        revenue_generated: (agent.total_businesses || 0) * 2000,
-        commission_earned: (agent.total_businesses || 0) * 300,
-        weekly_target: agent.weekly_target || 25,
-        monthly_target: (agent.weekly_target || 25) * 4,
-        target_achievement: agent.weekly_target ? 
-          ((agent.current_week_registrations || 0) / agent.weekly_target) * 100 : 0,
-        weekly_change: 0,
-        monthly_change: 0,
-        performance_trend: 'stable' as const,
-        daily_activity: Array.from({ length: 7 }, (_, day) => ({
-          date: new Date(Date.now() - (6 - day) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          tasks: Math.floor(Math.random() * 5),
-          revenue: Math.floor(Math.random() * 1000) + 500
-        })),
-        rank_overall: index + 1,
-        rank_department: Math.floor(Math.random() * 5) + 1
-      }));
-
-      setPerformanceData(basicMetrics);
-      calculateDashboardStats(basicMetrics);
+      setError('Failed to calculate performance metrics.');
+      setPerformanceData([]);
+      setDashboardStats(null);
     }
   };
 
@@ -920,6 +832,16 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
                 </div>
                 
                 <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-500">Total Registrations</span>
+                  <span className="text-sm font-medium text-blue-600">{agent.user_registrations}</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-500">Registration Value</span>
+                  <span className="text-sm font-medium text-green-600">₦93.73 each</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-500">Revenue Generated</span>
                   <span className="text-sm font-medium text-gray-900">{formatCurrency(agent.revenue_generated)}</span>
                 </div>
@@ -999,6 +921,9 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
                   Tasks
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Registrations
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Revenue
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1050,6 +975,10 @@ CREATE INDEX IF NOT EXISTS idx_activities_created_at ON public.activities(create
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{agent.tasks_completed}</div>
                     <div className="text-sm text-gray-500">{agent.tasks_pending} pending</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{agent.user_registrations}</div>
+                    <div className="text-sm text-gray-500">₦93.73 each</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{formatCurrency(agent.revenue_generated)}</div>

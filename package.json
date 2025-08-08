@@ -27,7 +27,7 @@
     "framer-motion": "^12.9.2",
     "lodash": "^4.17.21",
     "next": "^15.4.6",
-    "openai": "^4.102.0",
+
     "react": "^19.0.0",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.0.0",

@@ -63,7 +63,7 @@ export default function ProfilePage() {
   const [businessCategories, setBusinessCategories] = useState<{id: number, title: string}[]>([]);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
-  const [generating, setGenerating] = useState(false);
+
   const [customService, setCustomService] = useState("");
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
@@ -527,29 +527,7 @@ export default function ProfilePage() {
     });
   }
 
-  const handleGenerateDescription = async () => {
-    setGenerating(true);
-    setError("");
-    try {
-      console.log("Calling /api/generate-description with prompt:", businessData.description);
-      const response = await axios.post("/api/generate-description", {
-        prompt: businessData.description
-      });
-      console.log("API response:", response.data);
-      if (response.data.generatedText) {
-        updateBusinessData('description', response.data.generatedText);
-      } else if (response.data.error) {
-        setError(response.data.error);
-      } else {
-        setError("No text generated and no error message returned.");
-      }
-    } catch (err: any) {
-      console.error("Error calling AI generate API:", err);
-      setError(err?.response?.data?.error || err.message || "Failed to generate description");
-    } finally {
-      setGenerating(false);
-    }
-  };
+
 
   const handleAutoFillDescription = () => {
     const name = businessData.name.trim();
@@ -999,17 +977,7 @@ export default function ProfilePage() {
                       </svg>
                       Auto-fill
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleGenerateDescription}
-                      disabled={generating}
-                      className="px-4 py-2 bg-blue-200 text-blue-800 rounded-lg hover:bg-blue-300 transition-colors flex items-center gap-2 disabled:opacity-50 font-medium"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      {generating ? 'Generating...' : 'Generate with AI'}
-                    </button>
+
                   </div>
                 </div>
               </div>

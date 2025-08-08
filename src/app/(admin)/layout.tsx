@@ -1,14 +1,8 @@
 'use client';
 
-import { Metadata } from 'next';
 import AdminSidebar from './components/AdminSidebar';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useEffect } from 'react';
-
-export const metadata: Metadata = {
-  title: 'Admin Dashboard | Aba Markets',
-  description: 'Administration panel for Aba Markets platform',
-};
 
 export default function AdminLayout({
   children,

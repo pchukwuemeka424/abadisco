@@ -26,24 +26,18 @@ export default function UploadProduct({ params }: { params: Params | Promise<Par
   const { user } = useAuth();
   const router = useRouter();
   
-  // New state for AI analysis
-  const [analyzing, setAnalyzing] = useState(false);
-  const [imageAnalysis, setImageAnalysis] = useState<any>(null);
-  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
-  const [showAnalysis, setShowAnalysis] = useState(false);
+
 
   // Handle file drop
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const dropped = Array.from(e.dataTransfer.files)
       .filter(f => f.type.startsWith("image/"))
-      .slice(0, 5);
+      .slice(0, 3);
     setFiles(dropped);
     setPreviews(dropped.map(f => URL.createObjectURL(f)));
     
-    // Reset analysis when new files are dropped
-    setImageAnalysis(null);
-    setSuggestedTags([]);
+
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
@@ -52,13 +46,11 @@ export default function UploadProduct({ params }: { params: Params | Promise<Par
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || [])
       .filter(f => f.type.startsWith("image/"))
-      .slice(0, 5);
+      .slice(0, 3);
     setFiles(selected);
     setPreviews(selected.map(f => URL.createObjectURL(f)));
     
-    // Reset analysis when new files are selected
-    setImageAnalysis(null);
-    setSuggestedTags([]);
+
   };
 
   // Remove image
@@ -67,40 +59,10 @@ export default function UploadProduct({ params }: { params: Params | Promise<Par
     setFiles(newFiles);
     setPreviews(newFiles.map(f => URL.createObjectURL(f)));
     
-    // Reset analysis when an image is removed
-    if (idx === 0) {
-      setImageAnalysis(null);
-      setSuggestedTags([]);
-    }
+
   };
 
-  // New function to analyze image with AI
-  const analyzeImage = async () => {
-    if (!files[0]) return;
-    
-    setAnalyzing(true);
-    try {
-      // Create a FormData object to send the image
-      const formData = new FormData();
-      formData.append('image', files[0]);
-      
-      // Call our AI image analysis endpoint
-      const response = await axios.post('/api/analyze-image', formData);
-      
-      // Update state with analysis results
-      setImageAnalysis(response.data);
-      
-      if (response.data.suggestedTags && Array.isArray(response.data.suggestedTags)) {
-        setSuggestedTags(response.data.suggestedTags.slice(0, 5));
-      }
-      
-      setShowAnalysis(true);
-    } catch (error) {
-      console.error('Error analyzing image:', error);
-    } finally {
-      setAnalyzing(false);
-    }
-  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,14 +122,8 @@ export default function UploadProduct({ params }: { params: Params | Promise<Par
         setProgress(Math.round(((i + 1) / files.length) * 100));
       }
       
-      // Include AI-generated tags if available
-      const productMetadata = imageAnalysis ? {
-        product_type: imageAnalysis.productType || null,
-        colors: imageAnalysis.colors || null,
-        materials: imageAnalysis.materials || null,
-        tags: suggestedTags,
-        ai_quality_score: imageAnalysis.qualityScore || null
-      } : {};
+      // Product metadata
+      const productMetadata = {};
       
       // Insert product record with metadata
       const { data: productData, error: dbError } = await supabase

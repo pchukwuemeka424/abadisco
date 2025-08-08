@@ -25,7 +25,7 @@ export default function UploadProduct() {
     e.preventDefault();
     const dropped = Array.from(e.dataTransfer.files)
       .filter(f => f.type.startsWith("image/"))
-      .slice(0, 5);
+      .slice(0, 3);
     setFiles(dropped);
     setPreviews(dropped.map(f => URL.createObjectURL(f)));
   };
@@ -36,7 +36,7 @@ export default function UploadProduct() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || [])
       .filter(f => f.type.startsWith("image/"))
-      .slice(0, 5);
+      .slice(0, 3);
     setFiles(selected);
     setPreviews(selected.map(f => URL.createObjectURL(f)));
   };

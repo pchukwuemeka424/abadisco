@@ -350,7 +350,7 @@ export default function ManageListingPage() {
 
   // Determine if all listings are registration completed
   const allListingsCompleted =
-    listings.length === 0 || listings.every(l => (imageCounts[l.id] || 0) >= 6);
+    listings.length === 0 || listings.every(l => (imageCounts[l.id] || 0) >= 3);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
@@ -378,7 +378,7 @@ export default function ManageListingPage() {
                   </div>
                   <div>
                     <div className="text-3xl font-bold">
-                      {listings.filter(l => (imageCounts[l.id] || 0) >= 6).length}
+                      {listings.filter(l => (imageCounts[l.id] || 0) >= 3).length}
                     </div>
                     <div className="text-xs text-indigo-100">Completed</div>
                   </div>
@@ -786,7 +786,7 @@ export default function ManageListingPage() {
                 </div>
               </div>
               <div className="text-sm text-gray-600">
-                {listings.filter(l => (imageCounts[l.id] || 0) >= 6).length} of {listings.length} listings completed
+                {listings.filter(l => (imageCounts[l.id] || 0) >= 3).length} of {listings.length} listings completed
               </div>
             </div>
           )}
@@ -855,7 +855,7 @@ export default function ManageListingPage() {
                 {currentItems.map((listing, index) => {
                   const imgCount = imageCounts[listing.id] || 0;
                   const registrationStatus =
-                    imgCount >= 6 ? (
+                    imgCount >= 3 ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2 shadow-sm">
                         <span className="mr-1 text-green-500">✓</span> Registration Complete
                       </span>
@@ -864,7 +864,7 @@ export default function ManageListingPage() {
                         <svg className="w-3 h-3 mr-1 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
-                        Pending ({imgCount}/6)
+                        Pending ({imgCount}/3)
                       </span>
                     );
                   return (
@@ -966,7 +966,7 @@ export default function ManageListingPage() {
                             </svg>
                             Images
                             <span className="ml-1 bg-indigo-100 text-indigo-800 text-xs px-1.5 py-0.5 rounded-full">
-                              {imageCounts[listing.id] || 0}/6
+                              {imageCounts[listing.id] || 0}/3
                             </span>
                           </motion.button>
                           {confirmDelete === listing.id ? (
@@ -1050,7 +1050,7 @@ export default function ManageListingPage() {
                   </div>
                   <h3 className="font-medium text-gray-900">Get Started Quickly</h3>
                 </div>
-                <p>Create a new listing using the "Add New Listing" button. Complete all required information and upload at least 6 images to ensure your listing is fully visible to potential customers.</p>
+                <p>Create a new listing using the "Add New Listing" button. Complete all required information and upload at least 3 images to ensure your listing is fully visible to potential customers.</p>
               </div>
               
               <div className="bg-white p-4 rounded-lg border border-gray-200">
@@ -1075,7 +1075,7 @@ export default function ManageListingPage() {
                   </div>
                   <h3 className="font-medium text-gray-900">Complete Registration</h3>
                 </div>
-                <p>Upload all required images through the "Images" button. You must have at least 6 images to complete your listing's registration and make it fully visible to potential customers.</p>
+                <p>Upload all required images through the "Images" button. You must have at least 3 images to complete your listing's registration and make it fully visible to potential customers.</p>
               </div>
             </div>
           </div>
