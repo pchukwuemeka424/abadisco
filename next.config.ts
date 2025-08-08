@@ -13,18 +13,18 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   // Additional configuration to handle build warnings
-  experimental: {
-    serverComponentsExternalPackages: [],
-  },
-  // Suppress webpack warnings
-  webpack: (config, { dev, isServer }) => {
-    // Ignore specific warnings
-    config.ignoreWarnings = [
-      { module: /node_modules/ },
-      { file: /node_modules/ },
-    ];
-    return config;
-  },
+  serverExternalPackages: [],
+  // Suppress webpack warnings (only for production builds)
+  ...(process.env.NODE_ENV === 'production' && {
+    webpack: (config, { dev, isServer }) => {
+      // Ignore specific warnings
+      config.ignoreWarnings = [
+        { module: /node_modules/ },
+        { file: /node_modules/ },
+      ];
+      return config;
+    },
+  }),
 };
 
 export default nextConfig;

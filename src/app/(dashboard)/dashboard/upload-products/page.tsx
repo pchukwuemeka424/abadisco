@@ -387,31 +387,7 @@ export default function UploadProduct() {
                         Supported formats: JPG, PNG, WEBP. Max 5MB per image.
                       </p>
                     </div>
-                    
 
-                                      <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-indigo-600 bg-indigo-200">
-                                        {imageAnalysis.qualityScore}/10
-                                      </span>
-                                    </div>
-                                    {imageAnalysis.qualityScore < 5 && (
-                                      <div className="text-xs text-indigo-600">
-                                        Consider using a higher quality image
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="overflow-hidden h-2.5 mt-1.5 text-xs flex rounded-full bg-indigo-200">
-                                    <div 
-                                      style={{ width: `${Math.min(100, Math.max(0, imageAnalysis.qualityScore * 10))}%` }}
-                                      className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-                                    ></div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
 
                     {/* Tags Section with modern styling */}
                     <div>
