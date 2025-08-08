@@ -1,17 +1,26 @@
+#!/usr/bin/env node
+
 import { createClient } from '@supabase/supabase-js';
+import { config } from 'dotenv';
+
+// Load environment variables
+config({ path: '.env.local' });
+
+console.log('🔧 Node.js Version:', process.version);
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('Missing Supabase environment variables');
+  console.error('❌ Missing Supabase environment variables');
+  console.log('Make sure you have NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local');
   process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function testAgentPerformance() {
-  console.log('Testing agent performance tables...');
+  console.log('🧪 Testing agent performance tables...');
 
   try {
     // Test agents table

@@ -13,7 +13,7 @@ const loginSchema = z.object({
 
 export default function LoginPage() {
   // Use explicit redirect base: prefer NEXT_PUBLIC_SITE_URL for production, fallback to Supabase redirect URL or current origin
-  const redirectBase = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL || window.location.origin;
+  const redirectBase = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://aba-directory.vercel.app');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);

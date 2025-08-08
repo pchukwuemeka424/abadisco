@@ -119,7 +119,7 @@ export default function SignUpPage() {
       provider: 'google',
       options: {
         // Send through our OAuth callback to process the hash and then route to dashboard
-        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`
+        redirectTo: `${typeof window !== 'undefined' ? window.location.origin : 'https://aba-directory.vercel.app'}/auth/callback?next=/dashboard`
       }
     });
     if (googleError) {

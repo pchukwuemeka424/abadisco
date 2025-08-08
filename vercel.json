@@ -7,5 +7,13 @@
   },
   "env": {
     "VERCEL_IGNORE_BUILD_ERRORS": "true"
+  },
+  "functions": {
+    "app/api/**/*.js": {
+      "runtime": "nodejs22.x"
+    },
+    "app/api/**/*.ts": {
+      "runtime": "nodejs22.x"
+    }
   }
 }

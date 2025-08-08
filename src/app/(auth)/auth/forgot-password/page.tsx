@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
     try {
       // Implement password reset logic with Supabase
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/update-password`,
+        redirectTo: `${typeof window !== 'undefined' ? window.location.origin : 'https://aba-directory.vercel.app'}/auth/update-password`,
       });
 
       if (error) {

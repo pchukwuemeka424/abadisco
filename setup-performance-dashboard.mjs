@@ -8,6 +8,8 @@ import { config } from 'dotenv';
 // Load environment variables from .env.local
 config({ path: '.env.local' });
 
+console.log('🔧 Node.js Version:', process.version);
+
 // Load environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

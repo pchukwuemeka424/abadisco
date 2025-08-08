@@ -2,10 +2,16 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'fs';
+import { config } from 'dotenv';
+
+// Load environment variables from .env.local
+config({ path: '.env.local' });
+
+console.log('🔧 Node.js Version:', process.version);
 
 // Read environment variables
-const supabaseUrl = 'https://wfhjcblhlsdtxpwuxvgm.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmaGpjYmxobHNkdHhwd3V4dmdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MTgxNjIsImV4cCI6MjA2MTA5NDE2Mn0.obdVVQCGZzUnLR44cJNXXGno6qSnEVOuek84TGL0qlY';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://wfhjcblhlsdtxpwuxvgm.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmaGpjYmxobHNkdHhwd3V4dmdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MTgxNjIsImV4cCI6MjA2MTA5NDE2Mn0.obdVVQCGZzUnLR44cJNXXGno6qSnEVOuek84TGL0qlY';
 
 // Create Supabase client
 const supabase = createClient(supabaseUrl, supabaseKey);

@@ -1,14 +1,24 @@
+#!/usr/bin/env node
+
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
+import { config } from 'dotenv';
+
+// Load environment variables from .env.local for development
+config({ path: '.env.local' });
 
 // Load environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+console.log('🔧 Node.js Version:', process.version);
+console.log('🔧 Environment Setup Check...');
+
 if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('Missing Supabase environment variables');
-    console.log('NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? 'Set' : 'Missing');
-    console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? 'Set' : 'Missing');
+    console.error('❌ Missing Supabase environment variables');
+    console.log('NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
+    console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? '✅ Set' : '❌ Missing');
+    console.log('\n💡 Make sure you have these variables in your .env.local file');
     process.exit(1);
 }
 
