@@ -166,25 +166,15 @@ export default function UploadProduct() {
       if (!bizData) throw new Error("Business not found.");
       const businessId = bizData.id;
 
-      // Include AI-generated data if available
-      const productMetadata = imageAnalysis ? {
-        product_type: imageAnalysis.productType || null,
-        colors: imageAnalysis.colors || null,
-        materials: imageAnalysis.materials || null,
-        quality_score: imageAnalysis.qualityScore || null,
-        visible_text: imageAnalysis.visibleText || null,
-        ai_analyzed: true
-      } : {};
-
-      // Insert into database with tags and AI metadata
+      // Insert into database with tags
       const { data: productData, error: dbError } = await supabase
         .from('products')
         .insert({
           image_urls: imageUrls[0], // Main image
           user_id: businessId,
           owner_id: paramId || user.id,
-          tags: tags.length > 0 ? tags : (suggestedTags.length > 0 ? suggestedTags.slice(0, 5) : null),
-          metadata: productMetadata
+          tags: tags.length > 0 ? tags : null,
+          metadata: {}
         })
         .select()
         .maybeSingle();
@@ -197,8 +187,6 @@ export default function UploadProduct() {
       setFile(null);
       setPreview(null);
       setTags([]);
-      setImageAnalysis(null);
-      setSuggestedTags([]);
       
       setTimeout(() => {
         setShowModal(false);

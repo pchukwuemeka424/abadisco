@@ -16,6 +16,11 @@ interface Business {
   email: string;
   website: string;
   address: string;
+  detected_address?: string;
+  latitude?: number;
+  longitude?: number;
+  location_accuracy?: number;
+  location_timestamp?: string;
   logo_url: string;
   status: string;
   category: string;
@@ -44,6 +49,7 @@ interface BusinessStats {
   active: number;
   pending: number;
   inactive: number;
+  withDetectedAddress: number;
 }
 
 export default function BusinessesPage() {
@@ -54,13 +60,15 @@ export default function BusinessesPage() {
     total: 0,
     active: 0,
     pending: 0,
-    inactive: 0
+    inactive: 0,
+    withDetectedAddress: 0
   });
 
   // UI State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [addressFilter, setAddressFilter] = useState('all');
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -124,6 +132,11 @@ export default function BusinessesPage() {
             contact_phone,
             contact_email,
             address,
+            detected_address,
+            latitude,
+            longitude,
+            location_accuracy,
+            location_timestamp,
             logo_url,
             website,
             facebook,
@@ -172,6 +185,11 @@ export default function BusinessesPage() {
         email: item.contact_email || 'No email available',
         website: item.website || '',
         address: item.address || 'No address available',
+        detected_address: item.detected_address || null,
+        latitude: item.latitude || null,
+        longitude: item.longitude || null,
+        location_accuracy: item.location_accuracy || null,
+        location_timestamp: item.location_timestamp || null,
         logo_url: item.logo_url || '',
         status: item.status || 'active',
         category: 'General', // Will be fetched separately if needed
@@ -212,7 +230,8 @@ export default function BusinessesPage() {
       total: businessesData.length,
       active: businessesData.filter(b => b.status === 'active').length,
       pending: businessesData.filter(b => b.status === 'pending').length,
-      inactive: businessesData.filter(b => b.status === 'inactive').length
+      inactive: businessesData.filter(b => b.status === 'inactive').length,
+      withDetectedAddress: businessesData.filter(b => b.detected_address).length
     };
     setStats(stats);
   };
@@ -225,8 +244,11 @@ export default function BusinessesPage() {
     
     const matchesStatus = statusFilter === 'all' || business.status === statusFilter;
     const matchesCategory = categoryFilter === 'all' || business.category === categoryFilter;
+    const matchesAddress = addressFilter === 'all' || 
+                          (addressFilter === 'detected' && business.detected_address) ||
+                          (addressFilter === 'not_detected' && !business.detected_address);
     
-    return matchesSearch && matchesStatus && matchesCategory;
+    return matchesSearch && matchesStatus && matchesCategory && matchesAddress;
   });
 
   // Pagination
@@ -451,7 +473,7 @@ export default function BusinessesPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <StatsCard
             title="Total Businesses"
             value={stats.total}
@@ -480,11 +502,18 @@ export default function BusinessesPage() {
             color="bg-red-500"
             change="-2%"
           />
+          <StatsCard
+            title="With Detected Address"
+            value={stats.withDetectedAddress}
+            icon={FiMapPin}
+            color="bg-purple-500"
+            change={`${stats.total > 0 ? Math.round((stats.withDetectedAddress / stats.total) * 100) : 0}%`}
+          />
         </div>
 
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Search Businesses</label>
               <div className="relative">
@@ -526,6 +555,19 @@ export default function BusinessesPage() {
                 ))}
               </select>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Address Detection</label>
+              <select
+                value={addressFilter}
+                onChange={(e) => setAddressFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All Addresses</option>
+                <option value="detected">Detected Addresses</option>
+                <option value="not_detected">Not Detected</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -556,6 +598,12 @@ export default function BusinessesPage() {
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Contact
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Address
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Detected Address
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Category
@@ -606,6 +654,22 @@ export default function BusinessesPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{business.email}</div>
                         <div className="text-sm text-gray-500">{business.phone}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 max-w-xs truncate" title={business.address}>
+                          {business.address || 'No address'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 max-w-xs truncate" title={business.detected_address || 'No detected address'}>
+                          {business.detected_address ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              {business.detected_address}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">Not detected</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -671,7 +735,7 @@ export default function BusinessesPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={9} className="px-6 py-4 text-center text-gray-500">
                       {filteredBusinesses.length === 0 && businesses.length > 0
                         ? 'No businesses match your search criteria'
                         : 'No businesses found'
@@ -810,6 +874,31 @@ export default function BusinessesPage() {
                           <dt className="text-sm font-medium text-gray-500">Address</dt>
                           <dd className="text-sm text-gray-900">{selectedBusiness.address || 'Not provided'}</dd>
                         </div>
+                        <div>
+                          <dt className="text-sm font-medium text-gray-500">Detected Address</dt>
+                          <dd className="text-sm text-gray-900">
+                            {selectedBusiness.detected_address ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                {selectedBusiness.detected_address}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">Not detected</span>
+                            )}
+                          </dd>
+                        </div>
+                        {selectedBusiness.latitude && selectedBusiness.longitude && (
+                          <div>
+                            <dt className="text-sm font-medium text-gray-500">Coordinates</dt>
+                            <dd className="text-sm text-gray-900">
+                              {selectedBusiness.latitude}, {selectedBusiness.longitude}
+                              {selectedBusiness.location_accuracy && (
+                                <span className="text-xs text-gray-500 ml-2">
+                                  (±{selectedBusiness.location_accuracy}m accuracy)
+                                </span>
+                              )}
+                            </dd>
+                          </div>
+                        )}
                         <div>
                           <dt className="text-sm font-medium text-gray-500">Market</dt>
                           <dd className="text-sm text-gray-900">{selectedBusiness.market || 'Not specified'}</dd>

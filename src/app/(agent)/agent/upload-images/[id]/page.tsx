@@ -26,6 +26,12 @@ export default function UploadProduct({ params }: { params: Params | Promise<Par
   const { user } = useAuth();
   const router = useRouter();
   
+  // AI Analysis states
+  const [imageAnalysis, setImageAnalysis] = useState<any>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  
 
 
   // Handle file drop
@@ -60,6 +66,31 @@ export default function UploadProduct({ params }: { params: Params | Promise<Par
     setPreviews(newFiles.map(f => URL.createObjectURL(f)));
     
 
+  };
+
+  // AI Image Analysis function
+  const analyzeImage = async () => {
+    if (!files.length) return;
+    
+    setAnalyzing(true);
+    try {
+      // For now, we'll simulate AI analysis with mock data
+      // In a real implementation, you would call an AI service here
+      setTimeout(() => {
+        setImageAnalysis({
+          productType: "Sample Product",
+          colors: "Red, Blue, Green",
+          materials: "Cotton, Polyester",
+          qualityScore: 8.5,
+          visibleText: "Sample text"
+        });
+        setSuggestedTags(["sample", "product", "quality", "modern", "trendy"]);
+        setAnalyzing(false);
+      }, 2000);
+    } catch (error) {
+      console.error("AI analysis failed:", error);
+      setAnalyzing(false);
+    }
   };
 
 
@@ -141,6 +172,9 @@ export default function UploadProduct({ params }: { params: Params | Promise<Par
       setShowModal(true);
       setFiles([]);
       setPreviews([]);
+      setImageAnalysis(null);
+      setSuggestedTags([]);
+      setShowAnalysis(false);
       await fetchGallery(); // Fetch images instantly after upload
       setTimeout(() => {
         setShowModal(false);
