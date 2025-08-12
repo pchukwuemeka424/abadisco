@@ -28,14 +28,50 @@ export default function CategoriesPage() {
     setError(null);
 
     try {
-      // Call the stored function to get categories with stats
-      const { data, error } = await supabase.rpc('admin_get_business_categories_with_stats');
+      // First, try to get categories with stats using the function
+      const { data: functionData, error: functionError } = await supabase.rpc('admin_get_business_categories_with_stats');
 
-      if (error) {
-        throw new Error(error.message);
+      if (functionError) {
+        console.warn('Function call failed, falling back to direct query:', functionError);
+        
+        // Fallback: Direct query to get categories with stats
+        const { data, error } = await supabase
+          .from('business_categories')
+          .select(`
+            *,
+            business_categories_stats (
+              total_businesses,
+              total_views,
+              total_clicks
+            )
+          `)
+          .order('title');
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        // Transform the data to match the expected Category interface
+        const transformedData = data?.map(category => ({
+          id: category.id,
+          title: category.title,
+          description: category.description,
+          image_path: category.image_path,
+          icon_type: category.icon_type,
+          count: category.count || 0,
+          link_path: category.link_path,
+          total_businesses: category.business_categories_stats?.[0]?.total_businesses || 0,
+          total_views: category.business_categories_stats?.[0]?.total_views || 0,
+          total_clicks: category.business_categories_stats?.[0]?.total_clicks || 0,
+          created_at: category.created_at,
+          updated_at: category.updated_at
+        })) || [];
+
+        setCategories(transformedData);
+      } else {
+        // Use the function data if available
+        setCategories(functionData as Category[]);
       }
-
-      setCategories(data as Category[]);
     } catch (err) {
       console.error('Error fetching categories:', err);
       setError('Failed to load categories. Please try again later.');
@@ -47,63 +83,69 @@ export default function CategoriesPage() {
   const updateCategoryCounts = async () => {
     setIsLoading(true);
     try {
-      // First, get all categories
-      const { data: categories, error: categoriesError } = await supabase
-        .from('business_categories')
-        .select('id, title');
+      // Call the update function to refresh counts
+      const { error: updateError } = await supabase.rpc('update_business_category_counts');
       
-      if (categoriesError) throw new Error(categoriesError.message);
-      
-      // For each category, count the businesses
-      for (const category of categories) {
-        // Count businesses in this category
-        const { count, error: countError } = await supabase
-          .from('businesses')
-          .select('id', { count: 'exact', head: true })
-          .eq('category_id', category.id);
+      if (updateError) {
+        console.warn('Update function failed, using manual update:', updateError);
         
-        if (countError) throw new Error(countError.message);
-        
-        // Update the count in the category table
-        const { error: updateError } = await supabase
+        // Manual fallback update
+        const { data: categories, error: categoriesError } = await supabase
           .from('business_categories')
-          .update({ count: count || 0 })
-          .eq('id', category.id);
+          .select('id, title');
         
-        if (updateError) throw new Error(updateError.message);
+        if (categoriesError) throw new Error(categoriesError.message);
         
-        // Check if we have a stats record, if not create one
-        const { data: statsData, error: statsError } = await supabase
-          .from('business_categories_stats')
-          .select('*')
-          .eq('category_id', category.id);
-        
-        if (statsError) throw new Error(statsError.message);
-        
-        if (!statsData || statsData.length === 0) {
-          // Create stats record
-          const { error: insertError } = await supabase
-            .from('business_categories_stats')
-            .insert({
-              category_id: category.id,
-              total_businesses: count || 0,
-              total_views: 0,
-              total_clicks: 0,
-              last_updated: new Date().toISOString()
-            });
-          
-          if (insertError) throw new Error(insertError.message);
-        } else {
-          // Update existing stats record
-          const { error: updateStatsError } = await supabase
-            .from('business_categories_stats')
-            .update({
-              total_businesses: count || 0,
-              last_updated: new Date().toISOString()
-            })
+        // For each category, count the businesses
+        for (const category of categories) {
+          const { count, error: countError } = await supabase
+            .from('businesses')
+            .select('id', { count: 'exact', head: true })
             .eq('category_id', category.id);
           
-          if (updateStatsError) throw new Error(updateStatsError.message);
+          if (countError) throw new Error(countError.message);
+          
+          // Update the count in the category table
+          const { error: updateError } = await supabase
+            .from('business_categories')
+            .update({ count: count || 0 })
+            .eq('id', category.id);
+          
+          if (updateError) throw new Error(updateError.message);
+          
+          // Update or create stats record
+          const { data: statsData, error: statsError } = await supabase
+            .from('business_categories_stats')
+            .select('*')
+            .eq('category_id', category.id);
+          
+          if (statsError) throw new Error(statsError.message);
+          
+          if (!statsData || statsData.length === 0) {
+            // Create stats record
+            const { error: insertError } = await supabase
+              .from('business_categories_stats')
+              .insert({
+                category_id: category.id,
+                total_businesses: count || 0,
+                total_views: 0,
+                total_clicks: 0,
+                last_updated: new Date().toISOString()
+              });
+            
+            if (insertError) throw new Error(insertError.message);
+          } else {
+            // Update existing stats record
+            const { error: updateStatsError } = await supabase
+              .from('business_categories_stats')
+              .update({
+                total_businesses: count || 0,
+                last_updated: new Date().toISOString()
+              })
+              .eq('category_id', category.id);
+            
+            if (updateStatsError) throw new Error(updateStatsError.message);
+          }
         }
       }
       
@@ -145,10 +187,27 @@ export default function CategoriesPage() {
           p_link_path: category.link_path || ''
         });
 
-        if (error) throw new Error(error.message);
+        if (error) {
+          console.warn('Update function failed, using direct update:', error);
+          
+          // Fallback: Direct update
+          const { error: directError } = await supabase
+            .from('business_categories')
+            .update({
+              title: category.title,
+              description: category.description,
+              image_path: category.image_path,
+              icon_type: category.icon_type || '',
+              link_path: category.link_path || '',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', category.id);
+
+          if (directError) throw new Error(directError.message);
+        }
       } else {
         // Create new category
-        const { error } = await supabase.rpc('admin_create_business_category', {
+        const { data, error } = await supabase.rpc('admin_create_business_category', {
           p_title: category.title,
           p_description: category.description,
           p_image_path: category.image_path,
@@ -156,7 +215,23 @@ export default function CategoriesPage() {
           p_link_path: category.link_path || ''
         });
 
-        if (error) throw new Error(error.message);
+        if (error) {
+          console.warn('Create function failed, using direct insert:', error);
+          
+          // Fallback: Direct insert
+          const { error: directError } = await supabase
+            .from('business_categories')
+            .insert({
+              title: category.title,
+              description: category.description,
+              image_path: category.image_path,
+              icon_type: category.icon_type || '',
+              link_path: category.link_path || '',
+              count: 0
+            });
+
+          if (directError) throw new Error(directError.message);
+        }
       }
 
       // Refresh categories
@@ -177,7 +252,24 @@ export default function CategoriesPage() {
       });
 
       if (error) {
-        throw new Error(error.message);
+        console.warn('Delete function failed, using direct delete:', error);
+        
+        // Fallback: Direct delete
+        // First delete stats
+        const { error: statsError } = await supabase
+          .from('business_categories_stats')
+          .delete()
+          .eq('category_id', categoryToDelete);
+
+        if (statsError) throw new Error(statsError.message);
+
+        // Then delete category
+        const { error: deleteError } = await supabase
+          .from('business_categories')
+          .delete()
+          .eq('id', categoryToDelete);
+
+        if (deleteError) throw new Error(deleteError.message);
       }
 
       // Refresh categories
@@ -186,10 +278,8 @@ export default function CategoriesPage() {
       setCategoryToDelete(null);
     } catch (err: any) {
       console.error('Error deleting category:', err);
-      // Improved error handling to ensure we always have a meaningful message
       const errorMessage = err.message || (err.details ? err.details : 'Unknown error occurred');
       setError(`Failed to delete category: ${errorMessage}`);
-      // Remove alert and use the error state instead
     } finally {
       setIsDeleting(false);
     }
@@ -203,6 +293,25 @@ export default function CategoriesPage() {
           Manage the business categories displayed on the marketplace
         </p>
       </div>
+      
+      {error && (
+        <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <FaInfoCircle className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+              <button
+                onClick={() => setError(null)}
+                className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       <CategoryStats />
 

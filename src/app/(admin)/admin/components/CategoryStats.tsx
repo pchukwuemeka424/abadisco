@@ -28,15 +28,72 @@ export default function CategoryStats() {
     setError(null);
 
     try {
-      // Call the stored function to get category statistics
-      const { data, error } = await supabase.rpc('get_business_categories_stats');
+      // Try to call the stored function first
+      const { data: functionData, error: functionError } = await supabase.rpc('get_business_categories_stats');
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (functionError) {
+        console.warn('Function call failed, calculating stats manually:', functionError);
+        
+        // Fallback: Calculate stats manually
+        const { data: categories, error: categoriesError } = await supabase
+          .from('business_categories')
+          .select(`
+            *,
+            business_categories_stats (
+              total_businesses
+            )
+          `);
 
-      if (data) {
-        setStats(data as CategoryStats);
+        if (categoriesError) {
+          throw new Error(categoriesError.message);
+        }
+
+        if (categories && categories.length > 0) {
+          const totalCategories = categories.length;
+          const activeCategories = categories.filter(cat => 
+            cat.business_categories_stats?.[0]?.total_businesses > 0 || cat.count > 0
+          ).length;
+
+          // Find most popular category
+          const mostPopular = categories.reduce((max, cat) => {
+            const count = cat.business_categories_stats?.[0]?.total_businesses || cat.count || 0;
+            const maxCount = max.business_categories_stats?.[0]?.total_businesses || max.count || 0;
+            return count > maxCount ? cat : max;
+          });
+
+          // Find newest category
+          const newest = categories.reduce((latest, cat) => {
+            return new Date(cat.created_at) > new Date(latest.created_at) ? cat : latest;
+          });
+
+          const manualStats: CategoryStats = {
+            total_categories: totalCategories,
+            active_categories: activeCategories,
+            most_popular_category: mostPopular.title,
+            most_popular_category_count: mostPopular.business_categories_stats?.[0]?.total_businesses || mostPopular.count || 0,
+            newest_category: newest.title,
+            newest_category_date: newest.created_at
+          };
+
+          setStats(manualStats);
+        } else {
+          // No categories found
+          setStats({
+            total_categories: 0,
+            active_categories: 0,
+            most_popular_category: 'None',
+            most_popular_category_count: 0,
+            newest_category: 'None',
+            newest_category_date: ''
+          });
+        }
+      } else {
+        // Use the function data if available
+        if (functionData) {
+          // Handle both object and array responses
+          const statsData = Array.isArray(functionData) ? functionData[0] : functionData;
+          setStats(statsData as CategoryStats);
+        }
       }
     } catch (err) {
       console.error('Error fetching category stats:', err);
@@ -68,6 +125,12 @@ export default function CategoryStats() {
           </div>
           <div className="ml-3">
             <p className="text-sm text-red-700">{error}</p>
+            <button
+              onClick={fetchCategoryStats}
+              className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+            >
+              Retry
+            </button>
           </div>
         </div>
       </div>

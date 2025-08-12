@@ -74,6 +74,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, category }: Cat
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   
   useEffect(() => {
     if (category) {
@@ -101,6 +102,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, category }: Cat
       setImageFile(null);
     }
     setErrors({});
+    setUploadProgress(0);
   }, [category, isOpen]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -127,6 +129,19 @@ export default function CategoryModal({ isOpen, onClose, onSave, category }: Cat
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setErrors((prev) => ({ ...prev, image_path: 'Please select a valid image file' }));
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors((prev) => ({ ...prev, image_path: 'Image file size must be less than 5MB' }));
+        return;
+      }
+      
       setImageFile(file);
       
       // Create preview URL
@@ -164,25 +179,40 @@ export default function CategoryModal({ isOpen, onClose, onSave, category }: Cat
   const uploadImage = async () => {
     if (!imageFile) return formData.image_path;
     
-    const fileExt = imageFile.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-    const filePath = `${fileName}.${fileExt}`;
-    
-    // Upload to the "category" bucket instead of "public"
-    const { error: uploadError, data } = await supabase.storage
-      .from('category')
-      .upload(filePath, imageFile);
+    try {
+      setUploadProgress(10);
       
-    if (uploadError) {
-      throw new Error(`Error uploading image: ${uploadError.message}`);
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      
+      setUploadProgress(30);
+      
+      // Upload to the "category" bucket
+      const { error: uploadError, data } = await supabase.storage
+        .from('category')
+        .upload(fileName, imageFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+        
+      if (uploadError) {
+        throw new Error(`Error uploading image: ${uploadError.message}`);
+      }
+      
+      setUploadProgress(70);
+      
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('category')
+        .getPublicUrl(fileName);
+        
+      setUploadProgress(100);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
     }
-    
-    // Get the public URL from the "category" bucket
-    const { data: { publicUrl } } = supabase.storage
-      .from('category')
-      .getPublicUrl(filePath);
-      
-    return publicUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -191,6 +221,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, category }: Cat
     if (!validateForm()) return;
     
     setIsLoading(true);
+    setUploadProgress(0);
     
     try {
       // Handle image upload if there's a new file
@@ -208,11 +239,13 @@ export default function CategoryModal({ isOpen, onClose, onSave, category }: Cat
       
       await onSave(categoryToSave);
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving category:', error);
-      alert('Failed to save category. Please try again.');
+      const errorMessage = error.message || 'Failed to save category. Please try again.';
+      setErrors((prev) => ({ ...prev, general: errorMessage }));
     } finally {
       setIsLoading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -233,6 +266,12 @@ export default function CategoryModal({ isOpen, onClose, onSave, category }: Cat
             <FaTimes size={20} />
           </button>
         </div>
+        
+        {errors.general && (
+          <div className="mx-4 mt-4 bg-red-50 border-l-4 border-red-500 p-4 rounded">
+            <p className="text-sm text-red-700">{errors.general}</p>
+          </div>
+        )}
         
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -383,6 +422,18 @@ export default function CategoryModal({ isOpen, onClose, onSave, category }: Cat
                   </div>
                 )}
                 
+                {uploadProgress > 0 && uploadProgress < 100 && (
+                  <div className="mb-4">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Uploading... {uploadProgress}%</p>
+                  </div>
+                )}
+                
                 <label
                   htmlFor="image"
                   className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
@@ -406,7 +457,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, category }: Cat
                 )}
                 
                 <p className="mt-2 text-xs text-gray-500">
-                  Recommended size: 800x600px. PNG or JPG format.
+                  Recommended size: 800x600px. PNG or JPG format. Max 5MB.
                 </p>
               </div>
             </div>
